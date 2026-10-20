@@ -6,7 +6,7 @@ export const REGIONS = [
   { name: 'Venom Marsh', x: 3400, y: 3200, r: 800, color: '#6f8240' }
 ];
 export const regionAt = p => REGIONS.slice(1).find(r => Math.hypot(p.x-r.x,p.y-r.y)<r.r) || REGIONS[0];
-export const CHESTS = Array.from({length:24},(_,i)=>({x:i===0?2500:300+(i*719)%4200,y:i===0?1900:300+(i*1093)%3400,r:28,height:43,type:'chest'}));
+export const CHESTS = []; // Chests now drop dynamically from enemies; they are not solid scenery.
 const center={x:2400,y:2000};
 function segmentDistance(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy)));return Math.hypot(p.x-a.x-dx*t,p.y-a.y-dy*t);}
 let seed=47382;
@@ -76,12 +76,14 @@ export function findFree(p,r=13,obstacles=SOLIDS){
   }
   return initial;
 }
-export function projectileBlocked(a,b,obstacles=SOLIDS){
-  const dx=b.x-a.x,dy=b.y-a.y,length2=dx*dx+dy*dy;
-  for(const o of near({x:(a.x+b.x)/2,y:(a.y+b.y)/2},Math.sqrt(length2)/2+3,obstacles)){
-    if((o.height||100)<=50)continue;
-    const t=length2?Math.max(0,Math.min(1,((o.x-a.x)*dx+(o.y-a.y)*dy)/length2)):0;
-    if(Math.hypot(a.x+dx*t-o.x,a.y+dy*t-o.y)<o.r+3)return true;
-  }
-  return false;
+export function segmentHit(a,b,body,padding=0){
+  const dx=b.x-a.x,dy=b.y-a.y,ox=a.x-body.x,oy=a.y-body.y,r=body.r+padding,A=dx*dx+dy*dy,C=ox*ox+oy*oy-r*r;
+  if(C<=0)return 0;if(!A)return Infinity;const B=2*(ox*dx+oy*dy),D=B*B-4*A*C;if(D<0)return Infinity;
+  const t=(-B-Math.sqrt(D))/(2*A);return t>=0&&t<=1?t:Infinity;
 }
+export function firstObstacleHit(a,b,obstacles=SOLIDS){
+  const length=Math.hypot(b.x-a.x,b.y-a.y);let first=Infinity;
+  for(const o of near({x:(a.x+b.x)/2,y:(a.y+b.y)/2},length/2+3,obstacles))if((o.height||100)>50)first=Math.min(first,segmentHit(a,b,o,3));
+  return first;
+}
+export function projectileBlocked(a,b,obstacles=SOLIDS){return firstObstacleHit(a,b,obstacles)<=1;}

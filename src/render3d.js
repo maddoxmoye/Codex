@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WORLD, REGIONS } from './game.js';
+import { WORLD, REGIONS, CHARACTERS } from './game.js';
 import { SCENERY, SOLIDS } from './world.js';
 
 // A perspective camera follows the ranger through a continuous, explorable world.
@@ -30,6 +30,8 @@ export function create3DRenderer(canvas, game) {
   const mat = (color, extra = {}) => { const m = new THREE.MeshStandardMaterial({ color, roughness: .86, flatShading: true, ...extra }); materials.push(m); return m; };
   const glowing = color => mat(color, { emissive: color, emissiveIntensity: 1.4 });
   const sphere = geometry(new THREE.IcosahedronGeometry(1, 0));
+  const disc=geometry(new THREE.CircleGeometry(1,48));
+  const crescent=geometry(new THREE.TorusGeometry(.3,.045,5,28,Math.PI*1.55));
   const box = geometry(new THREE.BoxGeometry(1, 1, 1));
   const cone = geometry(new THREE.ConeGeometry(1, 1, 7));
   const cylinder = geometry(new THREE.CylinderGeometry(1, 1, 1, 8));
@@ -158,9 +160,47 @@ export function create3DRenderer(canvas, game) {
     if(element!=='physical')mesh(g,sphere,tip,0,0,-.06,.035,.035,.19,false);
     return g;
   }
+  const effectMaterial=(color,extra={})=>{const m=new THREE.MeshBasicMaterial({color,toneMapped:false,...extra});materials.push(m);return m;};
+  const fxColors=Object.fromEntries(Object.entries({wind:'#70dcff',hare:'#9aeb84',shell:'#ffd06e',bramble:'#85da59',worldroot:'#81c953',rapid:'#ffca55',moon:'#c79aff',flock:'#8fdefa',thunder:'#72cfff',lightning:'#99e7ff',phoenix:'#ff9852',harvest:'#85e38b',howl:'#a7dcff',claw:'#fff0cd',echo:'#d19cff',embers:'#ff8f44','enemy-blast':'#ff526b','hex-blast':'#de5fff'}).map(([key,color])=>[key,effectMaterial(color)]));
   const player = makeWayfarer(); scene.add(player);
-  const skillShell=mesh(scene,sphere,mat('#ffdb81',{transparent:true,opacity:.26,wireframe:true,depthWrite:false}),0,0,0,.6,.75,.6,false);
-  const offensiveAura=flatRing(scene,mat('#cfb0ff',{transparent:true,opacity:.8,depthWrite:false}),.42,.035);
+  const skillShell=mesh(scene,sphere,effectMaterial('#ffd06e',{transparent:true,opacity:.4,wireframe:true,depthWrite:false}),0,0,0,.6,.75,.6,false);
+  const thornAura=new THREE.Group();scene.add(thornAura);
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;const thorn=mesh(thornAura,cone,fxColors.bramble,Math.cos(a)*.53,.15,Math.sin(a)*.53,.055,.35,.055,false);thorn.rotation.z=Math.cos(a)*.4;}
+  const sprintAura=new THREE.Group();scene.add(sprintAura);
+  for(const x of [-.22,0,.22]){const ribbon=mesh(sprintAura,cone,fxColors.hare,x,.16,-.35,.045,.8,.045,false);ribbon.rotation.x=-Math.PI/2;}
+  const rapidAura=new THREE.Group();scene.add(rapidAura);
+  for(let i=0;i<6;i++){const a=i*Math.PI/3,arrow=makeArrow('physical');arrow.position.set(Math.cos(a)*.65,.65+Math.sin(a)*.15,Math.sin(a)*.65);arrow.rotation.y=-a;rapidAura.add(arrow);}
+  const moonAura=mesh(scene,crescent,fxColors.moon,0,0,0,.9,.9,.9,false);
+  const dawnAura=new THREE.Group();scene.add(dawnAura);
+  for(let i=0;i<3;i++){const sun=mesh(dawnAura,sphere,fxColors.shell,0,.55,0,.14,.14,.14,false);flatRing(sun,colors.fire,1.4,.025);}
+  const dangerMaterial=effectMaterial('#ff3d51',{transparent:true,opacity:.95,depthWrite:false});
+  const dangerFill=effectMaterial('#ff3d51',{transparent:true,opacity:.3,depthWrite:false});
+  function makeEffect(e){
+    const g=new THREE.Group(),material=fxColors[e.type]||(e.element==='fire'?colors.fire:e.element==='ice'?colors.ice:e.element==='poison'?colors.poison:colors.gold);
+    if(['lightning','thunder'].includes(e.type)){
+      flatRing(g,material,1,.035);
+      for(let i=0;i<6;i++){const bolt=mesh(g,box,material,(i%2?.12:-.12),i*.55,0,.08,.75,.07,false);bolt.rotation.z=i%2?.4:-.4;}
+    }else if(['bramble','worldroot'].includes(e.type)){
+      flatRing(g,material,1,.025);for(let i=0;i<12;i++){const a=i*Math.PI/6,thorn=mesh(g,cone,material,Math.cos(a)*.75,.18,Math.sin(a)*.75,.07,.6,.07,false);thorn.rotation.z=Math.cos(a)*.55;const root=mesh(g,box,colors.wood,Math.cos(a)*.45,.02,Math.sin(a)*.45,.04,.04,.8,false);root.rotation.y=-a+Math.PI/2;}
+    }else if(e.type==='quake'){
+      for(const r of [.35,.65,1])flatRing(g,material,r,.025);for(let i=0;i<12;i++){const a=i*Math.PI/6;mesh(g,crystal,material,Math.cos(a)*.85,.2,Math.sin(a)*.85,.1,.5,.1,false);}
+    }else if(e.type==='moon'){
+      mesh(g,crescent,material,0,1.5,0,1.3,1.3,1.3,false);for(let i=0;i<8;i++)mesh(g,crystal,material,Math.cos(i)*.9,.4,Math.sin(i)*.9,.04,.07,.04,false);
+    }else if(e.type==='phoenix'){
+      flatRing(g,material,1,.035);for(let i=0;i<14;i++){const a=i/13*Math.PI,wing=mesh(g,cone,i%2?colors.gold:colors.fire,Math.cos(a)*.6,.5+Math.sin(a)*.5,0,.08,.7,.08,false);wing.rotation.z=a-Math.PI/2;}
+    }else if(['flock','rapid'].includes(e.type)){
+      for(let i=0;i<8;i++){const a=i*Math.PI/4;for(const side of [-1,1]){const wing=mesh(g,box,material,Math.cos(a)*.7+side*.09,.25,Math.sin(a)*.7,.2,.035,.04,false);wing.rotation.z=side*.6;}}
+    }else if(e.type==='claw'){
+      for(const x of [-.25,0,.25]){const claw=mesh(g,box,material,x,.25,0,.05,.05,1.2,false);claw.rotation.y=.6;}
+    }else if(['wind','hare','echo'].includes(e.type)){
+      for(let i=0;i<5;i++){const streak=mesh(g,cone,material,Math.cos(i*1.2)*.4,.1,Math.sin(i*1.2)*.4,.055,.7,.055,false);streak.rotation.x=Math.PI/2;streak.rotation.z=i*.6;}
+    }else if(['nova','shell','howl','enemy-blast','hex-blast','harvest'].includes(e.type)){
+      for(const r of [.55,1])flatRing(g,material,r,.035);
+      if(e.type==='enemy-blast'||e.type==='hex-blast')for(let i=0;i<8;i++)mesh(g,crystal,material,Math.cos(i)*.7,.25,Math.sin(i)*.7,.07,.4,.07,false);
+      if(e.type==='shell')mesh(g,sphere,material,0,.3,0,.35,.35,.35,false);
+    }else for(let i=0;i<7;i++)mesh(g,e.element==='ice'?crystal:sphere,material,Math.cos(i)*.65,.3+(i%3)*.15,Math.sin(i)*.65,.08,.08,.08,false);
+    return g;
+  }
   const playerHalo = flatRing(scene, mat('#d2e89b', { transparent: true, opacity: .55 }), .24, .025);
   function makeEnemy(e) {
     const group = new THREE.Group(), body = new THREE.Group(); group.add(body); group.userData.body = body;
@@ -190,6 +230,20 @@ export function create3DRenderer(canvas, game) {
         mesh(body, cone, colors.gold, Math.cos(a) * .25, 1.47, Math.sin(a) * .25, .075, .4, .075);
       }
       for (const x of [-.5, .5]) mesh(body, crystal, colors.xp, x, .75, 0, .12, .23, .12);
+    } else if(e.kind==='boar'){
+      mesh(body,sphere,colors.wood,0,.24,0,.3,.23,.4);mesh(body,box,colors.mushroom,0,.24,.37,.24,.17,.2);
+      for(const x of [-.14,.14]){mesh(body,cone,colors.feather,x,.23,.46,.045,.22,.045);mesh(body,cone,colors.wood,x,.5,.15,.08,.16,.08);}
+      for(const x of [-.2,.2])for(const z of [-.2,.2])mesh(body,box,colors.dark,x,.08,z,.08,.15,.08);
+    } else if(e.kind==='archer'){
+      mesh(body,box,colors.leather,0,.26,0,.22,.4,.18);mesh(body,sphere,colors.feather,0,.54,0,.13);
+      mesh(body,cone,colors.void,0,.7,0,.2,.25,.2);const bow=mesh(body,bowGeo,colors.gold,.27,.32,.1);bow.rotation.z=-Math.PI/2;
+      for(const x of [-.1,.1])mesh(body,box,colors.dark,x,.07,0,.08,.18,.1);
+    } else if(e.kind==='shaman'){
+      mesh(body,cone,colors.void,0,.3,0,.3,.65,.25);mesh(body,sphere,colors.poison,0,.66,0,.12);mesh(body,cylinder,colors.wood,.28,.4,0,.025,.8,.025);mesh(body,crystal,colors.poison,.28,.9,0,.12);
+      flatRing(body,colors.poison,.32,.025);
+    } else if(e.kind==='bomber'){
+      mesh(body,sphere,colors.hostile,0,.25,0,.25,.3,.25);mesh(body,sphere,colors.fire,.22,.42,.15,.13);mesh(body,cone,colors.gold,.22,.62,.15,.025,.16,.025);
+      for(const x of [-.15,.15])mesh(body,box,colors.dark,x,.06,0,.1,.13,.15);
     } else if (e.kind === 'wisp') {
       mesh(body, sphere, material, 0, .31, 0, .13, .17, .13);
       mesh(body, cone, material, 0, .1, 0, .1, .25, .1).rotation.z = Math.PI;
@@ -200,7 +254,7 @@ export function create3DRenderer(canvas, game) {
         mesh(body, box, material, x, r * .5, .05, .065, .1, .22).rotation.z = x;
       }
     }
-    const eyeY = boss ? (e.tier === 1 ? 1.02 : e.tier === 2 ? .9 : 1.1) : e.kind === 'wisp' ? .35 : e.kind === 'brute' ? .28 : .19;
+    const eyeY = boss ? (e.tier === 1 ? 1.02 : e.tier === 2 ? .9 : 1.1) : ['archer','shaman'].includes(e.kind)?.58:e.kind==='boar'?.29:e.kind==='bomber'?.36:e.kind === 'wisp' ? .35 : e.kind === 'brute' ? .28 : .19;
     for (const x of [-1, 1]) mesh(body, sphere, colors.eyes, x * (boss ? .09 : .04), eyeY, boss ? .26 : e.kind === 'brute' ? .18 : .12, boss ? .035 : .018);
     if (boss) {
       const ground = flatRing(group, [colors.gold, colors.xp, colors.hostile][e.tier - 1], .62, .035); group.userData.halo = ground;
@@ -208,11 +262,11 @@ export function create3DRenderer(canvas, game) {
       const lane = mesh(group, box, chargeMaterial, 0, .035, 0, .48, .02, 2.3, false); lane.visible = false; group.userData.lane = lane;
     }
     const status=new THREE.Group();group.add(status);group.userData.status=status;
-    for(const material of [colors.fire,colors.ice,colors.poison])flatRing(status,material,boss?.48:.17,.04);
+    for(const material of [colors.fire,colors.ice,colors.poison,colors.gold])flatRing(status,material,boss?.48:.17,.04);
     return group;
   }
   // Object-keyed meshes survive frames, and share reusable geometry/materials.
-  const enemyMeshes = new Map(), pickupMeshes = new Map(), boltMeshes = new Map(), effectMeshes = new Map(), petMeshes=new Map(), chestMeshes=new Map();
+  const enemyMeshes = new Map(), pickupMeshes = new Map(), boltMeshes = new Map(), effectMeshes = new Map(), petMeshes=new Map(), chestMeshes=new Map(),hazardMeshes=new Map();
   function sync(map, objects, create, update) {
     const alive = new Set(objects);
     for (const [object, m] of map) if (!alive.has(object)) { scene.remove(m); map.delete(object); }
@@ -226,7 +280,7 @@ export function create3DRenderer(canvas, game) {
   // Instanced fireflies use one draw call.
   const flies = new THREE.InstancedMesh(sphere, colors.gold, 24); scene.add(flies);
   const transform = new THREE.Object3D();
-  let width = 0, height = 0, facing = 0, lastTime=0;
+  let width = 0, height = 0, facing = 0, lastTime=0,characterId=null;
   function render(time) {
     const w = Math.max(1, Math.round(canvas.clientWidth)), h = Math.max(1, Math.round(canvas.clientHeight));
     if (w !== width || h !== height) {
@@ -235,12 +289,17 @@ export function create3DRenderer(canvas, game) {
     }
     const p=game.player, dt=Math.min(.25,lastTime?time-lastTime:.016);lastTime=time;
     const px=(p.x-WORLD.width/2)/100,pz=(p.y-WORLD.height/2)/100;
+    if(characterId!==game.character){characterId=game.character;const c=CHARACTERS.find(c=>c.id===characterId);colors.cape.color.set(c.color);colors.hood.color.set(c.hood);}
     player.position.set(px,.02,pz);
     const targetAngle=p.shotTime>0?Math.atan2(p.aimX,p.aimY):Math.atan2(p.dx,p.dy);
     facing+=Math.atan2(Math.sin(targetAngle-facing),Math.cos(targetAngle-facing))*(1-Math.exp(-dt*14));
     player.rotation.y=facing;player.visible=!(p.invincible>0&&p.spaceTime<=0&&Math.floor(time*16)%2);
-    skillShell.visible=p.spaceTime>0&&['shield','repel'].includes(game.loadout.space);skillShell.position.set(px,.6,pz);skillShell.rotation.y=time*.9;skillShell.scale.setScalar(.65+Math.sin(time*6)*.025);
-    offensiveAura.visible=p.rapidTime>0||p.furyTime>0;offensiveAura.position.set(px,.05,pz);offensiveAura.scale.setScalar(.4+Math.sin(time*8)*.04);
+    skillShell.visible=p.spaceTime>0&&game.loadout.space==='shield';skillShell.position.set(px,.6,pz);skillShell.rotation.y=time*.9;skillShell.scale.setScalar(.65+Math.sin(time*6)*.025);
+    thornAura.visible=p.spaceTime>0&&game.loadout.space==='repel';thornAura.position.set(px,0,pz);thornAura.rotation.y=time;
+    sprintAura.visible=p.spaceTime>0&&game.loadout.space==='sprint';sprintAura.position.set(px,0,pz);sprintAura.rotation.y=facing;
+    rapidAura.visible=p.rapidTime>0;rapidAura.position.set(px,0,pz);rapidAura.rotation.y=time*5;
+    moonAura.visible=p.furyTime>0;moonAura.position.set(px,1.65,pz);moonAura.lookAt(camera.position);moonAura.rotation.z-=.6;
+    dawnAura.visible=!!p.orbit;dawnAura.position.set(px,0,pz);dawnAura.children.forEach((sun,i)=>{sun.position.x=Math.cos(time*2+i*Math.PI*2/3);sun.position.z=Math.sin(time*2+i*Math.PI*2/3);});
     const step=p.moving?Math.sin(game.time*13)*.55:0;
     player.userData.legs[0].rotation.x=step;player.userData.legs[1].rotation.x=-step;
     player.userData.hips.position.y=p.moving?Math.abs(Math.sin(game.time*13))*.025:0;
@@ -272,9 +331,9 @@ export function create3DRenderer(canvas, game) {
     campFlame.scale.y=.4+Math.sin(time*7)*.05;
     sync(enemyMeshes, game.enemies, makeEnemy, (m, e) => {
       m.scale.setScalar(e.kind==='boss'?1:1.8);
-      m.rotation.y = Math.atan2(p.x - e.x, p.y - e.y);
+      m.rotation.y = e.charge>0?Math.atan2(e.cx,e.cy):Math.atan2(p.x - e.x, p.y - e.y);
       m.userData.body.position.y = Math.sin(time * (e.kind === 'wisp' ? 4 : 7) + e.x) * (e.kind === 'wisp' ? .08 : .015);
-      m.userData.status.children.forEach((a,i)=>{a.visible=i===0?e.burn>0:i===1?e.slow>0:e.poison>0;});
+      m.userData.status.children.forEach((a,i)=>{a.visible=i===0?e.burn>0:i===1?e.slow>0:i===2?e.poison>0:e.guard>0;});
       if (e.slow > 0) m.userData.body.scale.setScalar(.94 + Math.sin(time * 8) * .03); else m.userData.body.scale.setScalar(1);
       if (m.userData.halo) m.userData.halo.scale.setScalar(.6 + Math.sin(time * 2) * .04);
       if (m.userData.lane) {
@@ -290,10 +349,20 @@ export function create3DRenderer(canvas, game) {
       if (i.kind === 'coin') m.rotation.x = Math.PI / 2;
       return g;
     }, (m, i) => { m.position.y = .16 + Math.sin(time * 3 + i.x) * .045; m.rotation.y = time * 1.8; });
-    sync(boltMeshes,[...game.bullets,...game.hostile],b=>game.hostile.includes(b)?new THREE.Mesh(crystal,colors.hostile):makeArrow(b.element,b.kind==='pet'),(m,b)=>{
-      m.position.y=b.kind==='pet'?.4:.57;m.rotation.y=Math.atan2(b.vx,b.vy);
-      if(game.hostile.includes(b)){m.scale.setScalar(.09);m.rotation.z=time*4;}
-    });
+    sync(boltMeshes,[...game.bullets,...game.hostile],b=>{
+      if(game.hostile.includes(b)){
+        if(b.style==='arrow'){const g=makeArrow('fire');g.scale.setScalar(1.3);return g;}
+        const g=new THREE.Group();mesh(g,crystal,colors.hostile,0,0,0,.09);for(let i=1;i<4;i++)mesh(g,sphere,colors.hostile,0,0,-i*.07,.055/i);return g;
+      }
+      if(b.style==='flock'){
+        const g=new THREE.Group();mesh(g,cone,colors.ice,0,0,.12,.035,.2,.035,false).rotation.x=Math.PI/2;
+        for(const side of [-1,1]){const wing=mesh(g,box,colors.feather,side*.12,0,0,.25,.025,.09,false);wing.rotation.z=side*.5;}
+        return g;
+      }
+      const g=makeArrow(b.element,b.kind==='pet');
+      if(b.style==='moon'||b.style==='rapid'||b.pierceLeft){const trail=mesh(g,box,b.pierceLeft?fxColors.wind:b.style==='moon'?fxColors.moon:fxColors.rapid,0,0,-.35,.025,.025,.5,false);g.userData.trail=trail;}
+      return g;
+    },(m,b)=>{m.position.y=b.kind==='pet'?.4:.57;m.rotation.y=Math.atan2(b.vx,b.vy);if(b.style==='flock')for(const [i,wing] of m.children.entries())if(i)wing.rotation.z=(i===1?-1:1)*Math.sin(time*24)*.7;});
     sync(petMeshes,game.pets,p=>{
       const g=new THREE.Group(),material=p.kind==='fox'?colors.mushroom:colors.stone;
       if(p.kind==='collector'){
@@ -310,17 +379,23 @@ export function create3DRenderer(canvas, game) {
       return g;
     },(m,p)=>{m.rotation.y=Math.atan2(p.aimX||0,p.aimY||1);m.position.y=Math.sin(time*(p.kind==='collector'?12:9))*.025;if(m.userData.orb)m.userData.orb.material=p.kind==='fox'?colors.gold:colors.ice;});
     sync(chestMeshes,game.chests,c=>{
-      const g=new THREE.Group();mesh(g,box,colors.wood,0,.17,0,.44,.3,.32);const lid=mesh(g,box,colors.gold,0,.34,0,.46,.09,.34);g.userData.lid=lid;return g;
-    },(m,c)=>{m.userData.lid.rotation.x=c.opened?-1:0;m.userData.lid.position.y=c.opened?.48:.34;});
-    sync(effectMeshes, game.effects, e => {
-      const material = e.type === 'nova' ? ((e.element||game.player.element)==='fire'?colors.fire:(e.element||game.player.element)==='ice'?colors.ice:(e.element||game.player.element)==='poison'?colors.poison:colors.xp) : e.type === 'warning' ? colors.gold : e.element==='fire'?colors.fire:e.element==='ice'?colors.ice:e.element==='poison'?colors.poison:colors.heal;
-      const g = new THREE.Group();
-      if (e.type === 'nova' || e.type === 'warning') flatRing(g, material, 1, .04);
-      else for (let i = 0; i < 5; i++) mesh(g, sphere, material, Math.cos(i * 1.256), .3, Math.sin(i * 1.256), .06, .06, .06, false);
+      const g=new THREE.Group(),material=c.tier==='mythical'?colors.xp:colors.gold;
+      mesh(g,box,colors.wood,0,.17,0,.44,.3,.32);mesh(g,box,material,0,.34,0,.46,.09,.34);mesh(g,box,material,0,.2,.18,.09,.12,.025);flatRing(g,material,.35,.025);
+      if(c.tier==='mythical')for(let i=0;i<5;i++)mesh(g,crystal,material,Math.cos(i*1.26)*.19,.56,Math.sin(i*1.26)*.19,.05,.14,.05);return g;
+    },(m,c)=>{m.position.y=.04+Math.sin(time*3+c.x)*.035;m.rotation.y=Math.sin(time*.5)*.15;});
+    sync(hazardMeshes,game.hazards,h=>{
+      const g=new THREE.Group();
+      if(h.shape==='line'){const base=mesh(g,box,dangerFill,0,.035,0,1,.015,1,false),fill=mesh(g,box,dangerMaterial,0,.045,0,1,.015,1,false);g.userData={base,fill};}
+      else{flatRing(g,dangerMaterial,1,.025);const fill=mesh(g,disc,dangerFill,0,.018,0,1,1,1,false);fill.rotation.x=-Math.PI/2;g.userData.fill=fill;}
       return g;
-    }, (m, e) => {
-      const progress = 1 - e.life / e.maxLife;
-      m.scale.setScalar(Math.max(.015, e.r / 100 * progress)); m.position.y = e.type === 'trail' ? .1 : progress * .15;
+    },(m,h)=>{
+      const progress=1-h.delay/h.maxDelay;m.position.y=.09;
+      if(h.shape==='line'){const length=Math.hypot(h.tx-h.x,h.ty-h.y)/100;m.rotation.y=Math.atan2(h.tx-h.x,h.ty-h.y);m.userData.base.scale.set(h.width/100,.015,length);m.userData.base.position.z=length/2;m.userData.fill.scale.set(h.width/100,.015,Math.max(.01,length*progress));m.userData.fill.position.z=length*progress/2;}
+      else{m.scale.setScalar(h.r/100);m.userData.fill.scale.setScalar(Math.max(.02,progress));}
+    });
+    sync(effectMeshes,game.effects,makeEffect,(m,e)=>{
+      const progress=1-e.life/e.maxLife;m.scale.setScalar(Math.max(.015,e.r/100*(.2+progress*.8)));m.position.y=.09+progress*.1;
+      if(['wind','hare','echo','moon','flock'].includes(e.type))m.rotation.y=progress*2;
     });
     for (let i = 0; i < 24; i++) {
       transform.position.set(px+Math.sin(i * 9.8 + time * .13) * 5, .2 + Math.sin(time * .6 + i) * .1 + (i % 3) * .3, pz+Math.cos(i * 6.3 + time * .1) * 3.3);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,WORLD,REGIONS,regionAt,SHOP,BOSSES,xpForLevel,advanceGame} from '../src/game.js';
+import {Game,WORLD,REGIONS,regionAt,SHOP,BOSSES,xpForLevel,advanceGame,CHARACTERS,isUnlocked,MYTHICAL_UPGRADES} from '../src/game.js';
 import {SCENERY,SOLIDS,STRUCTURES,CHESTS,blocked,moveBody,projectileBlocked,findFree} from '../src/world.js';
 const create=()=>{const g=new Game(()=>.5);g.start();g.obstacles=[];g.spawnTime=999;g.player.x=500;g.player.y=330;return g;};
 const enemy=(x=650,y=330,hp=500)=>({x,y,r:12,hp,speed:0,damage:0,slow:0,kind:'brute'});
@@ -22,8 +22,8 @@ test('shared scenery keeps wide trails clear and uses substantially fewer trees'
  for(const r of REGIONS.slice(1))for(let t=.2;t<.85;t+=.1){const p={x:2400+(r.x-2400)*t,y:2000+(r.y-2000)*t};assert.equal(blocked(p,30,SCENERY),false);}
  assert.ok(SOLIDS.includes(SCENERY[0]));assert.equal(regionAt({x:1000,y:1000}).name,'Frostveil Ruins');
 });
-test('trees, rocks, buildings and chests stop walking and dashes',()=>{
- for(const o of [SCENERY.find(o=>o.type==='tree'),SCENERY.find(o=>o.type==='rock'),STRUCTURES[0],CHESTS[0]]){
+test('trees, rocks and buildings stop walking and dashes',()=>{
+ for(const o of [SCENERY.find(o=>o.type==='tree'),SCENERY.find(o=>o.type==='rock'),STRUCTURES[0]]){
   const g=create();g.obstacles=[o];g.player.x=o.x-o.r-g.player.r-2;g.player.y=o.y;g.player.dx=1;g.player.dy=0;
   advance(g,1,{right:true});assert.ok(g.player.x<=o.x-o.r-g.player.r+.01);assert.equal(blocked(g.player,g.player.r,g.obstacles),false);
   g.dash();advance(g,.3,{right:true});assert.ok(g.player.x<=o.x-o.r-g.player.r+.01);
@@ -129,19 +129,19 @@ test('level-up and wave clear in the same tick share one shop without losing rew
 test('all nine waves, intermissions and guardians reach victory',()=>{
  const g=create();for(let wave=1;wave<=9;wave++){
   assert.equal(g.wave,wave);if(wave%3===0){g.update(.01);g.enemies.find(e=>e.kind==='boss').hp=0;g.update(.01);}else{g.waveTime=25;g.update(.01);}
+  if(wave%3===0){assert.equal(g.state,'reward');assert.equal(g.chestQueue[0].tier,'mythical');assert.equal(g.resolveChest('take'),true);}
   if(wave<9){assert.equal(g.state,'shop');g.closeShop();}
  }
  assert.equal(g.state,'won');assert.equal(g.bossesDefeated,3);assert.equal(g.player.coins,180);
 });
 test('boss patterns remain distinct and solid objects stop charges',()=>{
  for(let tier=1;tier<=3;tier++){
-  const g=create();g.wave=tier*3;g.update(.01);const boss=g.enemies.find(e=>e.kind==='boss');assert.equal(boss.name,BOSSES[tier-1]);boss.attack=0;g.update(.01);if(tier===1)assert.ok(boss.charge>0);else assert.equal(g.hostile.length,tier===2?12:16);
+  const g=create();g.wave=tier*3;g.update(.01);const boss=g.enemies.find(e=>e.kind==='boss');assert.equal(boss.name,BOSSES[tier-1]);boss.attack=0;g.update(.01);if(tier===1)assert.ok(boss.charge>0);else{assert.equal(g.hostile.length,0);assert.ok(g.hazards.some(h=>h.kind==='barrage'));advance(g,.7);assert.equal(g.hostile.length,tier===2?12:16);}
  }
  const g=create();g.wave=3;const b=g.spawn(true);b.x=600;b.y=330;b.charge=.6;b.cx=-1;b.cy=0;g.bossSpawned=true;g.obstacles=[{x:540,y:330,r:20,height:200}];advance(g,.3);assert.ok(b.x>=575-1);
 });
-test('chests award once, health and XP reset per run, and death stops play',()=>{
- const g=create(),c=g.chests[0];g.player.x=c.x;g.player.y=c.y;assert.equal(g.interact(),true);assert.equal(g.interact(),false);assert.equal(g.player.coins,25);assert.equal(g.player.xp,10);
- g.hurt(200);assert.equal(g.state,'dead');g.start();assert.equal(g.player.level,1);assert.equal(g.freePicks,0);assert.equal(g.chests[0].opened,false);
+test('enemy-dropped chests secure once, queue until after the wave, and reset with death/run state',()=>{
+ const g=create();assert.equal(CHESTS.length,0);assert.equal(g.chests.length,0);const c=g.dropChest(g.player);assert.equal(g.interact(),true);assert.equal(g.secureChest(c),false);assert.equal(g.player.coins,0);assert.equal(g.player.xp,0);assert.equal(g.chestQueue.length,1);assert.equal(g.state,'playing');g.nextWave();assert.equal(g.state,'reward');g.resolveChest('sell');assert.equal(g.player.coins,20);g.closeShop();g.hurt(200);assert.equal(g.state,'dead');g.start();assert.equal(g.player.level,1);assert.equal(g.freePicks,0);assert.equal(g.chests.length,0);assert.equal(g.chestQueue.length,0);
 });
 test('dash cooldown and burst use the active affinity without an unrelated ice effect',()=>{
  const g=create();assert.equal(g.dash(),true);g.hurt(40);assert.equal(g.player.hp,100);assert.equal(g.dash(),false);
@@ -156,7 +156,7 @@ test('Trailrunner ramps speed, resets when stopped and respects solid scenery',(
  g.obstacles=[{x:g.player.x+60,y:g.player.y,r:20,height:200}];advance(g,2,{right:true});assert.equal(blocked(g.player,g.player.r,g.obstacles),false);
 });
 test('Gale boots shorten cooldown; Thunderstep damages and slows without using elemental stats',()=>{
- const g=create();g.player.gale=true;g.player.dashburst=true;g.player.elementalDamage=999;const e=enemy(550);g.enemies=[e];assert.equal(g.dash(),true);assert.equal(g.player.dashCooldown,1.6);assert.equal(e.hp,473);assert.equal(e.petSlow,1.5);assert.equal(e.slow,0);assert.equal(g.effects[0].element,'physical');
+ const g=create();g.player.gale=true;g.player.dashburst=true;g.player.elementalDamage=999;const e=enemy(550);g.enemies=[e];assert.equal(g.dash(),true);assert.equal(g.player.dashCooldown,1.6);assert.equal(e.hp,473);assert.equal(e.petSlow,1.5);assert.equal(e.slow,0);assert.equal(g.effects.find(e=>e.type==='thunder').element,'physical');
 });
 test('Echo arrows bounce once for 65% damage and do not hit the first enemy again',()=>{
  const g=create();g.player.ricochet=true;g.player.fireTimer=999;const a=enemy(590),b=enemy(680);g.enemies=[a,b];g.arrow(g.player,a,100);advance(g,.6);assert.equal(a.hp,400);assert.equal(b.hp,435);assert.equal(g.bullets.length,0);
@@ -207,4 +207,57 @@ test('build sheet compares starting/permanent stats and records repeated purchas
  assert.equal(g.upgradeHistory.filter(e=>e.id==='power').length,2);assert.equal(g.upgradeHistory.find(e=>e.id==='fire-power').status,'replaced');assert.equal(g.upgradeHistory.find(e=>e.id==='ice').status,'active');
  g.closeShop();g.gainXP(g.player.xpNext);g.nextWave();const choice=g.draftChoices[0];g.chooseUpgrade(choice.id);assert.equal(g.upgradeHistory.at(-1).source,'level');
  const damage=g.statSheet().find(s=>s.name==='Physical damage');assert.equal(damage.base,18);assert.ok(damage.current>=18*1.25**2);g.player.furyTime=2;assert.equal(g.statSheet().find(s=>s.name==='Physical damage').current,damage.current);
+});
+
+test('normal arrows stop at nearest target in reversed enemy order and never tunnel through targets',()=>{
+ const g=create();g.player.fireTimer=999;const near=enemy(525),far=enemy(535);g.enemies=[far,near];g.arrow(g.player,far,100);g.update(.05);assert.equal(near.hp,400);assert.equal(far.hp,500);assert.equal(g.bullets.length,0);
+});
+test('piercing hits at most three distinct targets with damage falloff; pets still stop on first hit',()=>{
+ const g=create();g.player.fireTimer=999;g.player.piercing=true;const enemies=[525,565,605,645].map(x=>enemy(x));g.enemies=[...enemies].reverse();g.arrow(g.player,enemies[0],100);advance(g,.5);assert.deepEqual(enemies.map(e=>e.hp),[400,425,443.75,500]);assert.equal(g.bullets.length,0);
+ const a=create();a.player.fireTimer=999;a.player.piercing=true;a.enemies=[enemy(525),enemy(565)];a.arrow(a.player,a.enemies[0],100,'physical','pet');advance(a,.4);assert.equal(a.enemies[0].hp,400);assert.equal(a.enemies[1].hp,500);
+});
+test('terrain and enemy hits are resolved in travel order, including piercing behind a wall',()=>{
+ const g=create();g.player.fireTimer=999;g.player.piercing=true;const a=enemy(525),b=enemy(585);g.enemies=[b,a];g.obstacles=[{x:555,y:330,r:10,height:200}];g.arrow(g.player,a,100);advance(g,.4);assert.equal(a.hp,400);assert.equal(b.hp,500);assert.equal(g.bullets.length,0);
+});
+test('piercing and ricochet exclude each other in shops and both reward pools',()=>{
+ for(const first of ['ricochet','piercing']){const g=create();wealthy(g);assert.equal(stockBuy(g,first),true);const other=first==='ricochet'?'piercing':'ricochet';assert.equal(stockBuy(g,other),false);assert.equal(g.offer(SHOP.find(i=>i.id===other),{reward:true}).available,false);assert.equal(g.chestPool('normal').some(i=>i.id===other),false);assert.ok(!g.chestPool('mythical').some(i=>i.id===other));g.rollOffers();assert.ok(!g.shopOffers.some(i=>i.id===other));}
+});
+test('ordinary enemies have a chance to drop chests; bosses guarantee mythical drops and uncollected loot is secured at wave end',()=>{
+ const low=create();low.random=()=>0;low.enemies=[enemy(800,330,0)];low.update(.01);assert.equal(low.chests.length,1);assert.equal(low.chests[0].tier,'normal');low.nextWave();assert.equal(low.chests.length,0);assert.equal(low.chestQueue.length,1);assert.equal(low.state,'reward');
+ const high=create();high.random=()=>.99;high.enemies=[enemy(800,330,0)];high.update(.01);assert.equal(high.chests.length,0);high.wave=3;high.bossSpawned=true;high.enemies=[{...enemy(800,330,0),kind:'boss',name:'Fixture guardian',tier:1}];high.update(.01);assert.equal(high.state,'reward');assert.equal(high.chestQueue[0].tier,'mythical');assert.ok(MYTHICAL_UPGRADES.some(i=>i.id===high.chestQueue[0].reward.id));
+});
+test('chest rolls have escalating independent costs, retain tier, reject insufficient funds and reset on the next chest',()=>{
+ const g=create();g.player.coins=100;g.rerolls=3;g.dropChest({x:800,y:330});g.dropChest({x:850,y:330},'mythical');g.nextWave();g.rerolls=2;const id=g.chestQueue[0].reward.id;assert.equal(g.chestRerollCost(),5);assert.equal(g.rerollChest(),true);assert.notEqual(g.chestQueue[0].reward.id,id);assert.equal(g.player.coins,95);assert.equal(g.chestRerollCost(),10);assert.equal(g.rerolls,2);assert.equal(g.rerollCost(),15);g.player.coins=9;assert.equal(g.rerollChest(),false);assert.equal(g.player.coins,9);const sell=g.chestSellValue();g.resolveChest('sell');assert.equal(g.player.coins,9+sell);assert.equal(g.chestRerollCost(),15);assert.equal(g.chestQueue[0].tier,'mythical');assert.ok(MYTHICAL_UPGRADES.some(i=>i.id===g.chestQueue[0].reward.id));
+});
+test('wave rewards resolve stat choices then chest powers then shop; final guardian rewards precede a single recorded victory',()=>{
+ const g=create();g.gainXP(20);g.dropChest({x:850,y:330});g.nextWave();assert.equal(g.state,'draft');assert.equal(g.closeShop(),false);g.chooseUpgrade(g.draftChoices[0].id);assert.equal(g.state,'reward');const item=g.chestQueue[0].reward;assert.equal(g.resolveChest('take'),true);assert.equal(g.state,'shop');assert.equal(g.upgradeHistory.at(-1).id,item.id);assert.equal(g.upgradeHistory.at(-1).source,'chest');assert.equal(g.player.coins,0);g.closeShop();
+ const end=create();end.wave=9;end.dropChest({x:850,y:330},'mythical');end.nextWave();assert.equal(end.state,'reward');assert.equal(end.progress.wins,0);end.resolveChest('take');assert.equal(end.state,'won');assert.equal(end.progress.wins,1);assert.equal(end.resolveChest('take'),false);end.finishVictory();assert.equal(end.progress.wins,1);
+});
+test('a chest with no eligible powers can always be sold, without charging for impossible rolls',()=>{
+ const g=create();for(const item of MYTHICAL_UPGRADES)g.applyItem(item);g.dropChest({x:800,y:330},'mythical');g.player.coins=100;g.nextWave();assert.equal(g.chestQueue[0].reward,null);assert.equal(g.resolveChest('take'),false);assert.equal(g.rerollChest(),false);assert.equal(g.player.coins,100);assert.equal(g.resolveChest('sell'),true);assert.equal(g.player.coins,190);assert.equal(g.state,'shop');
+});
+test('rare tradeoffs alter real stats and the gold bonus applies to combat drops, not chest sales',()=>{
+ const g=create();wealthy(g);stockBuy(g,'glass');assert.ok(Math.abs(g.player.damage-28.8)<1e-6);assert.equal(g.player.maxHp,75);stockBuy(g,'fleet');assert.equal(g.player.maxHp,60);assert.equal(g.player.speed,273);stockBuy(g,'goldrush');assert.equal(g.player.speed,240.24);g.closeShop();const before=g.player.coins;g.collect({kind:'coin',amount:10});assert.equal(g.player.coins,before+15);assert.equal(g.upgradeHistory.filter(e=>e.rarity==='rare').length,3);
+});
+test('Phoenix IOU revives once; Stormglass, Worldroot and Orbit apply their advertised mechanics',()=>{
+ const g=create();g.player.phoenix=true;g.hurt(1000);assert.equal(g.state,'playing');assert.equal(g.player.hp,50);assert.equal(g.player.phoenixUsed,true);assert.ok(g.effects.some(e=>e.type==='phoenix'));g.player.invincible=0;g.hurt(1000);assert.equal(g.state,'dead');
+ const root=create();root.applyItem(MYTHICAL_UPGRADES.find(i=>i.id==='worldroot'));assert.equal(root.player.maxHp,160);assert.equal(root.player.armor,6);root.enemies=[enemy(650)];root.dash();assert.equal(root.enemies[0].root,1);assert.equal(root.enemies[0].petSlow,3);
+ const orbit=create();orbit.player.orbit=true;orbit.player.fireTimer=999;orbit.enemies=[enemy(590)];orbit.update(.01);assert.ok(Math.abs(orbit.enemies[0].hp-(500-18*.7))<1e-6);
+ const storm=create();storm.player.stormcrown=true;storm.shots=4;storm.enemies=[enemy(700)];storm.update(.01);assert.ok(storm.enemies[0].hp<500);assert.ok(storm.effects.some(e=>e.type==='lightning'));
+});
+test('all archers unlock at actual milestones and keep unlock progress while run stats reset',()=>{
+ const g=create();g.prepareLoadout();assert.equal(g.chooseCharacter('warden'),false);assert.equal(g.chooseCharacter('scout'),false);assert.equal(g.start({space:'dash',attack:'burst',character:'hex'}),false);g.progress.kills=50;assert.equal(g.chooseCharacter('scout'),true);g.chooseSkill('space',g.loadoutChoices.space[0].id);g.chooseSkill('attack',g.loadoutChoices.attack[0].id);g.startLoadout();assert.equal(g.character,'scout');assert.equal(g.player.maxHp,85);assert.equal(g.player.damage,22);assert.equal(g.statSheet()[0].base,85);g.progress.bosses=1;g.progress.wins=1;g.prepareLoadout();for(const c of CHARACTERS)assert.equal(isUnlocked(c,g.progress),true);g.chooseCharacter('hex');g.chooseSkill('space',g.loadoutChoices.space[0].id);g.chooseSkill('attack',g.loadoutChoices.attack[0].id);g.startLoadout();assert.equal(g.player.element,'ice');assert.equal(g.player.elementalDamage,24);assert.equal(g.progress.kills,50);assert.equal(g.upgradeHistory.length,0);
+});
+test('enemy archers telegraph shots, bombs can be dodged, shaman pulses heal and guard allies, and boars wind up charges',()=>{
+ const archer=create();archer.player.fireTimer=999;const a=archer.spawn(false,'archer');Object.assign(a,{x:750,y:330,attack:0,speed:0});archer.update(.01);assert.ok(archer.hazards.some(h=>h.kind==='volley'));assert.equal(archer.hostile.length,0);advance(archer,.72);assert.equal(archer.hostile.length,1);
+ const bomb=create();bomb.player.fireTimer=999;const b=bomb.spawn(false,'bomber');Object.assign(b,{x:750,y:330,attack:0,speed:0});bomb.update(.01);assert.equal(bomb.hazards[0].kind,'bomb');assert.equal(bomb.hazards[0].x,500);bomb.player.y=600;advance(bomb,1.2);assert.equal(bomb.player.hp,100);assert.ok(bomb.effects.some(e=>e.type==='enemy-blast'));
+ const shaman=create();shaman.player.fireTimer=999;const s=shaman.spawn(false,'shaman');Object.assign(s,{x:650,y:330,attack:0,speed:0});const ally=enemy(700,330,50);ally.maxHp=100;shaman.enemies.push(ally);shaman.update(.01);assert.equal(shaman.hazards[0].kind,'hex');advance(shaman,1.2);assert.equal(ally.hp,60);assert.ok(ally.guard>0);
+ const boar=create();boar.player.fireTimer=999;const c=boar.spawn(false,'boar');Object.assign(c,{x:750,y:330,attack:0,speed:0});boar.update(.01);assert.ok(c.charge>1);assert.equal(boar.hazards[0].shape,'line');assert.ok(boar.hazards[0].tx<750);
+});
+test('dead casters cancel pending attacks; hazard timers freeze in menus',()=>{
+ const g=create();g.player.fireTimer=999;const e=enemy(750);g.enemies=[e];g.warnAttack(e,'bomb',1,90);g.openShop();advance(g,2);assert.equal(g.hazards[0].delay,1);g.closeShop();e.hp=0;g.update(.01);assert.equal(g.hazards.length,0);assert.equal(g.player.hp,100);
+});
+test('all eight selected skills emit distinct activation graphics',()=>{
+ const space=['dash','shield','sprint','repel'].map(id=>{const g=create();g.loadout.space=id;g.dash();return g.effects[0].type;});assert.equal(new Set(space).size,4);
+ const offense=['rapid','burst','salvo','fury'].map(id=>{const g=create();g.loadout.attack=id;g.nova();return g.effects[0].type;});assert.equal(new Set(offense).size,4);
 });
