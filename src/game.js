@@ -7,6 +7,21 @@ export const ELEMENTS={
   ice:{name:'Ice',icon:'❄',power:'Glacial force',duration:'Permafrost',special:'Shatter',detail:'Hitting an already chilled target deals bonus damage.'},
   poison:{name:'Poison',icon:'☠',power:'Toxic potency',duration:'Lingering venom',special:'Contagion',detail:'Poisoned enemies spread venom on death.'}
 };
+export const SKILLS={
+  space:[
+    {id:'dash',name:'Windskip',icon:'➟',cooldown:2.6,duration:.19,text:'Dash in your movement direction with brief invulnerability.'},
+    {id:'shield',name:'Shell Yeah!',icon:'⬡',cooldown:12,duration:3,text:'A golden shell blocks ALL incoming damage for 3 seconds.'},
+    {id:'sprint',name:'Hare Trigger',icon:'≋',cooldown:10,duration:4,text:'+70% movement speed for 4 seconds; dodge all damage for the first 0.8 seconds.'},
+    {id:'repel',name:'Bramble Bouncer',icon:'❧',cooldown:9,duration:1.5,text:'Shove nearby enemies away, erase nearby hostile shots and block damage for 1.5 seconds.'}
+  ],
+  attack:[
+    {id:'rapid',name:'Arrowpalooza',icon:'⋔',cooldown:14,duration:5,text:'Double your bow attack speed for 5 seconds.'},
+    {id:'burst',name:'Quiverquake',icon:'✺',cooldown:8,duration:0,text:'Detonate a close-range elemental blast and launch 12 arrows in a ring.'},
+    {id:'salvo',name:'Flock & Awe',icon:'➶',cooldown:11,duration:0,text:'Fire 8 empowered arrows at nearby enemies; with no targets, fire an aimed fan.'},
+    {id:'fury',name:'Hunter’s Moon',icon:'☾',cooldown:14,duration:4,text:'Double your physical and elemental arrow impact damage for 4 seconds.'}
+  ]
+};
+export const BASE_STATS=Object.freeze({maxHp:100,damage:18,elementalDamage:12,armor:0,speed:210,fireRate:.42,magnet:75});
 export const SHOP=[
   {id:'heal',name:'Forest tonic',icon:'♥',text:'Restore 60 health',price:20,level:1,repeat:true,category:'general'},
   {id:'power',name:'Honed broadheads',icon:'➶',text:'+25% physical arrow damage · retained on swaps',price:30,level:1,repeat:true,category:'general'},
@@ -14,7 +29,7 @@ export const SHOP=[
   {id:'haste',name:'Quick hands',icon:'➟',text:'Attack 12% faster',price:35,level:1,repeat:true,max:5,category:'general'},
   {id:'vitality',name:'Wild heart',icon:'♥',text:'+25 maximum health · heal 35',price:35,level:1,repeat:true,category:'general'},
   {id:'speed',name:'Forest stride',icon:'➟',text:'+10% movement speed',price:30,level:1,repeat:true,max:5,category:'general'},
-  {id:'nova',name:'Elemental burst',icon:'✺',text:'Unlock / empower E with your current element',price:40,level:2,repeat:true,category:'general'},
+  {id:'nova',name:'Wild amplification',icon:'✺',text:'+25% offensive skill power; timed offensive skills last 10% longer',price:40,level:2,repeat:true,max:5,category:'general'},
   {id:'multi',name:'Triple shot',icon:'⋔',text:'Three arrows of your current element',price:75,level:3,category:'general'},
   {id:'regen',name:'Living roots',icon:'❧',text:'Regenerate 2 health / second',price:70,level:4,category:'general'},
   {id:'pet',name:'Forest fox',icon:'♧',text:'Fires a fan of three physical darts · independent of your element',price:40,level:2,category:'pet'},
@@ -23,8 +38,8 @@ export const SHOP=[
   {id:'armor',name:'Bark mail',icon:'⬡',text:'+3 armor · reduces incoming damage',price:30,level:1,repeat:true,category:'general'},
   {id:'momentum',name:'Trailrunner',icon:'➟',text:'Build up to +35% speed while moving; stopping resets it',price:45,level:2,category:'ability'},
   {id:'ricochet',name:'Echo arrows',icon:'↝',text:'Your arrows bounce once to another nearby enemy for 65% damage',price:65,level:3,category:'ability'},
-  {id:'dashburst',name:'Thunderstep',icon:'✺',text:'Dashing releases a physical shockwave and briefly slows nearby enemies',price:55,level:2,category:'ability'},
-  {id:'gale',name:'Gale boots',icon:'≋',text:'Dash cooldown reduced from 2.6s to 1.6s',price:45,level:2,category:'ability'},
+  {id:'dashburst',name:'Thunderstep',icon:'✺',text:'Using your Space skill releases a physical shockwave and briefly slows nearby enemies',price:55,level:2,category:'ability'},
+  {id:'gale',name:'Gale boots',icon:'≋',text:'Reduce your selected Space skill cooldown by 38%',price:45,level:2,category:'ability'},
   {id:'reaper',name:'Harvest pact',icon:'♥',text:'Every fifth enemy defeated restores 6 health',price:60,level:3,category:'ability'},
   ...Object.entries(ELEMENTS).map(([element,e])=>({id:element,name:e.name+' attunement',icon:e.icon,text:'Swap to '+e.name+'. Replaces your current element and clears its ranks.',price:25,level:1,category:'affinity',element})),
   ...Object.entries(ELEMENTS).flatMap(([element,e])=>[
@@ -46,11 +61,37 @@ export class Game {
   constructor(random=Math.random){this.random=random;this.obstacles=SOLIDS;this.reset();}
   reset(){
     this.state='title';this.time=0;this.wave=1;this.waveTime=0;this.spawnTime=0;
-    this.player={x:2400,y:2000,r:13,hp:100,maxHp:100,speed:210,armor:0,momentumTime:0,damage:18,elementalDamage:12,fireRate:.42,fireTimer:0,level:1,xp:0,xpNext:xpForLevel(1),coins:0,kills:0,magnet:75,dashCooldown:0,dashTime:0,dx:1,dy:0,invincible:0,nova:0,novaCooldown:0,multi:false,regen:false,pet:false,wolf:false,collector:false,element:'physical',elementUpgrades:{power:0,duration:0,special:0},ranks:{},aimX:0,aimY:-1,shotTime:0,moving:false};
-    this.freePicks=0;this.levelRewards=[];this.draftChoices=[];this.shopOffers=[];this.rerolls=0;this.shopRound=null;this.shopBaseCost=5;this.shopReason='manual';this.shopReturn='playing';this.shopRevision=0;this.pendingWave=null;this.pendingVictory=false;
+    this.player={x:2400,y:2000,r:13,hp:100,maxHp:100,speed:210,armor:0,momentumTime:0,damage:18,elementalDamage:12,fireRate:.42,fireTimer:0,level:1,xp:0,xpNext:xpForLevel(1),coins:0,kills:0,magnet:75,dashCooldown:0,dashTime:0,spaceTime:0,rapidTime:0,furyTime:0,dx:1,dy:0,invincible:0,nova:0,novaCooldown:0,multi:false,regen:false,pet:false,wolf:false,collector:false,element:'physical',elementUpgrades:{power:0,duration:0,special:0},ranks:{},aimX:0,aimY:-1,shotTime:0,moving:false};
+    this.loadout={space:'dash',attack:'burst'};this.loadoutChoices={space:[],attack:[]};this.upgradeHistory=[];this.freePicks=0;this.levelRewards=[];this.draftChoices=[];this.shopOffers=[];this.rerolls=0;this.shopRound=null;this.shopBaseCost=5;this.shopReason='manual';this.shopReturn='playing';this.shopRevision=0;this.pendingWave=null;this.pendingVictory=false;
     this.pets=[];this.chests=CHESTS.map(c=>({...c,opened:false}));this.enemies=[];this.bullets=[];this.hostile=[];this.pickups=[];this.effects=[];this.bossesDefeated=0;this.bossSpawned=false;this.message='';this.event=null;
   }
-  start(){this.reset();this.state='playing';this.message='Explore the open trails · F opens caches';}
+  prepareLoadout(){
+    this.reset();this.state='loadout';this.loadout={space:null,attack:null};
+    this.loadoutChoices={space:this.sample(SKILLS.space,3),attack:this.sample(SKILLS.attack,3)};this.shopRevision++;
+  }
+  chooseSkill(slot,id){
+    if(this.state!=='loadout'||!this.loadoutChoices[slot]?.some(s=>s.id===id))return false;
+    this.loadout[slot]=id;this.shopRevision++;return true;
+  }
+  startLoadout(){
+    if(this.state!=='loadout'||!this.loadout.space||!this.loadout.attack)return false;
+    return this.start({...this.loadout});
+  }
+  start(loadout={space:'dash',attack:'burst'}){
+    if(!SKILLS.space.some(s=>s.id===loadout.space)||!SKILLS.attack.some(s=>s.id===loadout.attack))return false;
+    this.reset();this.loadout={...loadout};this.state='playing';this.message='Explore the open trails · F opens caches';return true;
+  }
+  skill(slot){return SKILLS[slot].find(s=>s.id===this.loadout[slot]);}
+  recordUpgrade(item,source){this.upgradeHistory.push({id:item.id,name:item.name,text:item.text,category:item.category||'stat',element:item.element||null,source,level:this.player.level,wave:this.wave,status:item.id==='heal'?'used':'active'});}
+  statSheet(){
+    const p=this.player;
+    return [
+      ['Maximum health',BASE_STATS.maxHp,p.maxHp],['Physical damage',BASE_STATS.damage,p.damage],
+      ['Shared elemental damage',BASE_STATS.elementalDamage,p.elementalDamage],['Armor',BASE_STATS.armor,p.armor],
+      ['Movement speed',BASE_STATS.speed,p.speed],['Bow shots / second',1/BASE_STATS.fireRate,1/p.fireRate],
+      ['Pickup range',BASE_STATS.magnet,p.magnet],['Health regen / second',0,p.regen?2:0]
+    ].map(([name,base,current])=>({name,base,current}));
+  }
   gainXP(amount){
     if(!Number.isFinite(amount)||amount<=0)return;
     const p=this.player;p.xp+=amount;let gained=0;
@@ -72,6 +113,7 @@ export class Game {
     if(id==='elemental')p.elementalDamage*=1.2;
     if(id==='armor')p.armor+=2;
     if(id==='speed')p.speed*=1.07;
+    this.recordUpgrade(LEVEL_UPGRADES.find(c=>c.id===id),'level');
     this.levelRewards.shift();this.freePicks=this.levelRewards.length;
     if(this.freePicks)this.prepareDraft();
     else{this.draftChoices=[];this.state=this.pendingVictory?'won':'shop';this.shopRevision++;}
@@ -114,7 +156,7 @@ export class Game {
     if(this.state!=='shop')return false;
     const slot=this.shopOffers.find(i=>i.id===id&&!i.sold),item=SHOP.find(i=>i.id===id);if(!slot||!item)return false;
     const offer=this.offer(item);if(!offer.available||this.player.coins<offer.price)return false;
-    this.player.coins-=offer.price;slot.sold=true;this.applyItem(item);this.shopRevision++;return true;
+    this.player.coins-=offer.price;slot.sold=true;this.applyItem(item);this.recordUpgrade(item,'shop');this.shopRevision++;return true;
   }
   applyItem(item){
     const p=this.player,id=item.id;
@@ -135,6 +177,7 @@ export class Game {
   }
   swapElement(element){
     if(!ELEMENTS[element]||this.player.element===element)return false;
+    for(const entry of this.upgradeHistory)if(entry.element&&entry.element!==element&&entry.status==='active')entry.status='replaced';
     this.player.element=element;this.player.elementUpgrades={power:0,duration:0,special:0};
     this.bullets=this.bullets.filter(b=>b.kind==='pet');this.effects=[];
     for(const e of this.enemies){e.burn=0;e.slow=0;e.poison=0;e.poisonStacks=0;e.burnDamage=0;e.poisonDamage=0;}
@@ -149,7 +192,7 @@ export class Game {
     const rank=element===this.player.element?this.player.elementUpgrades:{power:0,duration:0,special:0},hit=this.player.elementalDamage*(1+rank.power*.35);
     return {element,hit,dot:hit*(element==='fire'?.5:.22),duration:element==='fire'?3+rank.duration:element==='ice'?2.5+rank.duration:4+rank.duration*1.5,special:rank.special,slow:Math.min(.7,.45+rank.duration*.04)};
   }
-  attackDamage(){return this.player.damage+this.profile().hit;}
+  attackDamage(){return (this.player.damage+this.profile().hit)*(this.player.furyTime>0?2+this.player.nova*.25:1);}
   interact(){
     if(this.state!=='playing')return false;
     const chest=this.chests.find(c=>!c.opened&&dist(c,this.player)<85);
@@ -166,20 +209,40 @@ export class Game {
     const a=Math.atan2(target.y-source.y,target.x-source.x)+spread;
     this.bullets.push({x:source.x,y:source.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:4,life:1.65,damage,element,kind,payload:this.profile(element)});
   }
-  dashDuration(){return this.player.gale?1.6:2.6;}
-  moveSpeed(){return this.player.speed*(1+(this.player.momentum?Math.min(1,this.player.momentumTime/2)*.35:0));}
+  dashDuration(){return (this.skill('space')?.cooldown||2.6)*(this.player.gale?1.6/2.6:1);}
+  attackCooldown(){return this.skill('attack')?.cooldown||8;}
+  attackInterval(){return this.player.fireRate/(this.player.rapidTime>0?2+this.player.nova*.25:1);}
+  moveSpeed(){return this.player.speed*(1+(this.player.momentum?Math.min(1,this.player.momentumTime/2)*.35:0))*(this.loadout.space==='sprint'&&this.player.spaceTime>0?1.7:1);}
   dash(){
-    const p=this.player;if(this.state!=='playing'||p.dashCooldown>0)return false;
-    p.dashTime=.19;p.dashCooldown=this.dashDuration();p.invincible=.3;this.event='dash';
+    const p=this.player,skill=this.skill('space');if(this.state!=='playing'||p.dashCooldown>0||!skill)return false;
+    p.dashCooldown=this.dashDuration();p.spaceTime=skill.duration;this.event='dash';
+    if(skill.id==='dash'){p.dashTime=.19;p.invincible=Math.max(p.invincible,.3);}
+    if(skill.id==='shield'||skill.id==='repel')p.invincible=Math.max(p.invincible,skill.duration);
+    if(skill.id==='sprint')p.invincible=Math.max(p.invincible,.8);
+    if(skill.id==='repel'){
+      for(const e of this.enemies)if(dist(p,e)<190){const a=Math.atan2(e.y-p.y,e.x-p.x);moveBody(e,Math.cos(a)*130,Math.sin(a)*130,this.obstacles);e.petSlow=2;}
+      this.hostile=this.hostile.filter(b=>dist(p,b)>210);
+    }
+    if(skill.id!=='dash')this.effects.push({x:p.x,y:p.y,r:skill.id==='repel'?190:70,type:'nova',element:'physical',life:.5,maxLife:.5});
     if(p.dashburst){this.effects.push({x:p.x,y:p.y,r:145,type:'nova',element:'physical',life:.45,maxLife:.45});for(const e of this.enemies)if(dist(p,e)<145+e.r){e.hp-=p.damage*1.5;e.petSlow=1.5;}}
     return true;
   }
   nova(){
-    const p=this.player;if(this.state!=='playing'||!p.nova||p.novaCooldown>0)return false;
-    p.novaCooldown=8;this.effects.push({x:p.x,y:p.y,r:170,type:'nova',life:.6,maxLife:.6});
-    for(const e of this.enemies)if(dist(p,e)<170+e.r){e.hp-=this.attackDamage()+p.nova*30;this.statusHit(e,p.element);}
-    for(let i=0;i<12;i++)this.arrow(p,{x:p.x+Math.cos(i*Math.PI/6),y:p.y+Math.sin(i*Math.PI/6)},this.attackDamage()*.8);
-    p.shotTime=.3;this.hostile=this.hostile.filter(b=>dist(p,b)>180);this.event='nova';return true;
+    const p=this.player,skill=this.skill('attack');if(this.state!=='playing'||p.novaCooldown>0||!skill)return false;
+    p.novaCooldown=this.attackCooldown();const power=1+p.nova*.25,duration=skill.duration*(1+p.nova*.1);
+    if(skill.id==='rapid'){p.rapidTime=duration;p.fireTimer=0;}
+    if(skill.id==='fury'){p.furyTime=duration;p.fireTimer=0;}
+    if(skill.id==='burst'){
+      this.effects.push({x:p.x,y:p.y,r:170,type:'nova',element:p.element,life:.6,maxLife:.6});
+      for(const e of this.enemies)if(dist(p,e)<170+e.r){e.hp-=(this.attackDamage()+30)*power;this.statusHit(e,p.element);}
+      for(let i=0;i<12;i++)this.arrow(p,{x:p.x+Math.cos(i*Math.PI/6),y:p.y+Math.sin(i*Math.PI/6)},this.attackDamage()*.8*power);
+      this.hostile=this.hostile.filter(b=>dist(p,b)>180);
+    }
+    if(skill.id==='salvo'){
+      const targets=this.enemies.filter(e=>e.hp>0&&dist(e,p)<600&&!projectileBlocked(p,e,this.obstacles)).sort((a,b)=>dist(a,p)-dist(b,p));
+      for(let i=0;i<8;i++)this.arrow(p,targets.length?targets[i%targets.length]:{x:p.x+p.aimX*100,y:p.y+p.aimY*100},this.attackDamage()*1.4*power,p.element,'arrow',targets.length?0:(i-3.5)*.12);
+    }
+    p.shotTime=.3;this.event='nova';return true;
   }
   spawn(boss=false){
     const a=this.random()*Math.PI*2,p=this.player,type=this.random(),tier=Math.floor(this.wave/3),r=boss?32+tier*3:type>.78?15:11;
@@ -232,7 +295,7 @@ export class Game {
   }
   update(dt,input={}){
     if(this.state!=='playing')return;dt=Math.min(.05,Math.max(0,dt));this.time+=dt;this.waveTime+=dt;const p=this.player;
-    for(const key of ['dashCooldown','novaCooldown','invincible','dashTime','shotTime'])p[key]=Math.max(0,p[key]-dt);
+    for(const key of ['dashCooldown','novaCooldown','invincible','dashTime','shotTime','spaceTime','rapidTime','furyTime'])p[key]=Math.max(0,p[key]-dt);
     if(p.regen)p.hp=Math.min(p.maxHp,p.hp+dt*2);
     let mx=input.moveX??((input.right?1:0)-(input.left?1:0)),my=input.moveY??((input.down?1:0)-(input.up?1:0));const len=Math.hypot(mx,my);
     p.moving=!!len;p.momentumTime=len?Math.min(2,p.momentumTime+dt):0;if(len){mx/=len;my/=len;p.dx=mx;p.dy=my;}
@@ -245,7 +308,7 @@ export class Game {
     p.fireTimer-=dt;const targets=this.enemies.filter(e=>e.hp>0&&dist(p,e)<600&&!projectileBlocked(p,e,this.obstacles));
     if(p.fireTimer<=0&&targets.length){
       const nearest=targets.reduce((a,b)=>dist(p,a)<dist(p,b)?a:b),a=Math.atan2(nearest.y-p.y,nearest.x-p.x);p.aimX=Math.cos(a);p.aimY=Math.sin(a);p.shotTime=.3;
-      for(const spread of p.multi?[-.16,0,.16]:[0])this.arrow(p,nearest,this.attackDamage(),p.element,'arrow',spread);p.fireTimer=p.fireRate;
+      for(const spread of p.multi?[-.16,0,.16]:[0])this.arrow(p,nearest,this.attackDamage(),p.element,'arrow',spread);p.fireTimer=this.attackInterval();
     }
     this.updatePets(dt);
     for(const e of this.enemies){

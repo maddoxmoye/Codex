@@ -168,3 +168,43 @@ test('Harvest pact heals on every fifth kill and caps at maximum health',()=>{
 test('final-wave earned stat rewards are resolved before victory',()=>{
  const g=create();g.wave=9;g.gainXP(20);g.nextWave();assert.equal(g.state,'draft');assert.equal(g.freePicks,1);g.chooseUpgrade(g.draftChoices[0].id);assert.equal(g.state,'won');assert.equal(g.freePicks,0);
 });
+
+test('loadout rolls three unique choices per slot, validates selections and waits for both picks',()=>{
+ const g=create();g.prepareLoadout();assert.equal(g.state,'loadout');assert.equal(g.startLoadout(),false);
+ for(const slot of ['space','attack']){assert.equal(g.loadoutChoices[slot].length,3);assert.equal(new Set(g.loadoutChoices[slot].map(s=>s.id)).size,3);}
+ assert.equal(g.chooseSkill('attack',g.loadoutChoices.space[0].id),false);assert.equal(g.chooseSkill('unknown','dash'),false);
+ const a=g.loadoutChoices.space[0].id,b=g.loadoutChoices.attack[0].id;g.chooseSkill('space',a);assert.equal(g.startLoadout(),false);g.chooseSkill('attack',b);assert.equal(g.startLoadout(),true);assert.deepEqual(g.loadout,{space:a,attack:b});assert.equal(g.player.novaCooldown,0);assert.equal(g.player.dashCooldown,0);assert.equal(g.chooseSkill('space',a),false);
+});
+test('Shell Yeah blocks both contact and projectile damage, expires and cannot be spammed',()=>{
+ const g=create();g.loadout.space='shield';assert.equal(g.dash(),true);assert.equal(g.dash(),false);assert.equal(g.player.dashTime,0);assert.equal(g.player.dashCooldown,12);g.hurt(999);assert.equal(g.player.hp,100);
+ g.enemies=[enemy(500,330)];g.enemies[0].damage=50;g.hostile=[{x:500,y:330,vx:0,vy:0,r:6,life:2}];g.update(.05);assert.equal(g.player.hp,100);g.enemies=[];advance(g,3.1);g.hurt(10);assert.equal(g.player.hp,90);
+});
+test('Hare Trigger boosts movement temporarily without dashing and preserves permanent speed',()=>{
+ const g=create();g.loadout.space='sprint';g.dash();assert.equal(g.player.dashTime,0);assert.equal(g.moveSpeed(),357);assert.equal(g.player.speed,210);g.hurt(999);assert.equal(g.player.hp,100);advance(g,4.1);assert.equal(g.moveSpeed(),210);g.hurt(10);assert.equal(g.player.hp,90);
+});
+test('Bramble Bouncer shoves enemies respecting obstacles and erases only nearby hostile shots',()=>{
+ const g=create();g.loadout.space='repel';const e=enemy(550);g.enemies=[e];g.obstacles=[{x:600,y:330,r:20,height:200}];g.hostile=[{x:520,y:330},{x:850,y:330}];g.dash();assert.ok(e.x>550&&e.x<=568.01);assert.equal(blocked(e,e.r,g.obstacles),false);assert.equal(g.hostile.length,1);assert.equal(g.player.invincible,1.5);
+});
+test('Arrowpalooza doubles actual bow cadence then expires without changing the permanent fire rate',()=>{
+ const normal=create(),rapid=create();for(const g of [normal,rapid]){g.enemies=[enemy(800,330,100000)];g.player.fireTimer=0;}
+ rapid.loadout.attack='rapid';assert.equal(rapid.nova(),true);assert.equal(rapid.nova(),false);assert.equal(rapid.attackInterval(),.21);assert.equal(rapid.player.fireRate,.42);advance(normal,1);advance(rapid,1);assert.ok(rapid.enemies[0].hp<normal.enemies[0].hp);advance(rapid,4.1);assert.equal(rapid.attackInterval(),.42);
+});
+test('Hunter’s Moon doubles elemental arrow impact, leaves base stats and pet darts alone, then expires',()=>{
+ const g=create();g.swapElement('fire');const normal=g.attackDamage();g.loadout.attack='fury';g.nova();assert.equal(g.attackDamage(),normal*2);assert.equal(g.player.damage,18);assert.equal(g.player.elementalDamage,12);g.player.pet=true;g.enemies=[enemy(650)];g.update(.01);assert.ok(g.bullets.filter(b=>b.kind==='pet').every(b=>b.damage===18*.45));advance(g,4.1);assert.equal(g.attackDamage(),normal);
+});
+test('Flock & Awe fires eight empowered arrows and has a safe no-target fan',()=>{
+ const g=create();g.loadout.attack='salvo';g.swapElement('ice');assert.equal(g.nova(),true);assert.equal(g.bullets.length,8);assert.ok(g.bullets.every(b=>b.element==='ice'&&b.damage===g.attackDamage()*1.4));assert.equal(new Set(g.bullets.map(b=>b.vx.toFixed(3))).size,8);
+});
+test('Gale boots and Thunderstep work with non-dash Space skills; amplification empowers selected offense',()=>{
+ const g=create();g.loadout.space='shield';g.player.gale=true;g.player.dashburst=true;g.enemies=[enemy(530)];g.dash();assert.ok(Math.abs(g.player.dashCooldown-12*1.6/2.6)<1e-6);assert.equal(g.enemies[0].hp,473);
+ g.loadout.attack='rapid';g.player.nova=2;g.nova();assert.equal(g.player.rapidTime,6);assert.ok(Math.abs(g.attackInterval()-.42/2.5)<1e-6);
+});
+test('skill duration and recharge freeze in shop and every fresh run clears all effects',()=>{
+ const g=create();g.loadout.space='shield';g.loadout.attack='rapid';g.dash();g.nova();g.openShop();advance(g,4);assert.equal(g.player.spaceTime,3);assert.equal(g.player.rapidTime,5);assert.equal(g.player.dashCooldown,12);g.start({space:'sprint',attack:'fury'});assert.equal(g.player.spaceTime,0);assert.equal(g.player.rapidTime,0);assert.equal(g.player.furyTime,0);assert.equal(g.player.novaCooldown,0);assert.equal(g.upgradeHistory.length,0);
+});
+test('build sheet compares starting/permanent stats and records repeated purchases, level rewards and replaced elemental ranks',()=>{
+ const g=create();wealthy(g);stockBuy(g,'power');stockBuy(g,'power');stockBuy(g,'fire');stockBuy(g,'fire-power');stockBuy(g,'ice');
+ assert.equal(g.upgradeHistory.filter(e=>e.id==='power').length,2);assert.equal(g.upgradeHistory.find(e=>e.id==='fire-power').status,'replaced');assert.equal(g.upgradeHistory.find(e=>e.id==='ice').status,'active');
+ g.closeShop();g.gainXP(g.player.xpNext);g.nextWave();const choice=g.draftChoices[0];g.chooseUpgrade(choice.id);assert.equal(g.upgradeHistory.at(-1).source,'level');
+ const damage=g.statSheet().find(s=>s.name==='Physical damage');assert.equal(damage.base,18);assert.ok(damage.current>=18*1.25**2);g.player.furyTime=2;assert.equal(g.statSheet().find(s=>s.name==='Physical damage').current,damage.current);
+});

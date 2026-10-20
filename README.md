@@ -31,8 +31,8 @@ The build produces `dist/index.html` and `wildfall.html`, with all game code, Th
 | Q / R | Turn the camera left / right |
 | Pointer movement in Free mode | Orbit and tilt without holding a mouse button; active only over the game |
 | Right-mouse drag in Locked mode | Orbit and tilt while holding right click |
-| Space | Dash with brief invulnerability; 2.6-second cooldown (1.6 with Gale boots) |
-| E | Elemental burst once unlocked; radial arrows and nearby area damage |
+| Space | Activate your pre-game defensive / movement skill |
+| E | Activate your pre-game offensive skill |
 | F | Open a glowing treasure chest within reach |
 | 1 / 2 / 3 or element icons | Open the shop; attunements appear among rotating offers |
 | B | Shop; time pauses while shopping |
@@ -41,6 +41,33 @@ The build produces `dist/index.html` and `wildfall.html`, with all game code, Th
 The bow automatically aims at and shoots nearby enemies. The character turns to shoot, draws its bow, walks with animated legs, and carries a quiver. Arrows have shafts, arrowheads, fletching, and colored elemental tips. Camera-turn buttons, element buttons, and touch movement/ability controls support smaller screens.
 
 The minimap shows your position, biome colors, unopened caches, and bosses. There are 24 caches, each awarding 25 coins and 10 XP once per run. Trees, rocks, camp structures, pillars, the brazier, and chests have solid collision in both views. Walking, dashing, enemies, and companions respect the same geometry. Tall obstacles block arrows and line of sight. The map is bounded, with no jumping or climbing mechanics. Wider trails and fewer, more widely spaced groves keep routes open. Trees stay opaque; the camera pulls closer when scenery would obstruct it.
+
+## Pre-game skills and fullscreen
+
+Each new run (including retries) opens a loadout screen before combat. Each slot offers three distinct random choices drawn from a four-skill pool. Choose one **Space** skill and one **E** skill, then enter the wild. Both are available immediately and remain fixed for that run; no gold or level gate is required. Cooldowns and active durations freeze while paused or shopping.
+
+| Slot | Skill | Effect | Base cooldown |
+| --- | --- | --- | --- |
+| Space | Windskip | Directional dash, brief invulnerability | 2.6s |
+| Space | Shell Yeah! | Block all incoming damage for 3s | 12s |
+| Space | Hare Trigger | +70% movement speed for 4s; invulnerability for the first 0.8s | 10s |
+| Space | Bramble Bouncer | Shove nearby enemies around solid scenery, clear nearby hostile shots, block damage for 1.5s | 9s |
+| E | Arrowpalooza | Double bow attack speed for 5s | 14s |
+| E | Quiverquake | Close-range elemental blast and 12 radial arrows | 8s |
+| E | Flock & Awe | Eight empowered arrows aimed at nearby visible targets; an aimed fan if none are present | 11s |
+| E | Hunter’s Moon | Double player arrow impact damage for 4s | 14s |
+
+**Wild amplification** replaces the former burst unlock in the shop. Each rank (maximum 5) adds 25% offensive skill power and 10% duration to timed offensive skills. Arrowpalooza’s rate multiplier and Hunter’s Moon’s impact multiplier increase by 0.25 per rank. Quiverquake and Flock & Awe scale their skill damage by 25% per rank. It never replaces your chosen skill. Offensive buffs do not empower pet attacks. HUD, sidebar, and touch controls reflect the selected skills.
+
+Use **Fullscreen** inside the game to expand the entire stage, including menus and HUD. The button also exits fullscreen; browsers support Escape to exit native fullscreen. If the native API is unavailable or rejected, the button expands the stage to fill the browser viewport, with the same exit control. Resizing updates the 3D camera aspect and drawing size.
+
+## Build sheet beside the shop
+
+The shop and level-reward screen include **Stats & upgrades**. Desktop displays the sheet beside the four offers; small screens use **Shop offers / Level choices** and **Stats & upgrades** tabs. Reviewing stats never advances the wave, rerolls offers, or consumes a reward.
+
+The table compares starting and current permanent maximum health, physical damage, shared elemental damage, armor, movement speed, bow shots per second, pickup range, and regeneration. A separate combat readout shows current arrow impact, active elemental impact, armor reduction, movement speed, and firing cadence, including temporary buffs. The chosen loadout is included with descriptions.
+
+Every successful level choice and shop purchase is recorded, including repeat upgrades (grouped with counts), pets, abilities, healing consumables, and attunements. Elemental ranks and attunements removed by a swap remain visible as **REPLACED**, while permanent shared elemental damage remains active. The record resets each run.
 
 ## Exclusive elemental builds
 
@@ -72,8 +99,8 @@ Unique abilities are one-time purchases in the four-offer shop pool:
 
 - **Trailrunner** (level 2): moving builds up to +35% speed over two seconds; stopping resets the bonus.
 - **Echo arrows** (level 3): player arrows bounce once to another visible enemy within 210 units, dealing 65% damage. Pet darts do not bounce.
-- **Thunderstep** (level 2): dashing releases a 145-unit physical shockwave for 150% physical damage and a brief 30% slow.
-- **Gale boots** (level 2): reduces dash cooldown to 1.6 seconds.
+- **Thunderstep** (level 2): using your selected Space skill releases a 145-unit physical shockwave for 150% physical damage and a brief 30% slow.
+- **Gale boots** (level 2): reduces the selected Space skill’s cooldown by 38% (Windskip: 2.6 → 1.6 seconds).
 - **Harvest pact** (level 3): restores 6 health every fifth kill, capped at maximum health.
 
 Armor reduces incoming damage using `100 / (100 + 6 × armor)`. Armor starts at zero; Bark mail adds 3 and a level-up Ironbark choice adds 2. There is no negative armor. The shop and sidebar show armor and movement speed.
@@ -117,7 +144,7 @@ Use the existing checkout; cloud tasks are isolated and need no separate worktre
 
 ## HUD, camera preferences, and performance
 
-The in-game HUD shows health and XP progress bars with numeric values, player level, gold coins, equipped element, elemental shop shortcuts and queued stat-choice count, dash/burst recharge bars, defeat count, and companion count. The minimap and location remain available during exploration. The sidebar provides the same detailed character information.
+The in-game HUD shows health and XP progress bars with numeric values, player level, gold coins, equipped element, elemental shop shortcuts and queued stat-choice count, selected skill names, active durations and recharge bars, defeat count, and companion count. The minimap and location remain available during exploration. The sidebar provides the same detailed character information.
 
 **Camera: Free** lets mouse or trackpad pointer movement over the game orbit and tilt the following camera without holding a button. **Camera: Locked** requires right-drag. Looking stops over menus or outside the game. The C key toggles modes; this preference persists between visits. Q/R and on-screen arrows remain available.
 

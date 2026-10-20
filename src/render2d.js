@@ -18,6 +18,8 @@ export function create2DRenderer(canvas,game) {
     for(const pet of game.pets){circle(pet.x,pet.y,12,pet.kind==='fox'?'#dba15c':pet.kind==='collector'?'#e8c463':'#b3d8e4');circle(pet.x+7,pet.y-5,6,'#e7e2bb');}
     for(const b of game.bullets){ctx.save();ctx.translate(b.x,b.y);ctx.rotate(Math.atan2(b.vy,b.vx));ctx.strokeStyle=b.element==='fire'?'#ffa254':b.element==='ice'?'#91e7fa':b.element==='poison'?'#b1ee71':'#edd8a4';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-14,0);ctx.lineTo(6,0);ctx.lineTo(1,-4);ctx.moveTo(6,0);ctx.lineTo(1,4);ctx.stroke();ctx.restore();}
     for(const b of game.hostile)circle(b.x,b.y,6,'#d6aff0');
+    if(p.spaceTime>0&&['shield','repel'].includes(game.loadout.space)){ctx.strokeStyle='#ffdb81';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,29,0,Math.PI*2);ctx.stroke();}
+    if(p.rapidTime>0||p.furyTime>0){ctx.strokeStyle='#cfb0ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,24,0,Math.PI*2);ctx.stroke();}
     if(!(p.invincible>0&&Math.floor(time*16)%2)){
       circle(p.x,p.y,14,'#9bb56f');circle(p.x,p.y-4,8,'#e9cb94');
       ctx.strokeStyle='#c6a16b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x+9,p.y,14,-Math.PI/2,Math.PI/2);ctx.stroke();

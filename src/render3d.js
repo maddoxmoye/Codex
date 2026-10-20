@@ -159,6 +159,8 @@ export function create3DRenderer(canvas, game) {
     return g;
   }
   const player = makeWayfarer(); scene.add(player);
+  const skillShell=mesh(scene,sphere,mat('#ffdb81',{transparent:true,opacity:.26,wireframe:true,depthWrite:false}),0,0,0,.6,.75,.6,false);
+  const offensiveAura=flatRing(scene,mat('#cfb0ff',{transparent:true,opacity:.8,depthWrite:false}),.42,.035);
   const playerHalo = flatRing(scene, mat('#d2e89b', { transparent: true, opacity: .55 }), .24, .025);
   function makeEnemy(e) {
     const group = new THREE.Group(), body = new THREE.Group(); group.add(body); group.userData.body = body;
@@ -236,7 +238,9 @@ export function create3DRenderer(canvas, game) {
     player.position.set(px,.02,pz);
     const targetAngle=p.shotTime>0?Math.atan2(p.aimX,p.aimY):Math.atan2(p.dx,p.dy);
     facing+=Math.atan2(Math.sin(targetAngle-facing),Math.cos(targetAngle-facing))*(1-Math.exp(-dt*14));
-    player.rotation.y=facing;player.visible=!(p.invincible>0 && Math.floor(time*16)%2);
+    player.rotation.y=facing;player.visible=!(p.invincible>0&&p.spaceTime<=0&&Math.floor(time*16)%2);
+    skillShell.visible=p.spaceTime>0&&['shield','repel'].includes(game.loadout.space);skillShell.position.set(px,.6,pz);skillShell.rotation.y=time*.9;skillShell.scale.setScalar(.65+Math.sin(time*6)*.025);
+    offensiveAura.visible=p.rapidTime>0||p.furyTime>0;offensiveAura.position.set(px,.05,pz);offensiveAura.scale.setScalar(.4+Math.sin(time*8)*.04);
     const step=p.moving?Math.sin(game.time*13)*.55:0;
     player.userData.legs[0].rotation.x=step;player.userData.legs[1].rotation.x=-step;
     player.userData.hips.position.y=p.moving?Math.abs(Math.sin(game.time*13))*.025:0;
