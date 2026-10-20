@@ -30,7 +30,7 @@ Tests cover combat, movement, progression, purchases, cooldowns, boss patterns, 
 - **Space:** Dash, with brief invulnerability. Recharges in 2.6 seconds.
 - **E:** Arcane nova, once unlocked. Damages nearby enemies and clears nearby projectiles.
 - **B:** Open the shop. Time stops while shopping.
-- **2D VIEW / 3D VIEW button:** Switch graphics without resetting the run. The selection is saved in this browser. WebGL2 is required for 3D; unsupported devices fall back to 2D.
+- **2D VIEW / 3D VIEW button:** Switch graphics without resetting the run. Every page load starts in 3D; switching to 2D applies only to the current visit. Old saved 2D preferences are cleared. WebGL2 is required for 3D; unsupported devices fall back to 2D.
 - **Escape:** Pause / resume. Losing browser focus also pauses the game.
 - Touch movement, dash, and ability buttons appear on small screens.
 

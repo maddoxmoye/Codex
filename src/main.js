@@ -5,7 +5,8 @@ const $ = id => document.getElementById(id);
 let canvas=$('arena'), view;
 const game=new Game();
 let graphics='3d';
-try { graphics=localStorage.getItem('wildfall-graphics') || '3d'; } catch {}
+// Start every visit in 3D, including browsers with an older saved 2D preference.
+try { localStorage.removeItem('wildfall-graphics'); } catch {}
 const keys=new Set(); let previous=performance.now(),shown='',sound=false,audio,toastTimer;
 let best=0;try{best=Number(localStorage.getItem('wildfall-best'))||0;}catch{}
 function beep(freq=440,duration=.1,type='sine',volume=.025){if(!sound)return;try{audio ||= new AudioContext();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);}catch{}}
@@ -85,7 +86,6 @@ function setGraphics(mode) {
   }
   $('graphics-button').textContent=graphics==='3d'?'3D VIEW':'2D VIEW';
   $('graphics-button').setAttribute('aria-label',graphics==='3d'?'Switch to 2D graphics':'Switch to 3D graphics');
-  try { localStorage.setItem('wildfall-graphics',graphics); } catch {}
   if (wasPlaying) canvas.focus();
 }
 $('graphics-button').onclick=()=>setGraphics(graphics==='3d'?'2d':'3d');
