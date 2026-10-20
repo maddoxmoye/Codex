@@ -4,12 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node server.mjs",
-    "start": "node server.mjs",
+    "dev": "node build.mjs && node server.mjs",
+    "start": "node build.mjs && node server.mjs",
     "test": "node --test",
     "build": "node build.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
