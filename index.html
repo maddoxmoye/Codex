@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#101c19"><title>Wildfall — Into the Hollow</title><link rel="stylesheet" href="/src/style.css"></head>
+<body>
+<header class="header"><a class="brand" href="/" aria-label="Wildfall home"><span class="brand-mark">✧</span> WILDFALL<span class="tag">SURVIVAL / ROGUELITE</span></a><div class="header-right"><span class="status-dot"></span> SINGLE PLAYER <button id="sound" class="icon-button" aria-label="Enable sound">SOUND OFF</button></div></header>
+<main>
+<div class="page-heading"><div><div class="eyebrow">THE HOLLOW IS CALLING</div><h1>A little light. An endless wild.</h1></div><button id="shop-button" class="button shop-trigger">◇ &nbsp; Wanderer's shop <kbd>B</kbd></button></div>
+<div class="game-layout">
+<section class="arena-panel" aria-label="Game arena">
+<div class="arena-toolbar"><span><i class="live-dot"></i> <span id="phase">THE WHISPERING WOODS</span></span><span id="timer">00:00</span><span id="wave">WAVE 01 / 09</span></div>
+<div class="canvas-wrap"><canvas id="arena" width="1000" height="660" aria-label="Survival arena. Move with WASD or arrow keys, dash with Space, use ability with E." tabindex="0"></canvas><div id="boss-hud" hidden><div><span id="boss-name"></span><span id="boss-hp"></span></div><div class="boss-track"><div id="boss-fill"></div></div></div><div id="toast" role="status"></div><div id="overlay" class="overlay"></div><div id="mobile-controls"><button data-move="left" aria-label="Move left">←</button><button data-move="up" aria-label="Move up">↑</button><button data-move="down" aria-label="Move down">↓</button><button data-move="right" aria-label="Move right">→</button><button id="touch-dash">DASH</button><button id="touch-ability">E</button></div></div>
+<div class="arena-footer"><span><span class="tiny-spark">✧</span> Keep moving. The forest doesn't.</span><button id="pause-button" class="text-button">Pause <kbd>Esc</kbd></button></div>
+</section>
+<aside>
+<section class="panel survivor-panel"><div class="section-label">YOUR SURVIVOR <span id="level-badge">LV. 1</span></div><div class="survivor"><div class="portrait">♜</div><div><h2>The Wayfarer</h2><p>A spark against the dark.</p></div></div><div class="bar-label"><span>♥ &nbsp; Vitality</span><strong id="hp-text">100 / 100</strong></div><div class="track"><div id="hp-fill" class="health-fill"></div></div><div class="bar-label xp-label"><span>✧ &nbsp; Experience</span><strong id="xp-text">0 / 20</strong></div><div class="track small"><div id="xp-fill" class="xp-fill"></div></div><div class="stats"><div><span class="coin-icon">◈</span><strong id="coins">0</strong><small>COINS</small></div><div><span>⚔</span><strong id="kills">0</strong><small>DEFEATED</small></div></div></section>
+<section class="panel"><div class="section-label">YOUR ARSENAL <span class="muted">AUTO ATTACK</span></div><div class="ability-row"><div class="ability-icon amber">→</div><div><h3>Ember bolt</h3><p id="weapon-description">Seeks the nearest enemy</p></div><span class="pill">I</span></div><div class="ability-row"><div class="ability-icon teal">➟</div><div><h3>Windstep <kbd>Space</kbd></h3><p id="dash-status">Dash through danger</p></div></div><div class="ability-row"><div class="ability-icon purple">✺</div><div><h3 id="active-name">Arcane nova <kbd>E</kbd></h3><p id="active-status">Unlock at level 2</p></div></div></section>
+<section class="panel journey"><div class="section-label">THE PATH AHEAD</div><div class="journey-item" id="journey-1"><span class="boss-symbol">♜</span><div><h3>The Briar King</h3><p>Wave 03 · Charging guardian</p></div><span class="journey-check">◇</span></div><div class="journey-item" id="journey-2"><span class="boss-symbol">✺</span><div><h3>The Frost Oracle</h3><p>Wave 06 · Frozen barrage</p></div><span class="journey-check">◇</span></div><div class="journey-item" id="journey-3"><span class="boss-symbol">☾</span><div><h3>The Hollow Monarch</h3><p>Wave 09 · Lord of the wild</p></div><span class="journey-check">◇</span></div></section>
+<div class="field-note"><span>FIELD NOTE / 001</span><p>“Even the oldest darkness<br>learns to fear a spark.”</p><div>✦ &nbsp; ✦ &nbsp; ✦</div></div>
+</aside>
+</div>
+<footer class="page-footer"><span>WASD / ARROWS <b>Move</b> <i>·</i> SPACE <b>Dash</b> <i>·</i> E <b>Ability</b> <i>·</i> B <b>Shop</b></span><span>Handcrafted for the long night. <span class="tiny-spark">✧</span></span></footer>
+</main><script type="module" src="/src/main.js"></script>
+</body></html>
