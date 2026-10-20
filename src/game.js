@@ -239,7 +239,7 @@ export class Game {
     if(this.freePicks){this.prepareDraft();return;}
     const c=this.chestQueue[0];
     if(c){if(!c.reward)this.rollChest(c);this.state='reward';}
-    else if(this.pendingVictory)this.finishVictory();else this.state='shop';
+    else if(this.pendingVictory)this.finishVictory();else{this.prepareShop();this.state='shop';}
     this.shopRevision++;
   }
   statusHit(e,element,payload=this.profile(element)){
@@ -309,7 +309,7 @@ export class Game {
     for(const c of [...this.chests])this.secureChest(c);
     this.hazards=[];this.enemies=[];this.hostile=[];this.bullets=[];this.effects=[];
     this.pendingVictory=this.wave===9;this.pendingWave=this.pendingVictory?null:this.wave+1;this.shopReturn='playing';this.shopReason='wave';
-    if(!this.pendingVictory){this.shopRound=null;this.prepareShop();}this.continueRewards();
+    if(!this.pendingVictory){this.shopRound=null;this.rerolls=0;this.shopBaseCost=5+Math.floor(Math.max(0,this.wave-1)/2)*2;this.shopOffers=[];}this.continueRewards();
     this.message='Wave '+this.wave+' cleared · resolve your rewards';
   }
   warnAttack(e,kind,delay,r=80){

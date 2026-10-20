@@ -261,3 +261,7 @@ test('all eight selected skills emit distinct activation graphics',()=>{
  const space=['dash','shield','sprint','repel'].map(id=>{const g=create();g.loadout.space=id;g.dash();return g.effects[0].type;});assert.equal(new Set(space).size,4);
  const offense=['rapid','burst','salvo','fury'].map(id=>{const g=create();g.loadout.attack=id;g.nova();return g.effects[0].type;});assert.equal(new Set(offense).size,4);
 });
+
+test('shop inventory is drawn after chest rewards so all four offers are still eligible',()=>{
+ const g=create();g.player.level=5;g.dropChest({x:800,y:330});g.nextWave();assert.equal(g.state,'reward');assert.equal(g.shopOffers.length,0);const reward=g.chestQueue[0].reward;assert.equal(g.resolveChest('take'),true);assert.equal(g.state,'shop');assert.equal(g.shopOffers.length,4);for(const slot of g.shopOffers)assert.equal(g.offer(SHOP.find(i=>i.id===slot.id)).available,true);if(!reward.repeat)assert.ok(!g.shopOffers.some(s=>s.id===reward.id));
+});
