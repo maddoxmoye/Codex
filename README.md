@@ -27,12 +27,14 @@ The build produces `dist/index.html` and `wildfall.html`, with all game code, Th
 | Control | Action |
 | --- | --- |
 | WASD / arrows | Move relative to the current camera |
+| C / Camera button | Toggle Free mouse look / Locked right-drag look |
 | Q / R | Turn the camera left / right |
-| Right-mouse drag | Orbit the camera |
+| Pointer movement in Free mode | Orbit and tilt without holding a mouse button; active only over the game |
+| Right-mouse drag in Locked mode | Orbit and tilt while holding right click |
 | Space | Dash with brief invulnerability; 2.6-second cooldown |
 | E | Elemental burst once unlocked; radial arrows and nearby area damage |
 | F | Open a glowing treasure chest within reach |
-| 1 / 2 / 3 | Equip unlocked fire / ice / poison arrows |
+| 0 / 1 / 2 / 3 | Equip physical / unlocked fire / ice / poison arrows |
 | B | Shop; time pauses while shopping |
 | Escape | Pause / resume |
 
@@ -81,3 +83,15 @@ Use the existing checkout; cloud tasks are isolated and need no separate worktre
 ## GitHub Pages
 
 `.github/workflows/pages.yml` installs locked dependencies, tests and builds, then deploys only `dist/`. Pushes to `main` redeploy automatically. Pages must use **Settings → Pages → Source: GitHub Actions**. A manual run is also available under **Actions → Publish Wildfall to GitHub Pages**. The output works under the `/Codex/` project path. No custom domain or extra credentials are required.
+
+## HUD, camera preferences, and performance
+
+The in-game HUD shows health and XP progress bars with numeric values, player level, gold coins, equipped element, selectable elemental arrow slots, dash/burst recharge bars, defeat count, and companion count. The minimap and location remain available during exploration. The sidebar provides the same detailed character information.
+
+**Camera: Free** lets mouse or trackpad pointer movement over the game orbit and tilt the following camera without holding a button. **Camera: Locked** requires right-drag. Looking stops over menus or outside the game. The C key toggles modes; this preference persists between visits. Q/R and on-screen arrows remain available.
+
+**Detail: Low** disables dynamic shadows and caps rendering to one physical pixel per CSS pixel. High detail uses 512-pixel shadow maps and a 1.25 pixel-ratio cap. Small screens default to Low; the setting is saved. HUD/minimap updates run at 10 Hz independently from rendering.
+
+Elapsed simulation time is consumed in steps no larger than 1/60 second, capped at 0.25 seconds of catch-up after a stall. This fixes the previous slow-motion behavior below 20 rendering FPS. Walking speed is now 210 units/second (previously 165), and the base bow fires every 0.42 seconds (previously 0.52).
+
+The rendering library is **Three.js** (MIT); gameplay uses custom JavaScript. Free engine alternatives include **Babylon.js** (Apache-2.0, browser-oriented engine with more built-in systems) and **Godot** (MIT, full editor, animation, physics, and web export). Moving to either requires porting the renderer and/or gameplay and validating its web deployment; an engine change alone does not establish a performance improvement.

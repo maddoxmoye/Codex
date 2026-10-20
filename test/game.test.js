@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game, BOSSES, WORLD, regionAt } from '../src/game.js';
+import { Game, BOSSES, WORLD, regionAt, advanceGame } from '../src/game.js';
 const create=()=>{const g=new Game(()=>.5);g.start();g.spawnTime=999;g.player.x=500;g.player.y=330;return g;};
 function advance(g,seconds,input={}){for(let i=0;i<seconds*20;i++)g.update(.05,input);}
 test('movement is normalized, bounded, and paused outside play',()=>{
  const g=create(),start={...g.player};g.update(.05,{right:true,down:true});
- assert.ok(Math.abs(Math.hypot(g.player.x-start.x,g.player.y-start.y)-8.25)<.001);
+ assert.ok(Math.abs(Math.hypot(g.player.x-start.x,g.player.y-start.y)-10.5)<.001);
  g.player.x=WORLD.width-23;g.update(.05,{right:true});assert.equal(g.player.x,WORLD.width-22);
  g.state='paused';const x=g.player.x;g.update(.05,{left:true});assert.equal(g.player.x,x);
 });
@@ -96,4 +96,16 @@ test('exploration chests require proximity and grant rewards only once per run',
 });
 test('spawns stay near a moving player and inside world edges',()=>{
  const g=create();for(const [x,y] of [[2400,2000],[30,30],[4770,3970]]){g.player.x=x;g.player.y=y;const e=g.spawn();assert.ok(e.x>=30&&e.x<=4770);assert.ok(e.y>=30&&e.y<=3970);assert.ok(Math.hypot(e.x-x,e.y-y)<650);}
+});
+
+test('elapsed time advances equally at 60 FPS and 10 FPS without slow motion',()=>{
+ const fast=create(),slow=create();
+ for(let i=0;i<60;i++)advanceGame(fast,1/60,{right:true});
+ for(let i=0;i<10;i++)advanceGame(slow,.1,{right:true});
+ assert.ok(Math.abs(fast.time-1)<1e-6);assert.ok(Math.abs(slow.time-1)<1e-6);
+ assert.ok(Math.abs(fast.player.x-slow.player.x)<1e-6);assert.ok(Math.abs(slow.player.x-710)<1e-6);
+});
+test('catch-up is capped after long stalls and does not accumulate in menus',()=>{
+ const g=create();advanceGame(g,10,{right:true});assert.ok(Math.abs(g.time-.25)<1e-6);
+ g.openShop();const time=g.time;advanceGame(g,1,{right:true});assert.equal(g.time,time);g.closeShop();advanceGame(g,1/60,{});assert.ok(Math.abs(g.time-time-1/60)<1e-6);
 });

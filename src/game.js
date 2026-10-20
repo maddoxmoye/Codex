@@ -37,7 +37,7 @@ export class Game {
   constructor(random = Math.random) { this.random = random; this.reset(); }
   reset() {
     this.state = 'title'; this.time = 0; this.wave = 1; this.waveTime = 0; this.spawnTime = 0;
-    this.player = { x: WORLD.width/2, y: WORLD.height/2, r: 13, hp: 100, maxHp: 100, speed: 165, damage: 18, fireRate: .52, fireTimer: 0, level: 1, xp: 0, xpNext: 20, coins: 0, kills: 0, magnet: 60, dashCooldown: 0, dashTime: 0, dx: 1, dy: 0, invincible: 0, nova: 0, novaCooldown: 0, frost: false, multi: false, regen: false, fire: false, poison: false, pet: false, wolf: false, element: 'physical', aimX: 0, aimY: -1, shotTime: 0, moving: false };
+    this.player = { x: WORLD.width/2, y: WORLD.height/2, r: 13, hp: 100, maxHp: 100, speed: 210, damage: 18, fireRate: .42, fireTimer: 0, level: 1, xp: 0, xpNext: 20, coins: 0, kills: 0, magnet: 60, dashCooldown: 0, dashTime: 0, dx: 1, dy: 0, invincible: 0, nova: 0, novaCooldown: 0, frost: false, multi: false, regen: false, fire: false, poison: false, pet: false, wolf: false, element: 'physical', aimX: 0, aimY: -1, shotTime: 0, moving: false };
     this.pets=[]; this.chests=Array.from({length:24},(_,i)=>({x:i===0?2500:300+(i*719)%4200,y:i===0?1900:300+(i*1093)%3400,opened:false}));
     this.enemies = []; this.bullets = []; this.hostile = []; this.pickups = []; this.effects = []; this.pendingLevels = 0; this.bossesDefeated = 0; this.bossSpawned = false; this.choices = []; this.message = ''; this.event = null;
   }
@@ -197,5 +197,16 @@ export class Game {
     this.pickups=this.pickups.filter(i=>!i.collected).slice(-500);
     this.effects.forEach(e=>e.life-=dt);this.effects=this.effects.filter(e=>e.life>0);
     if(this.state==='playing' && ((this.wave%3!==0 && this.waveTime>=25) || (this.wave%3===0 && this.bossSpawned && !this.enemies.some(e=>e.kind==='boss')))) this.nextWave();
+  }
+}
+
+// Consume elapsed time in safe steps rather than slowing the world at low render FPS.
+// Cap catch-up after long stalls; paused/menu states never accumulate simulation time.
+export function advanceGame(game, elapsed, input = {}) {
+  let remaining = Math.min(.25, Math.max(0, Number.isFinite(elapsed) ? elapsed : 0));
+  while (remaining > 1e-8 && game.state === 'playing') {
+    const step = Math.min(1 / 60, remaining);
+    game.update(step, input);
+    remaining -= step;
   }
 }

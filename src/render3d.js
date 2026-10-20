@@ -4,7 +4,7 @@ import { WORLD, REGIONS } from './game.js';
 // A perspective camera follows the ranger through a continuous, explorable world.
 export function create3DRenderer(canvas, game) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -13,13 +13,13 @@ export function create3DRenderer(canvas, game) {
   scene.background = new THREE.Color('#8caeab');
   scene.fog = new THREE.Fog('#8caeab', 10, 30);
   const camera = new THREE.PerspectiveCamera(58, 1.5, .1, 75);
-  let cameraYaw = 0;
+  let cameraYaw = 0, cameraLift = 2.5;
   const cameraFocus = new THREE.Vector3(0, .65, 0);
   camera.position.set(0, 3.15, 5.3); camera.lookAt(cameraFocus);
   scene.add(new THREE.HemisphereLight('#d7ecda', '#374637', 2.1));
   const sun = new THREE.DirectionalLight('#ffe2ae', 3.1);
   sun.position.set(-4, 10, -5); sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.mapSize.set(512, 512);
   Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 6, bottom: -6, near: .1, far: 24 });
   sun.shadow.normalBias = .04; sun.shadow.bias = -.0002;
   scene.add(sun);
@@ -242,11 +242,11 @@ export function create3DRenderer(canvas, game) {
       width = w; height = h; renderer.setSize(w, h, false);
       camera.aspect=w/h;camera.updateProjectionMatrix();
     }
-    const p=game.player, dt=Math.min(.05,lastTime?time-lastTime:.016);lastTime=time;
+    const p=game.player, dt=Math.min(.25,lastTime?time-lastTime:.016);lastTime=time;
     const px=(p.x-WORLD.width/2)/100,pz=(p.y-WORLD.height/2)/100;
     player.position.set(px,.02,pz);
     const targetAngle=p.shotTime>0?Math.atan2(p.aimX,p.aimY):Math.atan2(p.dx,p.dy);
-    facing+=Math.atan2(Math.sin(targetAngle-facing),Math.cos(targetAngle-facing))*.2;
+    facing+=Math.atan2(Math.sin(targetAngle-facing),Math.cos(targetAngle-facing))*(1-Math.exp(-dt*14));
     player.rotation.y=facing;player.visible=!(p.invincible>0 && Math.floor(time*16)%2);
     const step=p.moving?Math.sin(game.time*13)*.55:0;
     player.userData.legs[0].rotation.x=step;player.userData.legs[1].rotation.x=-step;
@@ -261,7 +261,7 @@ export function create3DRenderer(canvas, game) {
     if(cameraFocus.distanceTo(focusTarget)>8)cameraFocus.copy(focusTarget);
     else cameraFocus.lerp(focusTarget,1-Math.exp(-dt*9));
     const distance=canvas.clientWidth<500?6.4:5.3;
-    camera.position.set(cameraFocus.x+Math.sin(cameraYaw)*distance,cameraFocus.y+2.5,cameraFocus.z+Math.cos(cameraYaw)*distance);
+    camera.position.set(cameraFocus.x+Math.sin(cameraYaw)*distance,cameraFocus.y+cameraLift,cameraFocus.z+Math.cos(cameraYaw)*distance);
     camera.lookAt(cameraFocus);
     // Cut away foliage between camera and ranger so exploration never hides the character.
     const cx=camera.position.x-px,cz=camera.position.z-pz,span=cx*cx+cz*cz;
@@ -328,5 +328,5 @@ export function create3DRenderer(canvas, game) {
     sun.color.set(game.wave % 3 === 0 ? '#e3c4ff' : '#ffe2ae');
     renderer.render(scene, camera);
   }
-  return { render, orbit(delta) { cameraYaw+=delta; }, movement(x,y) { return {moveX:x*Math.cos(cameraYaw)+y*Math.sin(cameraYaw),moveY:y*Math.cos(cameraYaw)-x*Math.sin(cameraYaw)}; }, dispose() { scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); renderer.dispose(); } };
+  return { render, setQuality(quality) { renderer.shadowMap.enabled=quality==='high';renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==='high'?1.25:1)); }, look(dx,dy) { cameraYaw+=dx*.006;cameraLift=THREE.MathUtils.clamp(cameraLift+dy*.012,.85,5.5); }, orbit(delta) { cameraYaw+=delta; }, movement(x,y) { return {moveX:x*Math.cos(cameraYaw)+y*Math.sin(cameraYaw),moveY:y*Math.cos(cameraYaw)-x*Math.sin(cameraYaw)}; }, dispose() { scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); renderer.dispose(); } };
 }
