@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game, BOSSES } from '../src/game.js';
-const create=()=>{const g=new Game(()=>.5);g.start();g.spawnTime=999;return g;};
+import { Game, BOSSES, WORLD, regionAt } from '../src/game.js';
+const create=()=>{const g=new Game(()=>.5);g.start();g.spawnTime=999;g.player.x=500;g.player.y=330;return g;};
 function advance(g,seconds,input={}){for(let i=0;i<seconds*20;i++)g.update(.05,input);}
 test('movement is normalized, bounded, and paused outside play',()=>{
  const g=create(),start={...g.player};g.update(.05,{right:true,down:true});
  assert.ok(Math.abs(Math.hypot(g.player.x-start.x,g.player.y-start.y)-8.25)<.001);
- g.player.x=977;g.update(.05,{right:true});assert.equal(g.player.x,978);
+ g.player.x=WORLD.width-23;g.update(.05,{right:true});assert.equal(g.player.x,WORLD.width-22);
  g.state='paused';const x=g.player.x;g.update(.05,{left:true});assert.equal(g.player.x,x);
 });
 test('auto fire damages enemies; kills drop collectible coins and XP',()=>{
@@ -64,7 +64,36 @@ test('shop and level-up menus freeze time and attacks',()=>{
  const g=create();g.openShop();advance(g,3);assert.equal(g.time,0);g.closeShop();g.gainXP(20);advance(g,3);assert.equal(g.time,0);
 });
 test('frost slows on impact, multi-shot fires three bolts, regeneration heals',()=>{
- const g=create();g.player.multi=true;g.player.frost=true;g.player.regen=true;g.player.hp=70;
+ const g=create();g.player.multi=true;g.player.frost=true;g.player.element='ice';g.player.regen=true;g.player.hp=70;
  const e={x:590,y:330,r:18,hp:500,slow:0,speed:0,damage:0,kind:'brute'};g.enemies.push(e);g.update(.05);assert.equal(g.bullets.length,3);
  advance(g,.3);assert.ok(e.slow>0);assert.ok(g.player.hp>70);assert.ok(e.hp<500);
+});
+
+test('the world is traversable far beyond the old arena and identifies its biomes',()=>{
+ const g=create();g.player.x=2400;g.player.y=2000;advance(g,2,{right:true});assert.ok(g.player.x>2700);
+ assert.equal(regionAt({x:1000,y:1000}).name,'Frostveil Ruins');assert.equal(regionAt({x:3700,y:1000}).name,'Ember Highlands');assert.equal(regionAt({x:3400,y:3200}).name,'Venom Marsh');
+});
+test('element selection requires unlocks, equips purchases and keeps each arrow element',()=>{
+ const g=create();assert.equal(g.selectElement('poison'),false);g.player.coins=100;g.openShop();g.buy('fire');assert.equal(g.player.element,'fire');g.closeShop();
+ g.arrow(g.player,{x:600,y:330},18,g.player.element);assert.equal(g.bullets[0].element,'fire');assert.equal(g.bullets[0].kind,'arrow');
+ assert.equal(g.selectElement('physical'),true);assert.equal(g.bullets[0].element,'fire');
+});
+test('fire and poison deal damage over time and poison stacks cap at five',()=>{
+ const g=create();const e={x:700,y:330,r:12,hp:500,speed:0,damage:0,slow:0,kind:'brute'};g.enemies.push(e);g.player.fireTimer=999;
+ g.statusHit(e,'fire');g.statusHit(e,'poison');for(let i=0;i<9;i++)g.statusHit(e,'poison');assert.equal(e.poisonStacks,5);
+ advance(g,1);assert.ok(e.hp<482);assert.ok(e.burn<3);assert.ok(e.poison<4);
+ advance(g,5);assert.equal(e.poisonStacks,0);
+});
+test('unlocked companions follow their owner and fire real elemental projectiles',()=>{
+ const g=create();g.player.pet=true;g.player.wolf=true;g.player.fireTimer=999;g.enemies.push({x:700,y:330,r:12,hp:500,speed:0,damage:0,slow:0,kind:'brute'});
+ g.update(.05);assert.equal(g.pets.length,2);assert.equal(g.bullets.length,2);assert.deepEqual(g.bullets.map(b=>b.element),['fire','ice']);
+ const x=g.pets[0].x;g.player.x+=100;g.update(.05);assert.ok(g.pets[0].x>x);
+});
+test('exploration chests require proximity and grant rewards only once per run',()=>{
+ const g=create(),c=g.chests[0];assert.equal(g.interact(),false);g.player.x=c.x;g.player.y=c.y;
+ assert.equal(g.interact(),true);assert.equal(g.player.coins,25);assert.equal(g.player.xp,10);assert.equal(c.opened,true);assert.equal(g.interact(),false);assert.equal(g.player.coins,25);
+ g.start();assert.equal(g.chests[0].opened,false);
+});
+test('spawns stay near a moving player and inside world edges',()=>{
+ const g=create();for(const [x,y] of [[2400,2000],[30,30],[4770,3970]]){g.player.x=x;g.player.y=y;const e=g.spawn();assert.ok(e.x>=30&&e.x<=4770);assert.ok(e.y>=30&&e.y<=3970);assert.ok(Math.hypot(e.x-x,e.y-y)<650);}
 });

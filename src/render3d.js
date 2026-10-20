@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { WORLD, REGIONS } from './game.js';
 
-// The simulation stays on a flat arena; all geometry and lighting are real 3D.
+// A perspective camera follows the ranger through a continuous, explorable world.
 export function create3DRenderer(canvas, game) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
@@ -9,11 +10,12 @@ export function create3DRenderer(canvas, game) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.2;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#13251f');
-  scene.fog = new THREE.Fog('#13251f', 16, 30);
-  const camera = new THREE.OrthographicCamera(-6, 6, 4, -4, .1, 60);
-  camera.position.set(0, 13, 10);
-  camera.lookAt(0, 0, 0);
+  scene.background = new THREE.Color('#8caeab');
+  scene.fog = new THREE.Fog('#8caeab', 10, 30);
+  const camera = new THREE.PerspectiveCamera(58, 1.5, .1, 75);
+  let cameraYaw = 0;
+  const cameraFocus = new THREE.Vector3(0, .65, 0);
+  camera.position.set(0, 3.15, 5.3); camera.lookAt(cameraFocus);
   scene.add(new THREE.HemisphereLight('#d7ecda', '#374637', 2.1));
   const sun = new THREE.DirectionalLight('#ffe2ae', 3.1);
   sun.position.set(-4, 10, -5); sun.castShadow = true;
@@ -30,6 +32,7 @@ export function create3DRenderer(canvas, game) {
   const box = geometry(new THREE.BoxGeometry(1, 1, 1));
   const cone = geometry(new THREE.ConeGeometry(1, 1, 7));
   const cylinder = geometry(new THREE.CylinderGeometry(1, 1, 1, 8));
+  const bowGeo = geometry(new THREE.TorusGeometry(.27, .024, 5, 16, Math.PI));
   const crystal = geometry(new THREE.OctahedronGeometry(1));
   const ringGeo = geometry(new THREE.RingGeometry(.89, 1, 48));
   const colors = {
@@ -39,7 +42,7 @@ export function create3DRenderer(canvas, game) {
     gold: glowing('#ffcb69'), xp: glowing('#b4a0f2'), heal: glowing('#9be39a'), bolt: glowing('#ffdd94'),
     hostile: glowing('#bd9eeb'), wood: mat('#675639'), leaf: mat('#a0b26d'), frost: mat('#96d9e7'),
     void: mat('#6b427c'), eyes: glowing('#ffe6a1'), edge: mat('#6b7047'),
-    mushroom: mat('#ca9869'), water: mat('#507f72', { metalness: .3, roughness: .25 })
+    fire: glowing('#ff8e42'), poison: glowing('#8ce454'), ice: glowing('#79e5ff'), leather: mat('#775039'), feather: mat('#e8dfb9'), mushroom: mat('#ca9869'), water: mat('#507f72', { metalness: .3, roughness: .25 })
   };
   const mesh = (parent, geo, material, x, y, z, sx = 1, sy = sx, sz = sx, shadow = true) => {
     const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = shadow; m.receiveShadow = true; parent.add(m); return m;
@@ -49,65 +52,63 @@ export function create3DRenderer(canvas, game) {
   };
   let seed = 47382;
   const random = () => { seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646; };
-  // A floating forest floor, with its playable boundaries marked by old stones.
-  mesh(scene, box, colors.soil, 0, -.3, 0, 11.8, .55, 8.5);
-  mesh(scene, box, colors.grass, 0, -.025, 0, 11.8, .08, 8.5);
-  const boundaryMat = mat('#7f9460', { transparent: true, opacity: .35 });
-  for (const z of [-3.3, 3.3]) mesh(scene, box, boundaryMat, 0, .012, z, 10, .015, .025, false);
-  for (const x of [-5, 5]) mesh(scene, box, boundaryMat, x, .012, 0, .025, .015, 6.6, false);
-  // Patches and path stones add detail without blocking movement.
-  for (let i = 0; i < 100; i++) {
-    const x = (random() - .5) * 10, z = (random() - .5) * 6.6;
-    const patch = mesh(scene, cylinder, i % 3 ? colors.pine[0] : colors.soil, x, .012, z, .1 + random() * .28, .018, .1 + random() * .22, false);
-    patch.rotation.y = random() * 6;
+  const wx=x=>(x-WORLD.width/2)/100, wz=y=>(y-WORLD.height/2)/100;
+  mesh(scene, box, colors.soil, 0, -.3, 0, WORLD.width/100+2, .55, WORLD.height/100+2);
+  mesh(scene, box, colors.grass, 0, -.025, 0, WORLD.width/100+2, .08, WORLD.height/100+2);
+  for (const r of REGIONS.slice(1)) {
+    const material=mat(r.color);mesh(scene,cylinder,material,wx(r.x),.008,wz(r.y),r.r/100,.035,r.r/100);
   }
-  for (let i = 0; i < 17; i++) {
-    const z = -3.25 + i * .4, x = Math.sin(z * 1.3) * .55;
-    const m = mesh(scene, cylinder, colors.stone, x, .025, z, .18, .04, .12); m.rotation.y = random() * 5;
+  // Visible trails lead from the central camp toward the three distant biomes.
+  for(const region of REGIONS.slice(1)) {
+    const x=wx(region.x),z=wz(region.y),length=Math.hypot(x,z);
+    const path=mesh(scene,box,colors.soil,x/2,.035,z/2,.85,.025,length,false);path.rotation.y=Math.atan2(x,z);
   }
-  const rune = mat('#bad091', { emissive: '#a5c788', emissiveIntensity: .25 });
-  flatRing(scene, rune, .92);
-  for (let i = 0; i < 8; i++) {
-    const a = i * Math.PI / 4;
-    const m = mesh(scene, box, rune, Math.cos(a) * 1.04, .035, Math.sin(a) * 1.04, .07, .035, .13); m.rotation.y = -a;
+  const boundaryMat=mat('#91aa7a',{emissive:'#526b50',transparent:true,opacity:.5});
+  for(const z of [-WORLD.height/200,WORLD.height/200])mesh(scene,box,boundaryMat,0,.12,z,WORLD.width/100,.25,.1);
+  for(const x of [-WORLD.width/200,WORLD.width/200])mesh(scene,box,boundaryMat,x,.12,0,.1,.25,WORLD.height/100);
+  function tree(x,z,s=1,ice=false) {
+    const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
+    mesh(group,cylinder,colors.trunk,0,.45*s,0,.09*s,.9*s,.09*s);
+    for(let i=0;i<3;i++)mesh(group,cone,ice?colors.frost:colors.pine[i],0,(.9+i*.5)*s,0,(.72-i*.14)*s,1.3*s,(.72-i*.14)*s);
   }
-  function tree(x, z, s = 1) {
-    const group = new THREE.Group(); group.position.set(x, 0, z); scene.add(group);
-    mesh(group, cylinder, colors.trunk, 0, .36 * s, 0, .09 * s, .72 * s, .09 * s);
-    for (let i = 0; i < 3; i++) mesh(group, cone, colors.pine[i], 0, (.7 + i * .42) * s, 0, (.62 - i * .13) * s, 1.05 * s, (.62 - i * .13) * s);
+  for(let i=0;i<520;i++) {
+    const x=(random()-.5)*WORLD.width/100,z=(random()-.5)*WORLD.height/100;
+    if(Math.hypot(x,z)<2.6)continue;
+    // Leave the three trails and their landmarks clear.
+    if(REGIONS.slice(1).some(r=>Math.hypot(x-wx(r.x),z-wz(r.y))<2))continue;
+    if(Math.abs(x)<1 || Math.abs(z)<.75)continue;
+    const frozen=Math.hypot(x-wx(1000),z-wz(1000))<7.6;
+    tree(x,z,.7+random()*.75,frozen);
   }
-  for (let i = 0; i < 19; i++) tree(-5.6 + i * .62, -3.85 - random() * .25, .75 + random() * .48);
-  for (let i = 0; i < 11; i++) {
-    tree(-5.55 - random() * .2, -3.1 + i * .65, .75 + random() * .3);
-    tree(5.55 + random() * .2, -3.1 + i * .65, .75 + random() * .3);
+  for(let i=0;i<180;i++) {
+    const x=(random()-.5)*WORLD.width/100,z=(random()-.5)*WORLD.height/100;
+    const m=mesh(scene,sphere,colors.stone,x,.08,z,.12+random()*.25,.12+random()*.2,.13+random()*.2);m.rotation.y=random()*6;
+    if(i%2===0){mesh(scene,cylinder,colors.skin,x+.4,.07,z,.025,.14,.025);mesh(scene,sphere,colors.mushroom,x+.4,.16,z,.08,.05,.08);}
   }
-  // Short foreground shrubs keep the player visible at the near edge.
-  for (let i = 0; i < 17; i++) mesh(scene, sphere, colors.pine[1], -5.5 + i * .68, .17, 3.9, .3, .22, .3);
-  for (let i = 0; i < 20; i++) {
-    const x = (random() - .5) * 9.6, z = (random() - .5) * 6.2;
-    if (Math.hypot(x, z) < 1.2) continue;
-    const m = mesh(scene, sphere, colors.stone, x, .07, z, .1 + random() * .12, .12 + random() * .08, .09 + random() * .08); m.rotation.y = random() * 6;
-  }
-  for (let i = 0; i < 35; i++) {
-    const x = (random() - .5) * 10.4, z = (random() - .5) * 7;
-    if (i % 3 === 0) {
-      mesh(scene, cylinder, colors.skin, x, .055, z, .018, .11, .018);
-      mesh(scene, sphere, colors.mushroom, x, .115, z, .07, .04, .07);
-    } else {
-      for (let j = 0; j < 3; j++) {
-        const blade = mesh(scene, cone, colors.pine[2], x + j * .025, .075, z, .022, .15, .022, false); blade.rotation.z = (j - 1) * .3;
-      }
+  const rune=mat('#bad091',{emissive:'#a5c788',emissiveIntensity:.25});
+  flatRing(scene,rune,1.05,.055);
+  // The starting camp, with its watch fire and canvas shelter.
+  mesh(scene,cone,colors.cape,-1.4,.6,-1.3,.9,1.2,.7).rotation.y=.5;
+  for(let i=0;i<5;i++){const a=i*Math.PI*2/5;mesh(scene,sphere,colors.stone,Math.cos(a)*.3,.1,Math.sin(a)*.3-1.1,.14,.12,.14);}
+  const campFlame=mesh(scene,crystal,colors.fire,0,.35,-1.1,.18,.4,.18);
+  const firelight=new THREE.PointLight('#ffb463',3,4);firelight.position.set(0,.8,-1.1);scene.add(firelight);
+  for(const [index,r] of REGIONS.slice(1).entries()) {
+    const g=new THREE.Group();g.position.set(wx(r.x),0,wz(r.y));scene.add(g);
+    const material=[colors.frost,colors.fire,colors.poison][index];flatRing(g,material,1.7,.065);
+    if(index===0) {
+      for(const x of [-1,1])mesh(g,box,colors.stone,x,1,0,.35,2,.4);
+      mesh(g,box,colors.frost,0,2.1,0,2.6,.3,.45);
+      for(let i=0;i<5;i++)mesh(g,crystal,colors.ice,(random()-.5)*3,.3,(random()-.5)*2,.15,.6,.15);
+    }else if(index===1) {
+      mesh(g,cone,colors.wood,0,.6,0,1.4,1.2,1.4);mesh(g,crystal,colors.fire,0,1.4,0,.45,.9,.45);
+    }else {
+      mesh(g,cylinder,colors.water,0,.07,0,1.5,.04,1.5);
+      for(let i=0;i<4;i++){const a=i*Math.PI/2;mesh(g,sphere,colors.poison,Math.cos(a),.25,Math.sin(a),.2,.35,.2);}
     }
-  }
-  for (const [x, z] of [[-3.8, -2.2], [3.9, 2.3]]) {
-    mesh(scene, box, colors.wood, x, .33, z, .06, .66, .06);
-    mesh(scene, box, colors.gold, x, .72, z, .15, .2, .15);
-    mesh(scene, cone, colors.wood, x, .88, z, .16, .1, .16);
-    const lamp = new THREE.PointLight('#ffc370', 1.3, 2.3); lamp.position.set(x, .8, z); scene.add(lamp);
   }
   // Batch repeated scenery into instances so trees and grass stay inexpensive.
   scene.updateMatrixWorld(true);
-  const batches = new Map();
+  const batches = new Map(), foliageBatches=[];
   scene.traverse(object => {
     if (!object.isMesh) return;
     const key = object.geometry.uuid + object.material.uuid + object.castShadow;
@@ -121,18 +122,51 @@ export function create3DRenderer(canvas, game) {
     instances.castShadow = first.castShadow; instances.receiveShadow = true;
     objects.forEach((object, i) => { instances.setMatrixAt(i, object.matrixWorld); object.removeFromParent(); });
     scene.add(instances);
+    if(first.geometry===cone && [...colors.pine,colors.frost].includes(first.material)) {
+      foliageBatches.push({mesh:instances,matrices:objects.map(o=>o.matrixWorld.clone()),hidden:objects.map(()=>false)});
+    }
   }
   const chargeMaterial = mat('#f5ae68', { emissive: '#d47838', transparent: true, opacity: .4, depthWrite: false });
   function makeWayfarer() {
-    const g = new THREE.Group();
-    for (const x of [-.065, .065]) mesh(g, box, colors.wood, x, .07, 0, .07, .14, .12);
-    mesh(g, cone, colors.cape, 0, .25, 0, .21, .38, .17);
-    mesh(g, sphere, colors.hood, 0, .51, 0, .14, .15, .14);
-    mesh(g, sphere, colors.dark, 0, .5, .095, .095, .085, .045);
-    for (const x of [-.037, .037]) mesh(g, sphere, colors.eyes, x, .51, .133, .014);
-    mesh(g, cylinder, colors.wood, .23, .33, .04, .018, .66, .018);
-    mesh(g, crystal, colors.gold, .23, .72, .04, .06, .09, .06);
-    const light = new THREE.PointLight('#ffe2a0', 1.1, 1.8); light.position.set(.23, .65, 0); g.add(light);
+    const g=new THREE.Group();
+    const hips=new THREE.Group();g.add(hips);
+    const legs=[];
+    for(const x of [-.09,.09]) {
+      const leg=new THREE.Group();leg.position.set(x,.35,0);hips.add(leg);
+      mesh(leg,box,colors.leather,0,-.13,0,.105,.27,.12);
+      mesh(leg,box,colors.dark,0,-.3,.04,.13,.12,.22);legs.push(leg);
+    }
+    mesh(hips,box,colors.cape,0,.55,0,.35,.4,.22);
+    mesh(hips,cone,colors.cape,0,.4,-.08,.27,.45,.22);
+    mesh(hips,box,colors.leather,0,.39,0,.37,.07,.25);
+    mesh(hips,sphere,colors.skin,0,.9,0,.145,.17,.14);
+    mesh(hips,sphere,colors.hood,0,.98,-.035,.18,.16,.17);
+    mesh(hips,box,colors.dark,0,.89,.115,.17,.04,.04);
+    // Quiver and spare arrows on the back.
+    mesh(hips,cylinder,colors.leather,.14,.58,-.19,.07,.4,.07).rotation.z=-.2;
+    for(let i=0;i<3;i++) {
+      mesh(hips,cylinder,colors.wood,.1+i*.035,.9,-.2,.008,.4,.008);
+      mesh(hips,box,colors.feather,.1+i*.035,1.08,-.2,.04,.07,.015);
+    }
+    const bowArm=new THREE.Group();bowArm.position.set(-.21,.7,0);hips.add(bowArm);
+    mesh(bowArm,box,colors.cape,0,-.09,.12,.11,.12,.3);
+    mesh(bowArm,sphere,colors.skin,0,-.09,.28,.065);
+    const bow=new THREE.Group();bow.position.set(0,-.09,.35);bow.rotation.y=Math.PI/2;bowArm.add(bow);
+    const bowMesh=mesh(bow,bowGeo,colors.wood,0,0,0);bowMesh.rotation.z=-Math.PI/2;
+    const string=mesh(bow,box,colors.feather,0,0,0,.009,.54,.009);
+    const drawArm=new THREE.Group();drawArm.position.set(.2,.7,0);hips.add(drawArm);
+    mesh(drawArm,box,colors.cape,0,-.06,.12,.1,.13,.29);mesh(drawArm,sphere,colors.skin,0,-.06,.28,.06);
+    const readyArrow=makeArrow('physical');readyArrow.position.set(-.2,.61,.28);readyArrow.rotation.y=0;hips.add(readyArrow);
+    g.userData={hips,legs,bowArm,drawArm,string,readyArrow};return g;
+  }
+  function makeArrow(element='physical',pet=false) {
+    const g=new THREE.Group(), tip=element==='fire'?colors.fire:element==='ice'?colors.ice:element==='poison'?colors.poison:colors.feather;
+    if(pet){mesh(g,crystal,tip,0,0,0,.09,.09,.22);return g;}
+    // Arrow points along local +Z; shaft, broadhead, and fletching stay visible in flight.
+    const shaft=mesh(g,cylinder,colors.wood,0,0,0,.012,.48,.012,false);shaft.rotation.x=Math.PI/2;
+    const head=mesh(g,cone,tip,0,0,.3,.045,.14,.045,false);head.rotation.x=Math.PI/2;
+    for(const x of [-.025,.025])mesh(g,box,colors.feather,x,0,-.19,.015,.07,.12,false);
+    if(element!=='physical')mesh(g,sphere,tip,0,0,-.06,.035,.035,.19,false);
     return g;
   }
   const player = makeWayfarer(); scene.add(player);
@@ -182,41 +216,70 @@ export function create3DRenderer(canvas, game) {
       // Charge lane is visible during the Briar King's wind-up.
       const lane = mesh(group, box, chargeMaterial, 0, .035, 0, .48, .02, 2.3, false); lane.visible = false; group.userData.lane = lane;
     }
+    const status=new THREE.Group();group.add(status);group.userData.status=status;
+    for(const material of [colors.fire,colors.ice,colors.poison])flatRing(status,material,boss?.48:.17,.04);
     return group;
   }
   // Object-keyed meshes survive frames, and share reusable geometry/materials.
-  const enemyMeshes = new Map(), pickupMeshes = new Map(), boltMeshes = new Map(), effectMeshes = new Map();
+  const enemyMeshes = new Map(), pickupMeshes = new Map(), boltMeshes = new Map(), effectMeshes = new Map(), petMeshes=new Map(), chestMeshes=new Map();
   function sync(map, objects, create, update) {
     const alive = new Set(objects);
     for (const [object, m] of map) if (!alive.has(object)) { scene.remove(m); map.delete(object); }
     for (const object of objects) {
       let m = map.get(object);
       if (!m) { m = create(object); scene.add(m); map.set(object, m); }
-      m.position.x = (object.x - 500) / 100; m.position.z = (object.y - 330) / 100;
+      m.position.x = (object.x - WORLD.width/2) / 100; m.position.z = (object.y - WORLD.height/2) / 100;
       update(m, object);
     }
   }
   // Instanced fireflies use one draw call.
   const flies = new THREE.InstancedMesh(sphere, colors.gold, 24); scene.add(flies);
   const transform = new THREE.Object3D();
-  let width = 0, height = 0, facing = 0;
+  let width = 0, height = 0, facing = 0, lastTime=0;
   function render(time) {
     const w = Math.max(1, Math.round(canvas.clientWidth)), h = Math.max(1, Math.round(canvas.clientHeight));
     if (w !== width || h !== height) {
       width = w; height = h; renderer.setSize(w, h, false);
-      const aspect = w / h, horizontal = Math.max(11.8, 8 * aspect), vertical = horizontal / aspect;
-      camera.left = -horizontal / 2; camera.right = horizontal / 2; camera.top = vertical / 2; camera.bottom = -vertical / 2; camera.updateProjectionMatrix();
+      camera.aspect=w/h;camera.updateProjectionMatrix();
     }
-    const p = game.player;
-    player.position.set((p.x - 500) / 100, .025 + Math.sin(time * 6) * .009, (p.y - 330) / 100);
-    const targetAngle = Math.atan2(p.dx, p.dy);
-    facing += Math.atan2(Math.sin(targetAngle - facing), Math.cos(targetAngle - facing)) * .16;
-    player.rotation.y = facing; player.visible = !(p.invincible > 0 && Math.floor(time * 16) % 2);
-    playerHalo.position.set(player.position.x, .025, player.position.z);
-    playerHalo.scale.setScalar(p.dashTime > 0 ? .32 : .24);
+    const p=game.player, dt=Math.min(.05,lastTime?time-lastTime:.016);lastTime=time;
+    const px=(p.x-WORLD.width/2)/100,pz=(p.y-WORLD.height/2)/100;
+    player.position.set(px,.02,pz);
+    const targetAngle=p.shotTime>0?Math.atan2(p.aimX,p.aimY):Math.atan2(p.dx,p.dy);
+    facing+=Math.atan2(Math.sin(targetAngle-facing),Math.cos(targetAngle-facing))*.2;
+    player.rotation.y=facing;player.visible=!(p.invincible>0 && Math.floor(time*16)%2);
+    const step=p.moving?Math.sin(game.time*13)*.55:0;
+    player.userData.legs[0].rotation.x=step;player.userData.legs[1].rotation.x=-step;
+    player.userData.hips.position.y=p.moving?Math.abs(Math.sin(game.time*13))*.025:0;
+    player.userData.drawArm.rotation.y=p.shotTime>0?-.7*(p.shotTime/.3):0;
+    player.userData.bowArm.rotation.x=p.shotTime>0?-.08:0;
+    player.userData.string.position.x=p.shotTime>0?-.08*p.shotTime/.3:0;
+    player.userData.readyArrow.visible=p.shotTime<=0;
+    playerHalo.position.set(px,.035,pz);playerHalo.scale.setScalar(p.dashTime>0?.32:.24);
+    const focusTarget=new THREE.Vector3(px,.65,pz);
+    // Snap only across a restart/teleport; ordinary movement follows smoothly.
+    if(cameraFocus.distanceTo(focusTarget)>8)cameraFocus.copy(focusTarget);
+    else cameraFocus.lerp(focusTarget,1-Math.exp(-dt*9));
+    const distance=canvas.clientWidth<500?6.4:5.3;
+    camera.position.set(cameraFocus.x+Math.sin(cameraYaw)*distance,cameraFocus.y+2.5,cameraFocus.z+Math.cos(cameraYaw)*distance);
+    camera.lookAt(cameraFocus);
+    // Cut away foliage between camera and ranger so exploration never hides the character.
+    const cx=camera.position.x-px,cz=camera.position.z-pz,span=cx*cx+cz*cz;
+    for(const batch of foliageBatches)for(let i=0;i<batch.matrices.length;i++) {
+      const base=batch.matrices[i],x=base.elements[12]-px,z=base.elements[14]-pz,t=(x*cx+z*cz)/span;
+      const hidden=t>-.1&&t<1.1&&Math.hypot(x-cx*t,z-cz*t)<.7;
+      if(hidden!==batch.hidden[i]) {
+        batch.hidden[i]=hidden;const matrix=base.clone();if(hidden)matrix.scale(new THREE.Vector3(0,0,0));
+        batch.mesh.setMatrixAt(i,matrix);batch.mesh.instanceMatrix.needsUpdate=true;
+      }
+    }
+    sun.position.set(px-4,10,pz-5);sun.target.position.set(px,0,pz);sun.target.updateMatrixWorld();
+    campFlame.scale.y=.4+Math.sin(time*7)*.05;
     sync(enemyMeshes, game.enemies, makeEnemy, (m, e) => {
+      m.scale.setScalar(e.kind==='boss'?1:1.8);
       m.rotation.y = Math.atan2(p.x - e.x, p.y - e.y);
       m.userData.body.position.y = Math.sin(time * (e.kind === 'wisp' ? 4 : 7) + e.x) * (e.kind === 'wisp' ? .08 : .015);
+      m.userData.status.children.forEach((a,i)=>{a.visible=i===0?e.burn>0:i===1?e.slow>0:e.poison>0;});
       if (e.slow > 0) m.userData.body.scale.setScalar(.94 + Math.sin(time * 8) * .03); else m.userData.body.scale.setScalar(1);
       if (m.userData.halo) m.userData.halo.scale.setScalar(.6 + Math.sin(time * 2) * .04);
       if (m.userData.lane) {
@@ -232,12 +295,23 @@ export function create3DRenderer(canvas, game) {
       if (i.kind === 'coin') m.rotation.x = Math.PI / 2;
       return g;
     }, (m, i) => { m.position.y = .16 + Math.sin(time * 3 + i.x) * .045; m.rotation.y = time * 1.8; });
-    sync(boltMeshes, [...game.bullets, ...game.hostile], b => {
-      const hostile = game.hostile.includes(b);
-      return new THREE.Mesh(hostile ? crystal : sphere, hostile ? colors.hostile : colors.bolt);
-    }, (m, b) => { m.position.y = .3; m.scale.set(.055, .055, .1); m.rotation.y = Math.atan2(b.vx, b.vy); });
+    sync(boltMeshes,[...game.bullets,...game.hostile],b=>game.hostile.includes(b)?new THREE.Mesh(crystal,colors.hostile):makeArrow(b.element,b.kind==='pet'),(m,b)=>{
+      m.position.y=b.kind==='pet'?.4:.57;m.rotation.y=Math.atan2(b.vx,b.vy);
+      if(game.hostile.includes(b)){m.scale.setScalar(.09);m.rotation.z=time*4;}
+    });
+    sync(petMeshes,game.pets,p=>{
+      const g=new THREE.Group(),material=p.kind==='fox'?colors.mushroom:colors.frost;
+      mesh(g,box,material,0,.22,0,.22,.25,.4);mesh(g,sphere,material,0,.4,.22,.17,.16,.15);
+      for(const x of [-.09,.09]){mesh(g,cone,material,x,.58,.2,.07,.2,.07);for(const z of [-.12,.12])mesh(g,box,colors.dark,x,.07,z,.05,.16,.07);}
+      const tail=mesh(g,cone,material,0,.32,-.34,.11,.4,.11);tail.rotation.x=-.8;
+      mesh(g,crystal,p.kind==='fox'?colors.fire:colors.ice,0,.39,.37,.04);
+      return g;
+    },(m,p)=>{m.rotation.y=Math.atan2(game.player.x-p.x,game.player.y-p.y);m.position.y=Math.sin(time*9)*.02;});
+    sync(chestMeshes,game.chests,c=>{
+      const g=new THREE.Group();mesh(g,box,colors.wood,0,.17,0,.44,.3,.32);const lid=mesh(g,box,colors.gold,0,.34,0,.46,.09,.34);g.userData.lid=lid;return g;
+    },(m,c)=>{m.userData.lid.rotation.x=c.opened?-1:0;m.userData.lid.position.y=c.opened?.48:.34;});
     sync(effectMeshes, game.effects, e => {
-      const material = e.type === 'nova' ? colors.xp : e.type === 'warning' ? colors.gold : colors.heal;
+      const material = e.type === 'nova' ? (game.player.element==='fire'?colors.fire:game.player.element==='ice'?colors.ice:game.player.element==='poison'?colors.poison:colors.xp) : e.type === 'warning' ? colors.gold : e.element==='fire'?colors.fire:e.element==='ice'?colors.ice:e.element==='poison'?colors.poison:colors.heal;
       const g = new THREE.Group();
       if (e.type === 'nova' || e.type === 'warning') flatRing(g, material, 1, .04);
       else for (let i = 0; i < 5; i++) mesh(g, sphere, material, Math.cos(i * 1.256), .3, Math.sin(i * 1.256), .06, .06, .06, false);
@@ -247,12 +321,12 @@ export function create3DRenderer(canvas, game) {
       m.scale.setScalar(Math.max(.015, e.r / 100 * progress)); m.position.y = e.type === 'trail' ? .1 : progress * .15;
     });
     for (let i = 0; i < 24; i++) {
-      transform.position.set(Math.sin(i * 9.8 + time * .13) * 5, .2 + Math.sin(time * .6 + i) * .1 + (i % 3) * .3, Math.cos(i * 6.3 + time * .1) * 3.3);
+      transform.position.set(px+Math.sin(i * 9.8 + time * .13) * 5, .2 + Math.sin(time * .6 + i) * .1 + (i % 3) * .3, pz+Math.cos(i * 6.3 + time * .1) * 3.3);
       transform.scale.setScalar(.01 + (Math.sin(time * 2 + i) + 1) * .005); transform.updateMatrix(); flies.setMatrixAt(i, transform.matrix);
     }
     flies.instanceMatrix.needsUpdate = true;
     sun.color.set(game.wave % 3 === 0 ? '#e3c4ff' : '#ffe2ae');
     renderer.render(scene, camera);
   }
-  return { render, dispose() { scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); renderer.dispose(); } };
+  return { render, orbit(delta) { cameraYaw+=delta; }, movement(x,y) { return {moveX:x*Math.cos(cameraYaw)+y*Math.sin(cameraYaw),moveY:y*Math.cos(cameraYaw)-x*Math.sin(cameraYaw)}; }, dispose() { scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); renderer.dispose(); } };
 }
