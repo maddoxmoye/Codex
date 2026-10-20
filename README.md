@@ -40,7 +40,7 @@ The build produces `dist/index.html` and `wildfall.html`, with all game code, Th
 
 The bow automatically aims at and shoots nearby enemies. The character turns to shoot, draws its bow, walks with animated legs, and carries a quiver. Arrows have shafts, arrowheads, fletching, and colored elemental tips. Camera-turn buttons, element buttons, and touch movement/ability controls support smaller screens.
 
-The minimap shows your position, biome colors, dropped chests, and bosses. There are no pre-placed chests. Trees, rocks, camp structures, pillars, and the brazier have solid collision in both views; dropped chests are collectible and do not obstruct movement. Walking, dashing, enemies, and companions respect the same geometry. Tall obstacles block arrows and line of sight. The map is bounded, with no jumping or climbing mechanics. Wider trails and fewer, more widely spaced groves keep routes open. Trees stay opaque; the camera pulls closer when scenery would obstruct it.
+The minimap shows your position, biome colors, dropped chests, and bosses. There are no pre-placed chests. Trees, rocks, camp structures, pillars, and the brazier have solid collision in both views; dropped chests are collectible and do not obstruct movement. Walking, dashing, enemies, and companions respect the same geometry. Tall obstacles block arrows and line of sight. The map is bounded, with no jumping or climbing mechanics. The central 3,600 × 2,800-unit combat area is free of trees and rocks. Groves and boulders fit entirely inside the outer 600-unit band, including tree canopies. The camp, sector landmarks, biome ground colors and connecting trails remain in place. Trees stay opaque; the camera pulls closer when scenery would obstruct it.
 
 ## Pre-game skills and fullscreen
 
@@ -112,7 +112,24 @@ Each level requires `floor(20 × 1.35^(level - 1))` XP. Overflow carries forward
 
 After stat drafts and chest rewards, the shop draws and displays **four eligible offers** for the updated build. Powers just taken from a chest are filtered before shop inventory is generated. Buy any subset or all four. A purchased slot stays marked SOLD until you reroll; buying cannot silently refill it. Only items in the current four slots can be purchased. Existing level gates, ownership checks, elemental exclusivity, and rank caps apply. Coins, XP, stat rewards, and acquired items reset each run.
 
-Rerolling replaces all four slots and is available with a partial or empty shop. The first roll costs 5 gold early on, then 10, 15, and so on (+5 per roll). After a newly completed wave, the reroll counter resets. The base price rises by 2 gold every two completed waves, starting after wave 3. Closing/reopening with B, or entering the next wave and immediately opening the shop, preserves the current offers and reroll price. Purchases never consume queued level rewards.
+Rerolling replaces all four slots and is available with a partial or empty shop. Before Loaded Dice discounts, the first roll costs 5 gold early on, then 10, 15, and so on (+5 per roll). After a newly completed wave, the reroll counter resets. The base price rises by 2 gold every two completed waves, starting after wave 3. Closing/reopening with B, or entering the next wave and immediately opening the shop, preserves the current offers and reroll price. Purchases never consume queued level rewards.
+
+## Economy shop items
+
+Four economy items join the normal four-offer shop pool. They do not appear in ability or mythical chests. Purchases are listed in build history, and the stat sheet compares combat gold bonus, shop discount, reroll discount and wave interest against their starting values.
+
+| Item | Shop level / base price | Effect |
+| --- | --- | --- |
+| Pocket Mint | 1 / 35 gold per rank | +20% combat gold per rank, maximum 3 ranks |
+| Silver Tongue | 1 / 45 gold | 15% off shop item prices |
+| Loaded Dice | 2 / 40 gold | 30% off both shop and chest rerolls |
+| Nest Egg | 2 / 55 gold | After each completed wave, earn 10% of saved gold, rounded down and capped at 20 gold |
+
+Pocket Mint and Heavy Pockets add their bonuses: three Mint ranks plus Heavy Pockets give +110% combat gold. The bonus applies to coin pickups and guardian bounties. Fractional bonuses carry between combat payouts while the wallet remains an integer, avoiding per-drop rounding inflation or loss. Chest sale proceeds and interest are not multiplied.
+
+Silver Tongue applies immediately to remaining offers and ranked elemental upgrade prices. Cards show the original price struck through beside the actual discounted charge. It does not discount its own purchase retroactively. Loaded Dice discounts each reroll’s escalating base price, with shop and individual chest counters still separate. Discounted costs round up to whole gold with a minimum of one gold; discounts never make a purchase or roll free.
+
+Nest Egg pays once per completed wave, before chest sales and reward choices. Opening or reopening the shop cannot earn additional interest. Buying it during an intermission starts earning interest after the next completed wave. Economy upgrades and fractional gold carry reset with each run; character unlock progress remains persistent.
 
 ## Enemy-dropped chests and mythical powers
 
@@ -125,7 +142,7 @@ Intermission order is **level stat drafts → queued chests → four-offer shop*
 | Ability | 20 gold | 5 gold | +5 gold |
 | Mythical | 90 gold | 15 gold | +10 gold |
 
-Each chest has its own reroll counter. Chest rerolls do not change shop offers or the shop reroll counter; mythical rerolls always remain in the mythical pool. A reroll selects a different eligible power. When no alternatives remain, reroll is disabled; when all powers are owned, the chest can still be sold. Taking a power records it in the build sheet.
+The table lists base costs before Loaded Dice discounts. Each chest has its own reroll counter. Chest rerolls do not change shop offers or the shop reroll counter; mythical rerolls always remain in the mythical pool. A reroll selects a different eligible power. When no alternatives remain, reroll is disabled; when all powers are owned, the chest can still be sold. Taking a power records it in the build sheet.
 
 Mythical powers appear only in guardian chests:
 

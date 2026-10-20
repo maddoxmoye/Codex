@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,WORLD,REGIONS,regionAt,SHOP,BOSSES,xpForLevel,advanceGame,CHARACTERS,isUnlocked,MYTHICAL_UPGRADES} from '../src/game.js';
-import {SCENERY,SOLIDS,STRUCTURES,CHESTS,blocked,moveBody,projectileBlocked,findFree} from '../src/world.js';
+import {SCENERY,SOLIDS,STRUCTURES,CHESTS,OPEN_INTERIOR,EDGE_BAND,blocked,moveBody,projectileBlocked,findFree} from '../src/world.js';
 const create=()=>{const g=new Game(()=>.5);g.start();g.obstacles=[];g.spawnTime=999;g.player.x=500;g.player.y=330;return g;};
 const enemy=(x=650,y=330,hp=500)=>({x,y,r:12,hp,speed:0,damage:0,slow:0,kind:'brute'});
 const advance=(g,seconds,input={})=>{for(let i=0;i<Math.round(seconds*60);i++)advanceGame(g,1/60,input);};
@@ -264,4 +264,32 @@ test('all eight selected skills emit distinct activation graphics',()=>{
 
 test('shop inventory is drawn after chest rewards so all four offers are still eligible',()=>{
  const g=create();g.player.level=5;g.dropChest({x:800,y:330});g.nextWave();assert.equal(g.state,'reward');assert.equal(g.shopOffers.length,0);const reward=g.chestQueue[0].reward;assert.equal(g.resolveChest('take'),true);assert.equal(g.state,'shop');assert.equal(g.shopOffers.length,4);for(const slot of g.shopOffers)assert.equal(g.offer(SHOP.find(i=>i.id===slot.id)).available,true);if(!reward.repeat)assert.ok(!g.shopOffers.some(s=>s.id===reward.id));
+});
+
+test('tree canopies and rocks stay entirely in the outer band, with clear central combat space and retained landmarks',()=>{
+ assert.ok(SCENERY.some(o=>o.type==='tree'));assert.ok(SCENERY.some(o=>o.type==='rock'));
+ for(const o of SCENERY)assert.ok(Math.min(o.x,o.y,WORLD.width-o.x,WORLD.height-o.y)+(o.cameraR||o.r)<=EDGE_BAND+.001);
+ for(let x=OPEN_INTERIOR.left+50;x<OPEN_INTERIOR.right;x+=220)for(let y=OPEN_INTERIOR.top+50;y<OPEN_INTERIOR.bottom;y+=220)assert.equal(blocked({x,y},20,SCENERY),false);
+ for(const o of STRUCTURES)assert.ok(SOLIDS.includes(o));assert.ok(STRUCTURES.some(o=>o.type==='brazier'&&o.x===3700));assert.ok(STRUCTURES.some(o=>o.type==='pillar'&&o.x===900));assert.equal(REGIONS.length,4);
+ for(const side of [o=>o.x<EDGE_BAND,o=>o.x>WORLD.width-EDGE_BAND,o=>o.y<EDGE_BAND,o=>o.y>WORLD.height-EDGE_BAND])assert.ok(SCENERY.some(side));
+});
+test('Pocket Mint stacks to three ranks with Heavy Pockets; small drop payouts retain fractions without creating or losing gold',()=>{
+ const g=create();wealthy(g);for(let i=0;i<3;i++)assert.equal(stockBuy(g,'mint'),true);const balance=g.player.coins;assert.equal(stockBuy(g,'mint'),false);assert.equal(g.player.coins,balance);assert.ok(Math.abs(g.goldMultiplier()-1.6)<1e-9);assert.equal(stockBuy(g,'goldrush'),true);assert.ok(Math.abs(g.goldMultiplier()-2.1)<1e-9);g.closeShop();g.player.coins=0;
+ for(let i=0;i<20;i++){g.collect({kind:'coin',amount:3});assert.equal(Number.isInteger(g.player.coins),true);}assert.equal(g.player.coins,126);assert.ok(g.goldRemainder<1e-9);
+});
+test('Silver Tongue immediately discounts remaining offers, including elemental rank prices; purchases charge the shown rounded price',()=>{
+ const g=create();wealthy(g);g.swapElement('fire');g.shopOffers=['bargain','power','fire-power','ice'].map(id=>({id,sold:false}));const initial=g.player.coins;g.buy('bargain');assert.equal(g.player.coins,initial-45);const power=SHOP.find(i=>i.id==='power');assert.equal(g.offer(power).basePrice,30);assert.equal(g.offer(power).price,26);g.buy('power');assert.equal(g.player.coins,initial-45-26);g.player.elementUpgrades.power=2;const ranked=g.offer(SHOP.find(i=>i.id==='fire-power'));assert.equal(ranked.basePrice,50);assert.equal(ranked.price,43);assert.equal(g.offer(SHOP.find(i=>i.id==='ice')).price,22);
+});
+test('Loaded Dice discounts separate shop and chest roll sequences without changing their counters or chest sale values',()=>{
+ const g=create();wealthy(g);stockBuy(g,'loaded');stockBuy(g,'bargain');stockBuy(g,'mint');assert.equal(g.rerollCost(),4);const before=g.player.coins;g.reroll();assert.equal(g.rerollCost(),7);g.reroll();assert.equal(g.player.coins,before-11);assert.equal(g.rerolls,2);g.closeShop();g.dropChest({x:800,y:330});g.dropChest({x:850,y:330},'mythical');g.nextWave();g.rerolls=3;assert.equal(g.rerollCost(),14);assert.equal(g.chestRerollCost(),4);g.rerollChest();assert.equal(g.chestRerollCost(),7);assert.equal(g.rerolls,3);const balance=g.player.coins;g.resolveChest('sell');assert.equal(g.player.coins,balance+20);assert.equal(g.chestRerollCost(),11);g.rerollChest();assert.equal(g.chestRerollCost(),18);assert.equal(g.chestSellValue(),90);assert.equal(g.rerolls,3);
+});
+test('Nest Egg pays capped interest once per completed wave, before chest sales, and never on shop reopen',()=>{
+ const g=create();wealthy(g);stockBuy(g,'interest');g.closeShop();g.player.coins=99;g.dropChest({x:800,y:330});g.nextWave();assert.equal(g.player.coins,108);assert.equal(g.payInterest(),0);g.resolveChest('sell');assert.equal(g.player.coins,128);g.closeShop();g.openShop();assert.equal(g.player.coins,128);g.closeShop();g.nextWave();assert.equal(g.player.coins,140);g.closeShop();g.player.coins=1000;g.nextWave();assert.equal(g.player.coins,1020);g.closeShop();g.wave=9;g.player.coins=9;g.nextWave();assert.equal(g.player.coins,9);
+});
+test('economy items stay in the shop pool, appear in history/stat comparisons, and reset with a new run',()=>{
+ const g=create();wealthy(g);for(const id of ['mint','bargain','loaded','interest']){assert.equal(g.chestPool('normal').some(i=>i.id===id),false);assert.equal(stockBuy(g,id),true);}
+ assert.equal(g.upgradeHistory.filter(e=>e.category==='economy').length,4);const economy=g.statSheet().slice(-4);assert.deepEqual(economy.map(s=>s.base),[0,0,0,0]);assert.deepEqual(economy.map(s=>s.current),[20,15,30,10]);g.start();assert.equal(g.goldMultiplier(),1);assert.equal(g.rerollCost(),5);assert.equal(g.goldRemainder,0);assert.equal(g.interestWaves.size,0);assert.deepEqual(g.statSheet().slice(-4).map(s=>s.current),[0,0,0,0]);
+});
+test('discounted purchases and rerolls still reject insufficient gold without consuming offers or ranks',()=>{
+ const g=create();wealthy(g);stockBuy(g,'bargain');g.shopOffers=[{id:'power',sold:false}];g.player.coins=25;assert.equal(g.buy('power'),false);assert.equal(g.player.coins,25);assert.equal(g.shopOffers[0].sold,false);g.player.coins=26;assert.equal(g.buy('power'),true);assert.equal(g.player.coins,0);assert.equal(g.reroll(),false);assert.equal(g.rerolls,0);assert.equal(g.discountedPrice(0),1);
 });

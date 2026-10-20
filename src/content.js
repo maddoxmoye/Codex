@@ -9,6 +9,12 @@ export function cleanProgress(value){
  return Object.fromEntries(['kills','bosses','wins'].map(k=>[k,Math.min(1e9,Math.max(0,Math.floor(Number(p[k])||0)))]));
 }
 export const isUnlocked=(character,progress)=>!character.metric||(progress[character.metric]||0)>=character.target;
+export const ECONOMY_UPGRADES=[
+ {id:'mint',name:'Pocket Mint',icon:'◈',text:'+20% combat gold per rank (max 3). Stacks with Heavy Pockets.',price:35,level:1,repeat:true,max:3,category:'economy'},
+ {id:'bargain',name:'Silver Tongue',icon:'❧',text:'Shop purchases cost 15% less. Displayed prices include the discount.',price:45,level:1,category:'economy'},
+ {id:'loaded',name:'Loaded Dice',icon:'◇',text:'Shop and chest rerolls cost 30% less (rounded up, minimum 1 gold).',price:40,level:2,category:'economy'},
+ {id:'interest',name:'Nest Egg',icon:'◉',text:'After each wave, earn 10% of your saved gold (rounded down, max 20 gold per wave).',price:55,level:2,category:'economy'}
+];
 export const RARE_UPGRADES=[
  {id:'glass',name:'Glass Quiver',icon:'◇',text:'+60% physical damage, but lose 25 maximum health (minimum 25).',price:85,level:3,category:'rare',rarity:'rare'},
  {id:'goldrush',name:'Heavy Pockets',icon:'◈',text:'+50% gold from combat drops and guardian bounties, but −12% movement speed.',price:70,level:2,category:'rare',rarity:'rare'},

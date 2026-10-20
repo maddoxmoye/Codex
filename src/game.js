@@ -1,4 +1,4 @@
-import {CHARACTERS,cleanProgress,isUnlocked,RARE_UPGRADES,MYTHICAL_UPGRADES} from './content.js';
+import {CHARACTERS,cleanProgress,isUnlocked,ECONOMY_UPGRADES,RARE_UPGRADES,MYTHICAL_UPGRADES} from './content.js';
 export {CHARACTERS,isUnlocked,MYTHICAL_UPGRADES} from './content.js';
 import { WORLD, REGIONS, regionAt, SOLIDS, firstObstacleHit, segmentHit, moveBody, seekBody, findFree, projectileBlocked } from './world.js';
 export { WORLD, REGIONS, regionAt };
@@ -39,6 +39,7 @@ export const SHOP=[
   {id:'collector',name:'Lantern beetle',icon:'◉',text:'Scouts nearby coins and XP and delivers them directly to you',price:35,level:1,category:'pet'},
   {id:'armor',name:'Bark mail',icon:'⬡',text:'+3 armor · reduces incoming damage',price:30,level:1,repeat:true,category:'general'},
   {id:'momentum',name:'Trailrunner',icon:'➟',text:'Build up to +35% speed while moving; stopping resets it',price:45,level:2,category:'ability'},
+  ...ECONOMY_UPGRADES,
   ...RARE_UPGRADES,
   {id:'piercing',name:'Thread the Needle',icon:'⇥',text:'Arrows pierce two extra targets, losing 25% damage per hit. Excludes Echo arrows.',price:65,level:2,category:'ability'},
   {id:'ricochet',name:'Echo arrows',icon:'↝',text:'Your arrows bounce once to another nearby enemy for 65% damage. Excludes piercing',price:65,level:3,category:'ability'},
@@ -66,7 +67,7 @@ export class Game {
   reset(){
     this.state='title';this.time=0;this.wave=1;this.waveTime=0;this.spawnTime=0;
     this.player={x:2400,y:2000,r:13,hp:100,maxHp:100,speed:210,armor:0,momentumTime:0,damage:18,elementalDamage:12,fireRate:.42,fireTimer:0,level:1,xp:0,xpNext:xpForLevel(1),coins:0,kills:0,magnet:75,dashCooldown:0,dashTime:0,spaceTime:0,rapidTime:0,furyTime:0,dx:1,dy:0,invincible:0,nova:0,novaCooldown:0,multi:false,regen:false,pet:false,wolf:false,collector:false,element:'physical',elementUpgrades:{power:0,duration:0,special:0},ranks:{},aimX:0,aimY:-1,shotTime:0,moving:false};
-    this.character='ranger';this.startStats={...BASE_STATS};this.chestQueue=[];this.chestSerial=0;this.hazards=[];this.shots=0;this.orbitTimer=0;this.victoryRecorded=false;
+    this.character='ranger';this.startStats={...BASE_STATS};this.chestQueue=[];this.chestSerial=0;this.hazards=[];this.shots=0;this.orbitTimer=0;this.victoryRecorded=false;this.goldRemainder=0;this.interestWaves=new Set();
     this.loadout={space:'dash',attack:'burst'};this.loadoutChoices={space:[],attack:[]};this.upgradeHistory=[];this.freePicks=0;this.levelRewards=[];this.draftChoices=[];this.shopOffers=[];this.rerolls=0;this.shopRound=null;this.shopBaseCost=5;this.shopReason='manual';this.shopReturn='playing';this.shopRevision=0;this.pendingWave=null;this.pendingVictory=false;
     this.pets=[];this.chests=[];this.enemies=[];this.bullets=[];this.hostile=[];this.pickups=[];this.effects=[];this.bossesDefeated=0;this.bossSpawned=false;this.message='';this.event=null;
   }
@@ -97,7 +98,9 @@ export class Game {
       ['Maximum health',this.startStats.maxHp,p.maxHp],['Physical damage',this.startStats.damage,p.damage],
       ['Shared elemental damage',this.startStats.elementalDamage,p.elementalDamage],['Armor',this.startStats.armor,p.armor],
       ['Movement speed',this.startStats.speed,p.speed],['Bow shots / second',1/this.startStats.fireRate,1/p.fireRate],
-      ['Pickup range',this.startStats.magnet,p.magnet],['Health regen / second',0,p.regen?2:0]
+      ['Pickup range',this.startStats.magnet,p.magnet],['Health regen / second',0,p.regen?2:0],
+      ['Combat gold bonus (%)',0,Math.round((this.goldMultiplier()-1)*100)],['Shop discount (%)',0,p.bargain?15:0],
+      ['Reroll discount (%)',0,p.loaded?30:0],['Wave interest (%)',0,p.interest?10:0]
     ].map(([name,base,current])=>({name,base,current}));
   }
   gainXP(amount){
@@ -134,7 +137,18 @@ export class Game {
   }
   weightedSample(items,count){const pool=[...items],out=[];while(pool.length&&out.length<count){const weights=pool.map(i=>i.rarity==='rare'?.25:1),sum=weights.reduce((a,b)=>a+b,0);let roll=this.random()*sum,index=0;while(index<pool.length-1&&roll>=weights[index]){roll-=weights[index];index++;}out.push(pool.splice(index,1)[0]);}return out;}
   rollOffers(){this.shopOffers=this.weightedSample(SHOP.filter(i=>this.offer(i).available),4).map(item=>({id:item.id,sold:false}));this.shopRevision++;}
-  rerollCost(){return this.shopBaseCost+this.rerolls*5;}
+  goldMultiplier(){return 1+(this.player.ranks.mint||0)*.2+(this.player.goldrush?.5:0);}
+  earnCombatGold(amount){
+    if(!Number.isFinite(amount)||amount<=0)return 0;
+    const total=amount*this.goldMultiplier()+this.goldRemainder,whole=Math.floor(total+1e-9);
+    this.goldRemainder=Math.max(0,total-whole);this.player.coins+=whole;return whole;
+  }
+  discountedPrice(base,kind='shop'){return Math.max(1,Math.ceil(base*(kind==='reroll'?(this.player.loaded?.7:1):(this.player.bargain?.85:1))));}
+  payInterest(){
+    if(this.interestWaves.has(this.wave))return 0;
+    this.interestWaves.add(this.wave);const bonus=this.player.interest?Math.min(20,Math.floor(this.player.coins*.1)):0;this.player.coins+=bonus;return bonus;
+  }
+  rerollCost(){return this.discountedPrice(this.shopBaseCost+this.rerolls*5,'reroll');}
   reroll(){
     if(this.state!=='shop'||this.player.coins<this.rerollCost())return false;
     this.player.coins-=this.rerollCost();this.rerolls++;this.rollOffers();return true;
@@ -151,7 +165,7 @@ export class Game {
   }
   rank(item){return item.category==='element'?this.player.elementUpgrades[item.rankKey]||0:this.player.ranks[item.id]||0;}
   offer(item,{reward=false}={}){
-    const p=this.player,rank=this.rank(item),price=item.price+(item.category==='element'?rank*10:0);
+    const p=this.player,rank=this.rank(item),basePrice=item.price+(item.category==='element'?rank*10:0),price=this.discountedPrice(basePrice);
     let reason='';
     if((item.id==='piercing'&&p.ricochet)||(item.id==='ricochet'&&p.piercing))reason='Conflicts with '+(p.piercing?'Thread the Needle':'Echo arrows');
     else if(!reward&&p.level<item.level)reason='Level '+item.level+' required';
@@ -160,7 +174,7 @@ export class Game {
     else if(item.max&&rank>=item.max)reason='Maximum rank';
     else if(!item.repeat&&!['affinity','element'].includes(item.category)&&p[item.id])reason='Already owned';
     else if(item.id==='heal'&&p.hp>=p.maxHp)reason='Health full';
-    return {available:!reason,reason,price,rank};
+    return {available:!reason,reason,price,basePrice,rank};
   }
   buy(id){
     if(this.state!=='shop')return false;
@@ -222,7 +236,7 @@ export class Game {
   }
   chestPool(tier){return (tier==='mythical'?MYTHICAL_UPGRADES:SHOP.filter(i=>['ability','pet','rare'].includes(i.category)||['nova','multi','regen'].includes(i.id))).filter(i=>this.offer(i,{reward:true}).available);}
   rollChest(chest){const choices=this.chestPool(chest.tier).filter(i=>i.id!==chest.reward?.id);if(!choices.length)return false;chest.reward=this.weightedSample(choices,1)[0];this.shopRevision++;return true;}
-  chestRerollCost(){const c=this.chestQueue[0];return c?(c.tier==='mythical'?15:5)+c.rerolls*(c.tier==='mythical'?10:5):0;}
+  chestRerollCost(){const c=this.chestQueue[0];return c?this.discountedPrice((c.tier==='mythical'?15:5)+c.rerolls*(c.tier==='mythical'?10:5),'reroll'):0;}
   chestSellValue(){return this.chestQueue[0]?.tier==='mythical'?90:20;}
   rerollChest(){
     const c=this.chestQueue[0],cost=this.chestRerollCost();if(this.state!=='reward'||!c||this.player.coins<cost)return false;
@@ -306,11 +320,12 @@ export class Game {
     else if(!p.hp)this.state='dead';
   }
   nextWave(){
+    const interest=this.payInterest();
     for(const c of [...this.chests])this.secureChest(c);
     this.hazards=[];this.enemies=[];this.hostile=[];this.bullets=[];this.effects=[];
     this.pendingVictory=this.wave===9;this.pendingWave=this.pendingVictory?null:this.wave+1;this.shopReturn='playing';this.shopReason='wave';
     if(!this.pendingVictory){this.shopRound=null;this.rerolls=0;this.shopBaseCost=5+Math.floor(Math.max(0,this.wave-1)/2)*2;this.shopOffers=[];}this.continueRewards();
-    this.message='Wave '+this.wave+' cleared · resolve your rewards';
+    this.message='Wave '+this.wave+' cleared'+(interest?' · +'+interest+' interest':'')+' · resolve your rewards';
   }
   warnAttack(e,kind,delay,r=80){
     const atPlayer=kind==='bomb';this.hazards.push({x:atPlayer?this.player.x:e.x,y:atPlayer?this.player.y:e.y,tx:this.player.x,ty:this.player.y,r,kind,delay,maxDelay:delay,source:e,shape:['volley','charge'].includes(kind)?'line':'circle',width:kind==='charge'?(e.r+this.player.r)*2:14});
@@ -358,7 +373,7 @@ export class Game {
     if(item.collected)return;
     item.collected=true;
     if(item.kind==='xp')this.gainXP(item.amount);
-    if(item.kind==='coin')this.player.coins+=Math.round(item.amount*(this.player.goldrush?1.5:1));
+    if(item.kind==='coin')this.earnCombatGold(item.amount);
     if(item.kind==='heal')this.player.hp=Math.min(this.player.maxHp,this.player.hp+item.amount);
   }
   updatePets(dt){
@@ -444,7 +459,7 @@ export class Game {
       if(boss||this.random()<.045)this.dropChest(e,boss?'mythical':'normal');
       if(p.element==='poison'&&p.elementUpgrades.special&&e.poison>0)for(const other of this.enemies)if(other!==e&&other.hp>0&&dist(e,other)<90+p.elementUpgrades.special*15)this.statusHit(other,'poison');
       this.pickups.push({x:e.x-7,y:e.y,kind:'xp',amount:boss?35:5,r:5},{x:e.x+7,y:e.y,kind:'coin',amount:boss?15:3,r:5});if(this.random()<.07)this.pickups.push({x:e.x,y:e.y+8,kind:'heal',amount:12,r:6});
-      this.effects.push({x:e.x,y:e.y,r:boss?75:25,type:'death',life:.5,maxLife:.5});if(boss){this.bossesDefeated++;this.progress.bosses++;this.progressRevision++;this.message=e.name+' defeated · mythical chest dropped';p.coins+=Math.round(60*(p.goldrush?1.5:1));this.event='boss';}
+      this.effects.push({x:e.x,y:e.y,r:boss?75:25,type:'death',life:.5,maxLife:.5});if(boss){this.bossesDefeated++;this.progress.bosses++;this.progressRevision++;this.message=e.name+' defeated · mythical chest dropped';this.earnCombatGold(60);this.event='boss';}
     }
     this.enemies=this.enemies.filter(e=>e.hp>0);
     for(const item of this.pickups){const d=dist(p,item);if(d<p.magnet){item.x+=(p.x-item.x)*Math.min(1,dt*9);item.y+=(p.y-item.y)*Math.min(1,dt*9);}if(d<20)this.collect(item);}

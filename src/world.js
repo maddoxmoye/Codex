@@ -11,17 +11,20 @@ const center={x:2400,y:2000};
 function segmentDistance(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy)));return Math.hypot(p.x-a.x-dx*t,p.y-a.y-dy*t);}
 let seed=47382;
 const random=()=>{seed=seed*16807%2147483647;return(seed-1)/2147483646;};
+export const EDGE_BAND=600;
+export const OPEN_INTERIOR={left:EDGE_BAND,right:WORLD.width-EDGE_BAND,top:EDGE_BAND,bottom:WORLD.height-EDGE_BAND};
 export const SCENERY=[];
+const fitsEdge=(p,r)=>Math.min(p.x,p.y,WORLD.width-p.x,WORLD.height-p.y)+r<=EDGE_BAND;
 function inClearing(p){return Math.hypot(p.x-2400,p.y-2000)<330 || REGIONS.slice(1).some(r=>Math.hypot(p.x-r.x,p.y-r.y)<230) || REGIONS.slice(1).some(r=>segmentDistance(p,center,r)<125) || CHESTS.some(c=>Math.hypot(p.x-c.x,p.y-c.y)<105);}
-// Spaced groves replace the dense carpet of trees. Shared data drives both art and physics.
-for(let i=0;i<210;i++){
+// The interior stays open for combat; groves and rocks live entirely in the outer band.
+for(let i=0;i<340;i++){
   const p={x:90+random()*4620,y:90+random()*3820},scale=.65+random()*.55;
-  if(inClearing(p)||SCENERY.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<175))continue;
+  if(!fitsEdge(p,72*scale)||inClearing(p)||SCENERY.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<175))continue;
   SCENERY.push({...p,type:'tree',scale,r:60*scale,cameraR:72*scale,height:260*scale});
 }
-for(let i=0;i<70;i++){
+for(let i=0;i<100;i++){
   const p={x:70+random()*4660,y:70+random()*3860},scale=.65+random()*.6;
-  if(inClearing(p)||SCENERY.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<95))continue;
+  if(!fitsEdge(p,30*scale)||inClearing(p)||SCENERY.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<95))continue;
   SCENERY.push({...p,type:'rock',scale,r:30*scale,cameraR:30*scale,height:52*scale});
 }
 export const STRUCTURES=[

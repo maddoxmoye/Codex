@@ -32,3 +32,5 @@
 @media(max-width:700px){.character-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-bottom:8px}.character-card{padding:6px}.character-card strong{font-size:8px}.character-card small{font-size:7px}.chest-reward{padding:10px;margin:8px 0}.reward-chest-icon{font-size:30px}.chest-reward h3{font-size:17px}.chest-reward p{font-size:10px}.reward-actions .button{font-size:8px;padding:8px 5px}.chest-reward small{font-size:8px}}
 
 .canvas-wrap:has(.overlay:not([hidden]))>.fullscreen-button{top:2px;right:4px;font-size:8px;padding:3px 6px;height:18px}
+
+.price s{color:#8c9b84;font-size:9px;margin-right:3px}.history-entry strong{overflow-wrap:anywhere}
