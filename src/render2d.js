@@ -1,4 +1,5 @@
 import { WORLD, REGIONS } from './game.js';
+import { SCENERY, STRUCTURES } from './world.js';
 // Accessible fallback uses the same world and follows the same ranger.
 export function create2DRenderer(canvas,game) {
   canvas.width=1000;canvas.height=660;const ctx=canvas.getContext('2d');
@@ -6,11 +7,10 @@ export function create2DRenderer(canvas,game) {
   function render(time){
     const p=game.player;ctx.fillStyle='#203b2a';ctx.fillRect(0,0,1000,660);ctx.save();ctx.translate(500-p.x,330-p.y);
     for(const r of REGIONS.slice(1))circle(r.x,r.y,r.r,r.color);
-    ctx.strokeStyle='#a6976333';ctx.lineWidth=60;ctx.beginPath();for(const r of REGIONS.slice(1)){ctx.moveTo(WORLD.width/2,WORLD.height/2);ctx.lineTo(r.x,r.y);}ctx.stroke();
-    for(let i=0;i<500;i++){
-      const x=70+(i*719)%(WORLD.width-140),y=70+(i*1093)%(WORLD.height-140);
-      if(Math.abs(x-p.x)>550||Math.abs(y-p.y)>380)continue;
-      circle(x,y,22,'#193222');circle(x-3,y-7,16,'#416143');
+    ctx.strokeStyle='#a6976333';ctx.lineWidth=250;ctx.beginPath();for(const r of REGIONS.slice(1)){ctx.moveTo(WORLD.width/2,WORLD.height/2);ctx.lineTo(r.x,r.y);}ctx.stroke();
+    for(const o of [...SCENERY,...STRUCTURES]){
+      if(Math.abs(o.x-p.x)>600||Math.abs(o.y-p.y)>430)continue;
+      circle(o.x,o.y,o.r,o.type==='tree'?'#416143':o.type==='rock'?'#7d8670':'#8c7651');
     }
     for(const c of game.chests){ctx.fillStyle=c.opened?'#695338':'#dfbb69';ctx.fillRect(c.x-12,c.y-9,24,18);}
     for(const i of game.pickups)circle(i.x,i.y,6,i.kind==='xp'?'#bf9de4':i.kind==='heal'?'#a8da90':'#edc46b');

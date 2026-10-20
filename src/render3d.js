@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WORLD, REGIONS } from './game.js';
+import { SCENERY, SOLIDS } from './world.js';
 
 // A perspective camera follows the ranger through a continuous, explorable world.
 export function create3DRenderer(canvas, game) {
@@ -61,9 +62,9 @@ export function create3DRenderer(canvas, game) {
   // Visible trails lead from the central camp toward the three distant biomes.
   for(const region of REGIONS.slice(1)) {
     const x=wx(region.x),z=wz(region.y),length=Math.hypot(x,z);
-    const path=mesh(scene,box,colors.soil,x/2,.035,z/2,.85,.025,length,false);path.rotation.y=Math.atan2(x,z);
+    const path=mesh(scene,box,colors.soil,x/2,.035,z/2,2.5,.025,length,false);path.rotation.y=Math.atan2(x,z);
   }
-  const boundaryMat=mat('#91aa7a',{emissive:'#526b50',transparent:true,opacity:.5});
+  const boundaryMat=mat('#91aa7a',{emissive:'#526b50'});
   for(const z of [-WORLD.height/200,WORLD.height/200])mesh(scene,box,boundaryMat,0,.12,z,WORLD.width/100,.25,.1);
   for(const x of [-WORLD.width/200,WORLD.width/200])mesh(scene,box,boundaryMat,x,.12,0,.1,.25,WORLD.height/100);
   function tree(x,z,s=1,ice=false) {
@@ -71,19 +72,10 @@ export function create3DRenderer(canvas, game) {
     mesh(group,cylinder,colors.trunk,0,.45*s,0,.09*s,.9*s,.09*s);
     for(let i=0;i<3;i++)mesh(group,cone,ice?colors.frost:colors.pine[i],0,(.9+i*.5)*s,0,(.72-i*.14)*s,1.3*s,(.72-i*.14)*s);
   }
-  for(let i=0;i<520;i++) {
-    const x=(random()-.5)*WORLD.width/100,z=(random()-.5)*WORLD.height/100;
-    if(Math.hypot(x,z)<2.6)continue;
-    // Leave the three trails and their landmarks clear.
-    if(REGIONS.slice(1).some(r=>Math.hypot(x-wx(r.x),z-wz(r.y))<2))continue;
-    if(Math.abs(x)<1 || Math.abs(z)<.75)continue;
-    const frozen=Math.hypot(x-wx(1000),z-wz(1000))<7.6;
-    tree(x,z,.7+random()*.75,frozen);
-  }
-  for(let i=0;i<180;i++) {
-    const x=(random()-.5)*WORLD.width/100,z=(random()-.5)*WORLD.height/100;
-    const m=mesh(scene,sphere,colors.stone,x,.08,z,.12+random()*.25,.12+random()*.2,.13+random()*.2);m.rotation.y=random()*6;
-    if(i%2===0){mesh(scene,cylinder,colors.skin,x+.4,.07,z,.025,.14,.025);mesh(scene,sphere,colors.mushroom,x+.4,.16,z,.08,.05,.08);}
+  for(const o of SCENERY){
+    const x=wx(o.x),z=wz(o.y),s=o.scale;
+    if(o.type==='tree')tree(x,z,s,Math.hypot(o.x-1000,o.y-1000)<760);
+    else mesh(scene,sphere,colors.stone,x,.26*s,z,.3*s,.26*s,.3*s);
   }
   const rune=mat('#bad091',{emissive:'#a5c788',emissiveIntensity:.25});
   flatRing(scene,rune,1.05,.055);
@@ -98,7 +90,7 @@ export function create3DRenderer(canvas, game) {
     if(index===0) {
       for(const x of [-1,1])mesh(g,box,colors.stone,x,1,0,.35,2,.4);
       mesh(g,box,colors.frost,0,2.1,0,2.6,.3,.45);
-      for(let i=0;i<5;i++)mesh(g,crystal,colors.ice,(random()-.5)*3,.3,(random()-.5)*2,.15,.6,.15);
+
     }else if(index===1) {
       mesh(g,cone,colors.wood,0,.6,0,1.4,1.2,1.4);mesh(g,crystal,colors.fire,0,1.4,0,.45,.9,.45);
     }else {
@@ -108,7 +100,7 @@ export function create3DRenderer(canvas, game) {
   }
   // Batch repeated scenery into instances so trees and grass stay inexpensive.
   scene.updateMatrixWorld(true);
-  const batches = new Map(), foliageBatches=[];
+  const batches = new Map();
   scene.traverse(object => {
     if (!object.isMesh) return;
     const key = object.geometry.uuid + object.material.uuid + object.castShadow;
@@ -122,9 +114,6 @@ export function create3DRenderer(canvas, game) {
     instances.castShadow = first.castShadow; instances.receiveShadow = true;
     objects.forEach((object, i) => { instances.setMatrixAt(i, object.matrixWorld); object.removeFromParent(); });
     scene.add(instances);
-    if(first.geometry===cone && [...colors.pine,colors.frost].includes(first.material)) {
-      foliageBatches.push({mesh:instances,matrices:objects.map(o=>o.matrixWorld.clone()),hidden:objects.map(()=>false)});
-    }
   }
   const chargeMaterial = mat('#f5ae68', { emissive: '#d47838', transparent: true, opacity: .4, depthWrite: false });
   function makeWayfarer() {
@@ -263,16 +252,18 @@ export function create3DRenderer(canvas, game) {
     const distance=canvas.clientWidth<500?6.4:5.3;
     camera.position.set(cameraFocus.x+Math.sin(cameraYaw)*distance,cameraFocus.y+cameraLift,cameraFocus.z+Math.cos(cameraYaw)*distance);
     camera.lookAt(cameraFocus);
-    // Cut away foliage between camera and ranger so exploration never hides the character.
-    const cx=camera.position.x-px,cz=camera.position.z-pz,span=cx*cx+cz*cz;
-    for(const batch of foliageBatches)for(let i=0;i<batch.matrices.length;i++) {
-      const base=batch.matrices[i],x=base.elements[12]-px,z=base.elements[14]-pz,t=(x*cx+z*cz)/span;
-      const hidden=t>-.1&&t<1.1&&Math.hypot(x-cx*t,z-cz*t)<.7;
-      if(hidden!==batch.hidden[i]) {
-        batch.hidden[i]=hidden;const matrix=base.clone();if(hidden)matrix.scale(new THREE.Vector3(0,0,0));
-        batch.mesh.setMatrixAt(i,matrix);batch.mesh.instanceMatrix.needsUpdate=true;
-      }
+    // Opaque scenery stays present. Pull the camera in before it enters a solid object.
+    const dx=camera.position.x-px,dz=camera.position.z-pz,length2=dx*dx+dz*dz;
+    let fraction=1;
+    for(const o of SOLIDS){
+      const x=(o.x-p.x)/100,z=(o.y-p.y)/100,r=(o.cameraR||o.r)/100;
+      const dot=dx*x+dz*z,discriminant=dot*dot-length2*(x*x+z*z-r*r);
+      if(discriminant<0)continue;
+      const entry=(dot-Math.sqrt(discriminant))/length2;
+      if(entry>0&&entry<fraction&&cameraFocus.y+(camera.position.y-cameraFocus.y)*entry<o.height/100+.1)fraction=Math.max(.12,entry-.04);
     }
+    if(fraction<1)camera.position.lerpVectors(cameraFocus,camera.position.clone(),fraction);
+    camera.lookAt(cameraFocus);
     sun.position.set(px-4,10,pz-5);sun.target.position.set(px,0,pz);sun.target.updateMatrixWorld();
     campFlame.scale.y=.4+Math.sin(time*7)*.05;
     sync(enemyMeshes, game.enemies, makeEnemy, (m, e) => {
@@ -300,13 +291,13 @@ export function create3DRenderer(canvas, game) {
       if(game.hostile.includes(b)){m.scale.setScalar(.09);m.rotation.z=time*4;}
     });
     sync(petMeshes,game.pets,p=>{
-      const g=new THREE.Group(),material=p.kind==='fox'?colors.mushroom:colors.frost;
+      const g=new THREE.Group(),material=p.kind==='fox'?colors.mushroom:colors.stone;
       mesh(g,box,material,0,.22,0,.22,.25,.4);mesh(g,sphere,material,0,.4,.22,.17,.16,.15);
       for(const x of [-.09,.09]){mesh(g,cone,material,x,.58,.2,.07,.2,.07);for(const z of [-.12,.12])mesh(g,box,colors.dark,x,.07,z,.05,.16,.07);}
       const tail=mesh(g,cone,material,0,.32,-.34,.11,.4,.11);tail.rotation.x=-.8;
-      mesh(g,crystal,p.kind==='fox'?colors.fire:colors.ice,0,.39,.37,.04);
+      g.userData.orb=mesh(g,crystal,colors.feather,0,.39,.37,.04);
       return g;
-    },(m,p)=>{m.rotation.y=Math.atan2(game.player.x-p.x,game.player.y-p.y);m.position.y=Math.sin(time*9)*.02;});
+    },(m,p)=>{m.rotation.y=p.fireTime>0?Math.atan2(p.aimX,p.aimY):Math.atan2(p.dx||0,p.dy||1);m.position.y=Math.sin(time*9)*.02;m.userData.orb.material=game.player.element==='fire'?colors.fire:game.player.element==='ice'?colors.ice:game.player.element==='poison'?colors.poison:colors.feather;});
     sync(chestMeshes,game.chests,c=>{
       const g=new THREE.Group();mesh(g,box,colors.wood,0,.17,0,.44,.3,.32);const lid=mesh(g,box,colors.gold,0,.34,0,.46,.09,.34);g.userData.lid=lid;return g;
     },(m,c)=>{m.userData.lid.rotation.x=c.opened?-1:0;m.userData.lid.position.y=c.opened?.48:.34;});
