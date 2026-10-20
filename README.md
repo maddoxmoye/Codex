@@ -31,10 +31,10 @@ The build produces `dist/index.html` and `wildfall.html`, with all game code, Th
 | Q / R | Turn the camera left / right |
 | Pointer movement in Free mode | Orbit and tilt without holding a mouse button; active only over the game |
 | Right-mouse drag in Locked mode | Orbit and tilt while holding right click |
-| Space | Dash with brief invulnerability; 2.6-second cooldown |
+| Space | Dash with brief invulnerability; 2.6-second cooldown (1.6 with Gale boots) |
 | E | Elemental burst once unlocked; radial arrows and nearby area damage |
 | F | Open a glowing treasure chest within reach |
-| 1 / 2 / 3 or element icons | Open the element shop to deliberately swap attunements |
+| 1 / 2 / 3 or element icons | Open the shop; attunements appear among rotating offers |
 | B | Shop; time pauses while shopping |
 | Escape | Pause / resume |
 
@@ -56,19 +56,39 @@ Every element has three ranked specializations:
 | Ice | +35% elemental multiplier per rank | Longer, stronger chill | Shatter: bonus damage to chilled targets |
 | Poison | +35% elemental multiplier per rank | +1.5 seconds poison per rank | Contagion: poisoned deaths spread venom |
 
-Power is available at level 1, duration at level 2, and abilities at level 3. These ranks apply only to the current element and are erased on a swap. Shared base elemental damage starts at 12; physical bow damage starts at 18. Elemental hit damage is physical bow damage plus shared elemental damage times the active power multiplier. The shop offers general upgrades, active-element upgrades, and companions in separate tabs.
+Power is available at level 1, duration at level 2, and abilities at level 3. These ranks apply only to the current element and are erased on a swap. Shared base elemental damage starts at 12; physical bow damage starts at 18. Elemental hit damage is physical bow damage plus shared elemental damage times the active power multiplier. Each shop roll draws four distinct eligible offers from general upgrades, active-element upgrades, other attunements, companions, and unique abilities. Buying another attunement can invalidate a remaining specialization offer; it stays in its slot until rerolled.
 
-The **forest fox** (level 2, 40 gold) and **wild wolf** (level 3, 70 gold) choose nearby targets independently and wander within a local leash. They navigate around solid scenery, return when the ranger moves away, and use the ranger's current element rather than retaining a previous element. A stranded pet is recalled to a clear position near the player. Companion upgrades survive elemental swaps.
+## Companions and unique abilities
 
-## XP and free shop picks
+All companions roam, choose their own nearby targets, navigate solid scenery, and return when the ranger moves away. Their attacks and appearance are independent of the equipped element. Combat pet damage scales with physical damage, never elemental damage or elemental ranks.
 
-Each level requires `floor(20 × 1.35^(level - 1))` XP. Excess XP carries forward; gaining several levels awards one free pick for each. Every level-up opens the full shop and grants a bankable free-pick credit. Any eligible item can be chosen for free, including an attunement or a companion; normal level gates, ownership checks, and rank caps still apply. Invalid purchases consume neither credit nor gold.
+| Companion | Unlock | Quirk |
+| --- | --- | --- |
+| Forest fox | Level 2 · 40 gold | Fans three physical darts every 1.1 seconds |
+| Wild wolf | Level 3 · 70 gold | Runs into bite range; howls every 6 seconds to slow nearby enemies by 30% for 2 seconds |
+| Lantern beetle | Level 1 · 35 gold | Scouts coins and XP within 300 units of the ranger and credits them immediately; leaves healing pickups for the player |
 
-The shop tracks the current run's level, XP, gold, free picks, and build. Choose **Use free pick** or **Pay with gold**; unused free picks can be kept for later. Levels, XP, credits, coins, and builds remain per-run; the best defeat score and camera/detail preferences are the persistent browser settings.
+Unique abilities are one-time purchases in the four-offer shop pool:
+
+- **Trailrunner** (level 2): moving builds up to +35% speed over two seconds; stopping resets the bonus.
+- **Echo arrows** (level 3): player arrows bounce once to another visible enemy within 210 units, dealing 65% damage. Pet darts do not bounce.
+- **Thunderstep** (level 2): dashing releases a 145-unit physical shockwave for 150% physical damage and a brief 30% slow.
+- **Gale boots** (level 2): reduces dash cooldown to 1.6 seconds.
+- **Harvest pact** (level 3): restores 6 health every fifth kill, capped at maximum health.
+
+Armor reduces incoming damage using `100 / (100 + 6 × armor)`. Armor starts at zero; Bark mail adds 3 and a level-up Ironbark choice adds 2. There is no negative armor. The shop and sidebar show armor and movement speed.
+
+## Level rewards and four-offer shop
+
+Each level requires `floor(20 × 1.35^(level - 1))` XP. Overflow carries forward. Leveling during combat queues a reward without interrupting the wave. After the wave, each earned level presents **four distinct stat choices**; pick one before proceeding. Each draft draws four of five categories: +15 maximum health (and heal 15), +15% physical damage, +20% shared elemental damage, +2 armor, or +7% movement speed. Multiple levels mean multiple sequential drafts. These rewards cost no gold and are separate from item purchases.
+
+The shop then displays **four offers**. Buy any subset or all four. A purchased slot stays marked SOLD until you reroll; buying cannot silently refill it. Only items in the current four slots can be purchased. Existing level gates, ownership checks, elemental exclusivity, and rank caps apply. Coins, XP, stat rewards, and acquired items reset each run.
+
+Rerolling replaces all four slots and is available with a partial or empty shop. The first roll costs 5 gold early on, then 10, 15, and so on (+5 per roll). After a newly completed wave, the reroll counter resets. The base price rises by 2 gold every two completed waves, starting after wave 3. Closing/reopening with B, or entering the next wave and immediately opening the shop, preserves the current offers and reroll price. Purchases never consume queued level rewards.
 
 ## Boss progression
 
-Survive nine waves as you explore. Regular waves last 25 seconds; boss waves last until their guardian falls. New enemy groups spawn near the player as they travel. After each non-final wave, the shop opens and gameplay pauses. Spend gold or free picks, or skip shopping with **Begin wave N**. The next wave starts only when you continue; then you heal 15 health. A level-up at the same time is merged into the same shop. The final guardian ends the run in victory.
+Survive nine waves as you explore. Regular waves last 25 seconds; boss waves last until their guardian falls. New enemy groups spawn near the player as they travel. After each non-final wave, the shop opens and gameplay pauses. Resolve any queued stat drafts, then spend gold or skip purchases with **Begin wave N**. The next wave starts only when you continue; then you heal 15 health. A level-up on the final tick is included in that wave’s reward drafts. The final guardian ends the run in victory after any already-earned stat drafts.
 
 - **Wave 3 — Briar King:** telegraphed charging attacks.
 - **Wave 6 — Frost Oracle:** radial frozen barrages.
@@ -97,7 +117,7 @@ Use the existing checkout; cloud tasks are isolated and need no separate worktre
 
 ## HUD, camera preferences, and performance
 
-The in-game HUD shows health and XP progress bars with numeric values, player level, gold coins, equipped element, elemental shop shortcuts and free-pick count, dash/burst recharge bars, defeat count, and companion count. The minimap and location remain available during exploration. The sidebar provides the same detailed character information.
+The in-game HUD shows health and XP progress bars with numeric values, player level, gold coins, equipped element, elemental shop shortcuts and queued stat-choice count, dash/burst recharge bars, defeat count, and companion count. The minimap and location remain available during exploration. The sidebar provides the same detailed character information.
 
 **Camera: Free** lets mouse or trackpad pointer movement over the game orbit and tilt the following camera without holding a button. **Camera: Locked** requires right-drag. Looking stops over menus or outside the game. The C key toggles modes; this preference persists between visits. Q/R and on-screen arrows remain available.
 

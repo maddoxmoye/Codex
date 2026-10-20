@@ -292,17 +292,24 @@ export function create3DRenderer(canvas, game) {
     });
     sync(petMeshes,game.pets,p=>{
       const g=new THREE.Group(),material=p.kind==='fox'?colors.mushroom:colors.stone;
+      if(p.kind==='collector'){
+        mesh(g,sphere,colors.gold,0,.23,0,.22,.16,.28);mesh(g,sphere,colors.dark,0,.27,.24,.12);
+        mesh(g,crystal,colors.xp,0,.45,-.08,.12,.18,.12);
+        for(const x of [-.22,.22])for(const z of [-.15,0,.15])mesh(g,box,colors.dark,x,.09,z,.22,.04,.035);
+        for(const x of [-.08,.08])mesh(g,sphere,colors.heal,x,.32,.33,.035);
+        return g;
+      }
       mesh(g,box,material,0,.22,0,.22,.25,.4);mesh(g,sphere,material,0,.4,.22,.17,.16,.15);
       for(const x of [-.09,.09]){mesh(g,cone,material,x,.58,.2,.07,.2,.07);for(const z of [-.12,.12])mesh(g,box,colors.dark,x,.07,z,.05,.16,.07);}
       const tail=mesh(g,cone,material,0,.32,-.34,.11,.4,.11);tail.rotation.x=-.8;
       g.userData.orb=mesh(g,crystal,colors.feather,0,.39,.37,.04);
       return g;
-    },(m,p)=>{m.rotation.y=p.fireTime>0?Math.atan2(p.aimX,p.aimY):Math.atan2(p.dx||0,p.dy||1);m.position.y=Math.sin(time*9)*.02;m.userData.orb.material=game.player.element==='fire'?colors.fire:game.player.element==='ice'?colors.ice:game.player.element==='poison'?colors.poison:colors.feather;});
+    },(m,p)=>{m.rotation.y=Math.atan2(p.aimX||0,p.aimY||1);m.position.y=Math.sin(time*(p.kind==='collector'?12:9))*.025;if(m.userData.orb)m.userData.orb.material=p.kind==='fox'?colors.gold:colors.ice;});
     sync(chestMeshes,game.chests,c=>{
       const g=new THREE.Group();mesh(g,box,colors.wood,0,.17,0,.44,.3,.32);const lid=mesh(g,box,colors.gold,0,.34,0,.46,.09,.34);g.userData.lid=lid;return g;
     },(m,c)=>{m.userData.lid.rotation.x=c.opened?-1:0;m.userData.lid.position.y=c.opened?.48:.34;});
     sync(effectMeshes, game.effects, e => {
-      const material = e.type === 'nova' ? (game.player.element==='fire'?colors.fire:game.player.element==='ice'?colors.ice:game.player.element==='poison'?colors.poison:colors.xp) : e.type === 'warning' ? colors.gold : e.element==='fire'?colors.fire:e.element==='ice'?colors.ice:e.element==='poison'?colors.poison:colors.heal;
+      const material = e.type === 'nova' ? ((e.element||game.player.element)==='fire'?colors.fire:(e.element||game.player.element)==='ice'?colors.ice:(e.element||game.player.element)==='poison'?colors.poison:colors.xp) : e.type === 'warning' ? colors.gold : e.element==='fire'?colors.fire:e.element==='ice'?colors.ice:e.element==='poison'?colors.poison:colors.heal;
       const g = new THREE.Group();
       if (e.type === 'nova' || e.type === 'warning') flatRing(g, material, 1, .04);
       else for (let i = 0; i < 5; i++) mesh(g, sphere, material, Math.cos(i * 1.256), .3, Math.sin(i * 1.256), .06, .06, .06, false);
