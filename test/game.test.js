@@ -420,3 +420,23 @@ test('new gear and renamed legacy equipment survive saves; old saves receive def
 test('Crimson Thimble heals on kills while alive and keeps its maximum-health tradeoff',()=>{
  const g=create();g.applyItem(SHOP.find(i=>i.id==='crimson-thimble'));assert.equal(g.player.maxHp,85);g.player.hp=50;g.enemies=[enemy(800,330,0),enemy(850,330,0)];g.update(.01);assert.equal(g.player.hp,52);g.player.hp=85;g.enemies=[enemy(800,330,0)];g.update(.01);assert.equal(g.player.hp,85);
 });
+
+test('enemy feedback reports actual mitigated damage, criticals and overkill without changing combat',()=>{
+ const g=create(),e={...enemy(650,330,100),maxHp:100,guard:3};g.enemies=[e];g.arrow(g.player,e,20);g.hitBullet(g.bullets.pop(),e);assert.equal(e.hp,86);assert.equal(g.damageNumbers[0].amount,14);assert.equal(g.damageNumbers[0].element,'physical');assert.ok(e.hitFlash>0);
+ g.damageEnemy(e,200,{element:'ice',critical:true});assert.equal(g.damageNumbers[1].amount,86);assert.equal(g.damageNumbers[1].critical,true);assert.equal(g.damageNumbers[1].element,'ice');assert.equal(g.damageEnemy(e,10),0);assert.equal(g.damageNumbers.length,2);
+});
+test('burn and poison feedback batches continuous damage into accurate visible ticks and flushes expiry and death',()=>{
+ const g=create(),e={...enemy(800,330,100),maxHp:100,burn:1,burnDamage:10};g.enemies=[e];g.player.fireTimer=999;advance(g,.36);assert.ok(g.damageNumbers.some(n=>n.element==='fire'&&n.amount>=3.4));advance(g,.75);assert.ok(Math.abs(e.hp-90)<1e-7);assert.ok(Math.abs(g.damageNumbers.reduce((sum,n)=>sum+n.amount,0)-10)<1e-7);
+ const poison=create(),p={...enemy(800,330,1),maxHp:1,poison:2,poisonDamage:10,poisonStacks:2};poison.enemies=[p];poison.player.fireTimer=999;advance(poison,.1);assert.equal(poison.player.kills,1);assert.ok(Math.abs(poison.damageNumbers.reduce((sum,n)=>sum+n.amount,0)-1)<1e-8);assert.ok(poison.damageNumbers.every(n=>n.element==='poison'));
+});
+test('pets, area skills and mythic attacks all emit damage feedback',()=>{
+ const g=create();g.player.wolf=true;g.enemies=[enemy(450,330,100)];g.pets=[{kind:'wolf',x:480,y:330,r:12,attack:0,howl:0,roam:1,angle:0,fireTime:0}];g.updatePets(.01);assert.ok(g.damageNumbers.some(n=>n.element==='pet'));
+ const burst=create();burst.loadout.attack='burst';burst.enemies=[enemy(550,330,100)];burst.nova();assert.ok(burst.damageNumbers.some(n=>n.amount===48));
+ const orbit=create();orbit.player.orbit=true;orbit.player.fireTimer=999;orbit.enemies=[enemy(550,330,100)];orbit.update(.01);assert.ok(orbit.damageNumbers.some(n=>n.element==='mythic'&&Math.abs(n.amount-12.6)<1e-8));
+});
+test('damage popups freeze while paused, expire in play, stay bounded and are cleared between rounds and restarts',()=>{
+ const g=create(),e={...enemy(),maxHp:500};g.enemies=[e];g.damageEnemy(e,1);g.pause();const life=g.damageNumbers[0].life;advance(g,1);assert.equal(g.damageNumbers[0].life,life);g.resume();g.enemies=[];advance(g,1);assert.equal(g.damageNumbers.length,0);e.hp=1000;for(let i=0;i<300;i++)g.damageEnemy(e,1);assert.equal(g.damageNumbers.length,180);g.nextWave();assert.equal(g.damageNumbers.length,0);g.closeShop();g.damageEnemy(e,1);g.start();assert.equal(g.damageNumbers.length,0);
+});
+test('full progress reset clears unlocks and the active run, while restarting a run preserves unlocks',()=>{
+ const g=new Game(()=>.5,{kills:300,bosses:4,wins:1});g.start({character:'scout'});g.player.coins=100;g.wave=9;g.start({character:'scout'});assert.equal(g.wave,1);assert.equal(g.player.coins,0);assert.equal(g.character,'scout');assert.equal(g.progress.kills,300);const revision=g.progressRevision;g.resetProgress();assert.equal(g.state,'title');assert.deepEqual(g.progress,{kills:0,bosses:0,wins:0});assert.ok(g.progressRevision>revision);assert.equal(g.start({character:'scout'}),false);assert.equal(g.snapshot(),null);
+});

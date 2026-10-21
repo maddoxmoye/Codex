@@ -1,3 +1,4 @@
+import {clearProgressStorage} from './progress-storage.js';
 import { upgradeArt } from './upgrade-art.js';
 import { Game, SHOP, WORLD, REGIONS, regionAt, advanceGame, ELEMENTS, CHARACTERS, isUnlocked, RARITIES, isBossWave, waveDuration } from './game.js';
 import { create3DRenderer } from './render3d.js';
@@ -9,7 +10,7 @@ const game=new Game(Math.random,readProgress());
 let savedProgressRevision=game.progressRevision,knownUnlocks=new Set(CHARACTERS.filter(c=>isUnlocked(c,game.progress)).map(c=>c.id));
 function saveProgress(){try{localStorage.setItem('wildfall-unlocks',JSON.stringify(game.progress));}catch{}}
 window.addEventListener('pagehide',()=>{saveProgress();saveRun();});
-let savedRun=readSavedRun(),lastAutosave=0;
+let savedRun=readSavedRun(),lastAutosave=0,progressScreen=null,progressNotice='';
 function readSavedRun(){try{const value=JSON.parse(localStorage.getItem('wildfall-run'));return new Game(Math.random,readProgress()).restoreSnapshot(value)?value:null;}catch{return null;}}
 function saveRun(){const snapshot=game.snapshot();if(!snapshot)return false;try{localStorage.setItem('wildfall-run',JSON.stringify(snapshot));savedRun=snapshot;return true;}catch{return false;}}
 function clearSavedRun(){savedRun=null;try{localStorage.removeItem('wildfall-run');}catch{}}
@@ -26,10 +27,11 @@ const keys=new Set(); let previous=performance.now(),shown='',sound=false,audio,
 let best=0;try{best=Number(localStorage.getItem('wildfall-best'))||0;}catch{}
 function beep(freq=440,duration=.1,type='sine',volume=.025){if(!sound)return;try{audio ||= new AudioContext();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);}catch{}}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3200);}
-function start(){keys.clear();game.prepareLoadout();shown='';lastBoss=0;}
+function start(){progressNotice='';keys.clear();game.prepareLoadout();shown='';lastBoss=0;}
 function launch(){if(game.startLoadout()){clearSavedRun();keys.clear();shown='';canvas.focus();beep(550,.2);}}
-function pause(){if(game.state==='paused')game.resume();else{pauseStatsOpen=false;game.pause();}keys.clear();}
+function pause(){if(progressScreen){closeProgressPanel();return;}if(game.state==='paused')game.resume();else{pauseStatsOpen=false;game.pause();}keys.clear();}
 function shop(){
+ if(progressScreen){closeProgressPanel();return;}
  if(game.state==='playing'){game.pause();pauseStatsOpen=true;shown='';}
  else if(game.state==='paused'){pauseStatsOpen=true;renderPaused();}
  else if(['shop','draft','reward'].includes(game.state)){statsOpen=true;renderIntermission();}
@@ -50,6 +52,7 @@ $('fullscreen-button').onclick=toggleFullscreen;document.addEventListener('fulls
 $('shop-button').onclick=shop;$('pause-button').onclick=pause;$('run-menu').onclick=pause;
 $('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'SOUND ON':'SOUND OFF';$('sound').setAttribute('aria-label',sound?'Disable sound':'Enable sound');beep(660);};
 window.addEventListener('keydown',e=>{
+ if(progressScreen){if(e.code==='Escape'){e.preventDefault();closeProgressPanel();}return;}
  if(e.target.closest?.('button')&&['Space','Enter'].includes(e.code))return;
  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
  keys.add(e.code);if(e.repeat)return;
@@ -79,13 +82,42 @@ function requestElement(element){
 }
 for(const button of document.querySelectorAll('[data-element]'))button.onclick=()=>requestElement(button.dataset.element);
 $('touch-dash').onpointerdown=e=>{e.preventDefault();game.dash();};$('touch-ability').onpointerdown=e=>{e.preventDefault();game.nova();};
+$('progress-button').onclick=openProgressPanel;
+function openProgressPanel(){
+ if(game.state==='playing')game.pause();keys.clear();progressScreen='menu';renderProgressPanel();
+}
+function closeProgressPanel(){progressScreen=null;shown='';keys.clear();showState();}
+function renderProgressPanel(){
+ const active=['playing','paused','shop','draft','reward','won'].includes(game.state);
+ if(progressScreen==='menu'){
+  modal(`<div class="eyebrow">SETTINGS</div><h2>Progress & restart</h2><div class="progress-options"><button id="restart-current" ${active?'':'disabled'}><strong>Restart current run</strong><small>Start wave 1 with the same archer. Keep unlocked characters and your best score.</small></button><button id="delete-save" ${savedRun||active?'':'disabled'}><strong>Delete saved run</strong><small>Discard the current and saved run. Keep character unlocks and your best score.</small></button><button id="reset-progress" class="reset-danger"><strong>Reset all progress</strong><small>Delete all runs, character unlocks and your personal best.</small></button></div><button class="button secondary" id="close-progress">Back</button>`,'progress-modal');
+  $('restart-current').onclick=()=>{progressScreen='restart';renderProgressPanel();};$('delete-save').onclick=()=>{progressScreen='delete';renderProgressPanel();};$('reset-progress').onclick=()=>{progressScreen='all';renderProgressPanel();};$('close-progress').onclick=closeProgressPanel;return;
+ }
+ const copy={restart:['Restart this run?','Your current equipment, coins, level and wave will be replaced by a fresh run with the same archer. Unlocked characters and your best score are kept.','Restart run'],delete:['Delete this run?','This discards the current run and its saved checkpoint. Character unlocks and your best score are kept.','Delete run'],all:['Reset all progress?','This deletes your current and saved runs, every earned character unlock and your personal best. This cannot be undone.','Reset everything']}[progressScreen];
+ modal(`<div class="eyebrow">CONFIRM ${progressScreen==='all'?'FULL RESET':'RUN CHANGE'}</div><h2>${copy[0]}</h2><p>${copy[1]}</p><p id="progress-error" role="status" hidden></p><div class="modal-actions"><button class="button secondary" id="cancel-progress">Cancel</button><button class="button reset-danger" id="confirm-progress">${copy[2]}</button></div>`,'progress-modal');
+ $('cancel-progress').onclick=()=>{progressScreen='menu';renderProgressPanel();};$('confirm-progress').onclick=applyProgressAction;
+}
+function applyProgressAction(){
+ const action=progressScreen;let cleared=false;
+ try{cleared=clearProgressStorage(localStorage,action==='all'?'all':'run');}catch{}
+ if(!cleared){$('progress-error').hidden=false;$('progress-error').textContent='Could not update saved progress in this browser. Retry or cancel.';return;}
+ savedRun=null;keys.clear();progressScreen=null;shown='';
+ if(action==='restart'){
+  const character=game.character;game.start({character});lastBoss=0;saveRun();
+ }else{
+  if(action==='all'){game.resetProgress();best=0;savedProgressRevision=game.progressRevision;knownUnlocks=new Set(CHARACTERS.filter(c=>isUnlocked(c,game.progress)).map(c=>c.id));progressNotice='Progress reset. Rowan is ready for a new journey.';}
+  else{game.reset();progressNotice='Saved run deleted. Your unlocks and best score are kept.';}
+ }
+ showState();hud();
+}
 function modal(html,cls=''){ $('overlay').hidden=false;$('overlay').innerHTML=`<div class="modal ${cls}">${html}</div>`; }
 function showState(){
+ if(progressScreen)return;
  const state=game.state,entering=shown!==state;if(!entering&&!(['shop','draft','loadout','reward'].includes(state)&&shownShopRevision!==game.shopRevision))return;shown=state;$('toast').hidden=['shop','draft','reward','paused'].includes(state);
  $('pause-button').textContent=state==='paused'?'Resume · Esc':'Run menu · Esc';$('run-menu').hidden=['title','loadout','dead'].includes(state);$('run-menu').textContent=state==='paused'?'Resume run':'Run menu · Esc';
  if(state==='playing'){$('overlay').hidden=true;canvas.focus();return;}
  if(state==='title'){
- modal(`<div class="crest">✧</div><div class="eyebrow">THE RANGER’S JOURNEY</div><h2>Beyond the clearing</h2><p>Roam the woods, frozen ruins, ember hills, and venom marsh. Choose your archer, collect enemy-dropped chests, tame companions, and commit to an elemental build. Earn a stat choice each level. After each wave, pick your rewards and browse four rotating shop offers.</p>${savedRun?`<button class="button" id="continue-run">Continue saved run · Wave ${savedRun.data.wave} →</button>`:''}<button class="button ${savedRun?'secondary':''}" id="begin">${savedRun?'Start a new run':'Begin your journey'} &nbsp; →</button>${savedRun?'<p class="save-note">Starting a new run replaces this save when you enter the wild.</p>':''}<p class="subtext">WASD to move · C for free mouse look · Red areas warn attacks<br>Your bow automatically targets nearby enemies. Bosses arrive on waves 5, 10, 15, and 20. Clear the campaign to unlock endless play.${best?`<br>Personal best: ${best} enemies defeated`:''}</p>`);
+ modal(`<div class="crest">✧</div><div class="eyebrow">THE RANGER’S JOURNEY</div><h2>Beyond the clearing</h2><p>Roam the woods, frozen ruins, ember hills, and venom marsh. Choose your archer, collect enemy-dropped chests, tame companions, and commit to an elemental build. Earn a stat choice each level. After each wave, pick your rewards and browse four rotating shop offers.</p>${savedRun?`<button class="button" id="continue-run">Continue saved run · Wave ${savedRun.data.wave} →</button>`:''}<button class="button ${savedRun?'secondary':''}" id="begin">${savedRun?'Start a new run':'Begin your journey'} &nbsp; →</button>${savedRun?'<p class="save-note">Starting a new run replaces this save when you enter the wild.</p>':''}<p class="subtext">WASD to move · C for free mouse look · Red areas warn attacks<br>Your bow automatically targets nearby enemies. Bosses arrive on waves 5, 10, 15, and 20. Clear the campaign to unlock endless play.${best?`<br>Personal best: ${best} enemies defeated`:''}</p>${progressNotice?`<p class="save-note" id="progress-notice">${progressNotice}</p>`:''}`);
  $('begin').onclick=start;if(savedRun)$('continue-run').onclick=resumeSaved;
  }else if(state==='loadout'){renderLoadout();}
  else if(state==='paused'){
@@ -118,8 +150,8 @@ function wireSheet(){
  $('jump-upgrades').onclick=()=>{const scroll=document.querySelector('.build-scroll'),heading=$('history-heading');scroll.scrollTo({top:scroll.scrollTop+heading.getBoundingClientRect().top-scroll.getBoundingClientRect().top,behavior:'instant'});};
 }
 function renderPaused(){
- modal(`<div class="build-tabs"><button id="paused-menu" aria-pressed="${!pauseStatsOpen}">Run menu</button><button id="paused-stats" aria-pressed="${pauseStatsOpen}">Stats & inventory</button></div><div class="shop-layout ${pauseStatsOpen?'stats-open':''}"><section class="shop-main"><div class="eyebrow">RUN MENU · WAVE ${game.wave}</div><h2>The forest can wait.</h2><p>Your run is paused. Inspect your equipment and stats here. The merchant opens after each wave.</p><p id="save-status" role="status" hidden></p><div class="run-menu-actions"><button class="button" id="resume">Resume run</button><button class="button" id="save-quit">Save & quit</button><button class="button secondary" id="quit-run">Leave run</button></div><p class="save-note">Save & quit returns here later on this browser. Leave run discards the run.</p></section><section class="build-panel" aria-label="Paused stats and inventory">${buildSheet()}</section></div>`,'shop-modal build-modal pause-inventory');
- wireSheet();$('resume').onclick=pause;$('save-quit').onclick=saveAndQuit;$('quit-run').onclick=quitRun;
+ modal(`<div class="build-tabs"><button id="paused-menu" aria-pressed="${!pauseStatsOpen}">Run menu</button><button id="paused-stats" aria-pressed="${pauseStatsOpen}">Stats & inventory</button></div><div class="shop-layout ${pauseStatsOpen?'stats-open':''}"><section class="shop-main"><div class="eyebrow">RUN MENU · WAVE ${game.wave}</div><h2>The forest can wait.</h2><p>Your run is paused. Inspect your equipment and stats here. The merchant opens after each wave.</p><p id="save-status" role="status" hidden></p><div class="run-menu-actions"><button class="button" id="resume">Resume run</button><button class="button" id="save-quit">Save & quit</button><button class="button secondary" id="progress-settings">Progress & restart</button><button class="button secondary" id="quit-run">Leave run</button></div><p class="save-note">Save & quit returns here later on this browser. Leave run discards the run.</p></section><section class="build-panel" aria-label="Paused stats and inventory">${buildSheet()}</section></div>`,'shop-modal build-modal pause-inventory');
+ wireSheet();$('progress-settings').onclick=openProgressPanel;$('resume').onclick=pause;$('save-quit').onclick=saveAndQuit;$('quit-run').onclick=quitRun;
  $('paused-menu').onclick=()=>{pauseStatsOpen=false;renderPaused();};$('paused-stats').onclick=()=>{pauseStatsOpen=true;renderPaused();};
 }
 function buildModal(content){

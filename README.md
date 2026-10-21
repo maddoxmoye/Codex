@@ -260,6 +260,14 @@ Open **Run menu** inside the stage (also available in fullscreen), or press Esca
 
 Saves preserve the current wave and timer, health/currency/stats, cooldowns, enemies and pending attacks, projectiles and their previously hit targets, pets, ground loot, chests, shop offers and sold slots, reroll prices, pending level choices, history, and endless state. The run menu also works from shop and reward screens and returns to the same screen. It includes read-only stats and inventory, with tabs on mobile. It cannot open a shop during a live wave. Autosaves run every 10 seconds and when the page is hidden or closed; manual Save & quit reports storage failures without leaving the run. Saves live in local browser storage (`wildfall-run`), so use the same browser/site/device. Corrupt or incompatible saves are rejected without changing a live run.
 
+### Enemy health and damage feedback
+
+Every visible living enemy has a health bar and current/maximum health label in both 3D and 2D. Floating numbers show health actually removed after defenses, capped at the target's remaining health. Fire is red, ice blue, poison purple, companion damage orange, and critical hits gold with an exclamation mark. Burn and poison still apply continuously; their displayed damage is grouped into 0.35-second ticks, with the remaining amount shown when the effect expires or the enemy dies. Feedback pauses with combat. Floating numbers are cosmetic and are not saved; pending damage ticks are preserved in checkpoints.
+
+### Restart and reset progress
+
+Open the header's **⚙ Progress and restart settings** or **Run menu → Progress & restart**. **Restart current run** begins wave 1 with the same archer while preserving character unlocks and your personal best. **Delete saved run** discards the current run and checkpoint while keeping those achievements. **Reset all progress** also clears earned character unlocks and your personal best, returning to Rowan. Every action has a separate confirmation screen; cancelling changes nothing. Display and camera preferences are preserved. A storage failure reports an error and leaves the current run intact.
+
 ### Pickup radius and harder survival
 
 Gold and XP credit immediately when they enter the player's visible 75-unit pickup ring; touching each drop is unnecessary. **Gathering Compass** is an Uncommon level-1 shop item (35 base gold) granting +30 pickup radius per rank, up to five ranks / 225 radius. The HUD and stat sheet show the radius. Healing still requires approaching the drop. Every dropped chest is collected automatically at wave clear; walking nearby or pressing F can secure it earlier. Previous end-of-wave recovery remains 100% XP and 50% ground gold.

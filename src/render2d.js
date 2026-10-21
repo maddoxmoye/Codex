@@ -1,3 +1,4 @@
+import {drawCombatFeedback} from './combat-feedback.js';
 import { WORLD, REGIONS, CHARACTERS, ELEMENT_COLORS } from './game.js';
 import { SCENERY, STRUCTURES } from './world.js';
 export function create2DRenderer(canvas,game){
@@ -50,6 +51,7 @@ export function create2DRenderer(canvas,game){
    ctx.globalAlpha=1;
   }
   ctx.strokeStyle='#b3c487';ctx.lineWidth=4;ctx.strokeRect(0,0,WORLD.width,WORLD.height);ctx.restore();
+  drawCombatFeedback(ctx,game,(x,y,z,r)=>({x:w/2+x-p.x,y:h/2+y-p.y-(r||12)-14}),w,h);
  }
  return{render,dispose(){}};
 }

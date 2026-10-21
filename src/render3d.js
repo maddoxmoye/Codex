@@ -1,3 +1,4 @@
+import {drawCombatFeedback} from './combat-feedback.js';
 import * as THREE from 'three';
 import { WORLD, REGIONS, CHARACTERS, ELEMENT_COLORS, isBossWave } from './game.js';
 import { SCENERY, SOLIDS } from './world.js';
@@ -5,6 +6,8 @@ import { SCENERY, SOLIDS } from './world.js';
 // A perspective camera follows the ranger through a continuous, explorable world.
 export function create3DRenderer(canvas, game) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  const feedbackCanvas=document.createElement('canvas');feedbackCanvas.className='combat-feedback';feedbackCanvas.setAttribute('aria-hidden','true');canvas.after(feedbackCanvas);
+  const feedback=feedbackCanvas.getContext('2d'),labelPoint=new THREE.Vector3();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -298,7 +301,7 @@ export function create3DRenderer(canvas, game) {
   function render(time) {
     const w = Math.max(1, Math.round(canvas.clientWidth)), h = Math.max(1, Math.round(canvas.clientHeight));
     if (w !== width || h !== height) {
-      width = w; height = h; renderer.setSize(w, h, false);
+      width = w; height = h; renderer.setSize(w, h, false);feedbackCanvas.width=w;feedbackCanvas.height=h;
       camera.aspect=w/h;camera.updateProjectionMatrix();
     }
     const p=game.player, dt=Math.min(.25,lastTime?time-lastTime:.016);lastTime=time;
@@ -421,6 +424,7 @@ export function create3DRenderer(canvas, game) {
     flies.instanceMatrix.needsUpdate = true;
     sun.color.set(isBossWave(game.wave) ? '#e3c4ff' : '#ffe2ae');
     renderer.render(scene, camera);
+    feedback.clearRect(0,0,width,height);drawCombatFeedback(feedback,game,(x,y,h)=>{labelPoint.set((x-WORLD.width/2)/100,h,(y-WORLD.height/2)/100).project(camera);if(labelPoint.z< -1||labelPoint.z>1)return null;return {x:(labelPoint.x+1)*width/2,y:(1-labelPoint.y)*height/2};},width,height);
   }
-  return { render, setQuality(quality) { renderer.shadowMap.enabled=quality==='high';renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==='high'?1.25:1)); }, look(dx,dy) { cameraYaw+=dx*.006;cameraLift=THREE.MathUtils.clamp(cameraLift+dy*.012,.85,5.5); }, orbit(delta) { cameraYaw+=delta; }, movement(x,y) { return {moveX:x*Math.cos(cameraYaw)+y*Math.sin(cameraYaw),moveY:y*Math.cos(cameraYaw)-x*Math.sin(cameraYaw)}; }, dispose() { scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());dynamicMaterials.forEach(m=>m.dispose());dynamicMaterials.clear(); renderer.dispose(); } };
+  return { render, setQuality(quality) { renderer.shadowMap.enabled=quality==='high';renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==='high'?1.25:1)); }, look(dx,dy) { cameraYaw+=dx*.006;cameraLift=THREE.MathUtils.clamp(cameraLift+dy*.012,.85,5.5); }, orbit(delta) { cameraYaw+=delta; }, movement(x,y) { return {moveX:x*Math.cos(cameraYaw)+y*Math.sin(cameraYaw),moveY:y*Math.cos(cameraYaw)-x*Math.sin(cameraYaw)}; }, dispose() { feedbackCanvas.remove();scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());dynamicMaterials.forEach(m=>m.dispose());dynamicMaterials.clear(); renderer.dispose(); } };
 }
