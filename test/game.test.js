@@ -440,3 +440,22 @@ test('damage popups freeze while paused, expire in play, stay bounded and are cl
 test('full progress reset clears unlocks and the active run, while restarting a run preserves unlocks',()=>{
  const g=new Game(()=>.5,{kills:300,bosses:4,wins:1});g.start({character:'scout'});g.player.coins=100;g.wave=9;g.start({character:'scout'});assert.equal(g.wave,1);assert.equal(g.player.coins,0);assert.equal(g.character,'scout');assert.equal(g.progress.kills,300);const revision=g.progressRevision;g.resetProgress();assert.equal(g.state,'title');assert.deepEqual(g.progress,{kills:0,bosses:0,wins:0});assert.ok(g.progressRevision>revision);assert.equal(g.start({character:'scout'}),false);assert.equal(g.snapshot(),null);
 });
+
+test('incoming damage feedback reports health lost after armor and the buckler, including negative armor',()=>{
+ const g=create(),p=g.player;p.armor=5;g.hurt(26);assert.equal(p.hp,80);assert.equal(g.damageNumbers[0].target,'player');assert.equal(g.damageNumbers[0].amount,20);
+ p.invincible=0;p['weathered-buckler']=true;g.hurt(26);assert.equal(p.hp,70);assert.equal(g.damageNumbers.at(-1).amount,10);
+ p.invincible=0;p.armor=-5;g.hurt(7);assert.equal(p.hp,60);assert.equal(g.damageNumbers.at(-1).amount,10);
+});
+test('blocked and dodged hits do not display damage; invalid hits cannot corrupt health',()=>{
+ const g=create();g.player.invincible=1;g.hurt(50);assert.equal(g.damageNumbers.length,0);g.player.invincible=0;g.player.dodge=.5;g.random=()=>0;g.hurt(50);assert.equal(g.damageNumbers.length,0);assert.equal(g.player.hp,100);
+ g.player.dodge=0;g.player.invincible=0;for(const invalid of [0,-5,NaN,Infinity])g.hurt(invalid);assert.equal(g.player.hp,100);assert.equal(g.damageNumbers.length,0);
+});
+test('fatal-hit feedback is capped to remaining health and precedes Phoenix healing',()=>{
+ const g=create();g.player.hp=7;g.player.phoenix=true;g.hurt(1000);assert.equal(g.damageNumbers.at(-1).amount,7);assert.equal(g.player.hp,50);assert.equal(g.state,'playing');g.player.invincible=0;g.hurt(1000);assert.equal(g.damageNumbers.at(-1).amount,50);assert.equal(g.state,'dead');
+});
+test('player hit numbers freeze in menus, expire in combat, and are cosmetic across saved runs',()=>{
+ const g=create();g.hurt(12);g.pause();const life=g.damageNumbers[0].life;advance(g,2);assert.equal(g.damageNumbers[0].life,life);const save=g.snapshot();assert.equal('damageNumbers' in save.data,false);const restored=create();assert.ok(restored.restoreSnapshot(save));assert.equal(restored.player.hp,88);assert.deepEqual(restored.damageNumbers,[]);g.resume();advance(g,1.2);assert.equal(g.damageNumbers.length,0);
+});
+test('crowded enemy feedback cannot evict a recent incoming player hit',()=>{
+ const g=create();g.hurt(5);const e={...enemy(),hp:10000,maxHp:10000};for(let i=0;i<300;i++)g.damageEnemy(e,1);assert.equal(g.damageNumbers.length,180);assert.equal(g.damageNumbers.find(n=>n.target==='player').amount,5);
+});

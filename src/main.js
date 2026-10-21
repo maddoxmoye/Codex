@@ -1,3 +1,4 @@
+import {formatDamage} from './combat-feedback.js';
 import {clearProgressStorage} from './progress-storage.js';
 import { upgradeArt } from './upgrade-art.js';
 import { Game, SHOP, WORLD, REGIONS, regionAt, advanceGame, ELEMENTS, CHARACTERS, isUnlocked, RARITIES, isBossWave, waveDuration } from './game.js';
@@ -202,6 +203,7 @@ function hud(){
  const hpMeter=$('hud-health-fill').parentElement,xpMeter=$('hud-xp-fill').parentElement;
  hpMeter.setAttribute('aria-valuenow',String(Math.ceil(p.hp)));hpMeter.setAttribute('aria-valuemax',String(p.maxHp));xpMeter.setAttribute('aria-valuenow',String(p.xp));xpMeter.setAttribute('aria-valuemax',String(p.xpNext));
  hpMeter.classList.toggle('critical',p.hp/p.maxHp<.3);
+ const hit=game.damageNumbers.findLast(n=>n.target==='player');hpMeter.classList.toggle('taking-damage',!!hit);$('hud-incoming-damage').hidden=!hit;if(hit)$('hud-incoming-damage').textContent='−'+formatDamage(hit.amount)+' HP';
  $('hud-coins').textContent=p.coins.toLocaleString();$('hud-kills').textContent=p.kills+' defeated';$('hud-pets').textContent=game.pets.length+' companions';
  $('equipped-element').dataset.equipped=p.element;$('hud-element').textContent=p.element[0].toUpperCase()+p.element.slice(1);$('hud-element-icon').textContent={physical:'➶',fire:'ϟ',ice:'❄',poison:'☠'}[p.element];
  const defensive=game.skill('space'),offensive=game.skill('attack');
@@ -254,7 +256,7 @@ function setGraphics(mode) {
   const replacement=canvas.cloneNode(false); canvas.replaceWith(replacement); canvas=replacement;
   try { view=mode==='3d'?create3DRenderer(canvas,game):create2DRenderer(canvas,game); graphics=mode; }
   catch (error) {
-    console.warn('3D rendering unavailable; using the illustrated view.',error.message);
+    console.warn('3D rendering unavailable; using the illustrated view.',error.message);document.querySelectorAll('.combat-feedback').forEach(c=>c.remove());
     const fallback=canvas.cloneNode(false);canvas.replaceWith(fallback);canvas=fallback;
     view=create2DRenderer(canvas,game);graphics='2d';toast('3D needs WebGL2 · switched to the illustrated view');
   }
@@ -263,6 +265,7 @@ function setGraphics(mode) {
   view.setQuality?.(quality);$('detail-button').textContent='Detail: '+(quality==='high'?'High':'Low');
   updateCameraLabel();
   let pointer=null,drag=false;
+  canvas.addEventListener('wheel',e=>{if(view.zoom){e.preventDefault();view.zoom(e.deltaY);}},{passive:false});
   canvas.oncontextmenu=e=>e.preventDefault();
   canvas.onpointerdown=e=>{if(e.button===2){drag=true;pointer={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);}};
   canvas.onpointermove=e=>{

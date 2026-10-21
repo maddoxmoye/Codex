@@ -4,11 +4,19 @@ A browser survival adventure in a continuous 4,800 × 4,000-unit world. A low pe
 
 Play the deployed game at **https://maddoxmoye.github.io/Codex/**.
 
+## Full campaign graphics
+
+The main game now uses the Sunlit Hollow art direction throughout its full map. All five archers have articulated walking and bow-draw animation, a moving cloak, visible nocked arrows, and distinct outfits and accessories. All nine enemy types and four guardians have new silhouettes, while the fox, wolf and lantern beetle have detailed models and animated legs. Colored elemental trails, Mythic glow, warning areas and the existing character skill effects remain visible during combat.
+
+Painted terrain and soft-edged trails connect the woods, icy ruins, ember highlands and purple marsh. Leafy trees, biome-colored foliage, grass, flowers, canvas shelter and a lantern enrich the existing world. The open interior, solid scenery, campaign/shop rules, saved runs and character unlocks remain compatible. Scroll over the game to zoom; free/locked camera controls and Q/R orbit still work. High detail adds shadows and bloom; Low detail retains the new art with reduced foliage and no dynamic shadows or bloom. Small screens default to Low unless this browser already has a saved quality preference.
+
+Repeated scenery uses instancing. Enemy silhouettes share merged geometry for their material groups, keeping detailed body parts from becoming separate draw calls for every creature. Character and enemy health bars and player damage feedback also work in the 2D fallback. All assets are generated locally; no asset services, paid engine, or external model downloads are required.
+
 ## Playable visual trial
 
 Try **https://maddoxmoye.github.io/Codex/visual-trial.html** for a separate Sunlit Hollow art study. It includes a detailed, articulated Rowan, a moving cloak and bow draw, three redesigned woodland enemies, painted terrain, instanced grass and flowers, waystones, warm lighting, shadows, atmospheric fog and subtle bloom. Fire, ice and poison arrows use the real combat and damage-feedback systems. This is a small, gentler practice encounter, without the campaign shop, wave progression, or persistence. It never reads or writes the main game's saved runs, unlocks, best score, or settings.
 
-Choose **Enter the clearing**, then use WASD/arrows to move, Space to dash, and E for a volley. Drag the scene to orbit; scroll to zoom. **Camera: Free** enables mouse look without dragging. Element buttons (or 0–3) swap trial arrows freely. Pause/restart, touch controls, fullscreen, and a Low detail option are included; small screens start on Low. The preview uses procedural geometry and textures, with no external asset downloads. It demonstrates one possible art direction rather than replacing the full game's visuals.
+Choose **Enter the clearing**, then use WASD/arrows to move, Space to dash, and E for a volley. Drag the scene to orbit; scroll to zoom. **Camera: Free** enables mouse look without dragging. Element buttons (or 0–3) swap trial arrows freely. Pause/restart, touch controls, fullscreen, and a Low detail option are included; small screens start on Low. The preview uses procedural geometry and textures, with no external asset downloads. Its art direction is now integrated into the full campaign, while this original practice clearing remains available separately.
 
 Locally, open `/visual-trial.html` after `npm run dev`. The build also emits `dist/visual-trial.html` as a standalone page beside the full game; serve `dist/` normally to access both.
 
@@ -234,7 +242,7 @@ The in-game HUD shows health and XP progress bars with numeric values, player le
 
 **Camera: Free** lets mouse or trackpad pointer movement over the game orbit and tilt the following camera without holding a button. **Camera: Locked** requires right-drag. Looking stops over menus or outside the game. The C key toggles modes; this preference persists between visits. Q/R and on-screen arrows remain available.
 
-**Detail: Low** disables dynamic shadows and caps rendering to one physical pixel per CSS pixel. High detail uses 512-pixel shadow maps and a 1.25 pixel-ratio cap. Small screens default to Low; the setting is saved. HUD/minimap updates run at 10 Hz independently from rendering.
+**Detail: Low** disables dynamic shadows and caps rendering to one physical pixel per CSS pixel. High detail uses 1,024-pixel shadow maps, subtle bloom and a 1.25 pixel-ratio cap. Low detail also bypasses bloom and reduces grass and flower instances. Small screens default to Low; the setting is saved. HUD/minimap updates run at 10 Hz independently from rendering.
 
 Elapsed simulation time is consumed in steps no larger than 1/60 second, capped at 0.25 seconds of catch-up after a stall. This fixes the previous slow-motion behavior below 20 rendering FPS. Walking speed is now 210 units/second (previously 165), and the base bow fires every 0.42 seconds (previously 0.52).
 
@@ -270,7 +278,7 @@ Saves preserve the current wave and timer, health/currency/stats, cooldowns, ene
 
 ### Enemy health and damage feedback
 
-Every visible living enemy has a health bar and current/maximum health label in both 3D and 2D. Floating numbers show health actually removed after defenses, capped at the target's remaining health. Fire is red, ice blue, poison purple, companion damage orange, and critical hits gold with an exclamation mark. Burn and poison still apply continuously; their displayed damage is grouped into 0.35-second ticks, with the remaining amount shown when the effect expires or the enemy dies. Feedback pauses with combat. Floating numbers are cosmetic and are not saved; pending damage ticks are preserved in checkpoints.
+Every visible living enemy has a health bar and current/maximum health label in both 3D and 2D. Floating numbers show health actually removed after defenses, capped at the target's remaining health. Player hits appear as larger red negative numbers, accompanied by a red HP-loss badge next to the HUD health meter. A labeled **YOU** health bar follows the archer overhead, alongside the existing HUD and sidebar meters. Armor, the buckler and negative armor are reflected in the displayed loss; blocked or dodged hits produce no damage number. Fatal hits display the health consumed before a Phoenix revival heals the archer. Fire is red, ice blue, poison purple, companion damage orange, and critical hits gold with an exclamation mark. Burn and poison still apply continuously; their displayed damage is grouped into 0.35-second ticks, with the remaining amount shown when the effect expires or the enemy dies. Feedback pauses with combat. Floating numbers are cosmetic and are not saved; pending damage ticks are preserved in checkpoints.
 
 ### Restart and reset progress
 

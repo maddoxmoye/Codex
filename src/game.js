@@ -83,10 +83,11 @@ export class Game {
     this.pets=[];this.chests=[];this.enemies=[];this.bullets=[];this.hostile=[];this.pickups=[];this.effects=[];this.bossesDefeated=0;this.bossSpawned=false;this.message='';this.event=null;
   }
   resetProgress(){this.progress=cleanProgress();this.progressRevision++;this.reset();}
+  trimDamageNumbers(){while(this.damageNumbers.length>180){const enemy=this.damageNumbers.findIndex(n=>n.target!=='player');this.damageNumbers.splice(enemy<0?0:enemy,1);}}
   showDamage(e,amount,element='physical',critical=false){
     if(!(amount>0))return;
     e.hitFlash=.12;this.damageNumbers.push({x:e.x,y:e.y,r:e.r,height:enemyLabelHeight(e),amount,element,critical,lane:this.damageNumbers.length%5-2,life:.9,maxLife:.9});
-    if(this.damageNumbers.length>180)this.damageNumbers.splice(0,this.damageNumbers.length-180);
+    this.trimDamageNumbers();
   }
   damageEnemy(e,amount,{element='physical',critical=false,tick=false}={}){
     if(!Number.isFinite(amount)||amount<=0||e.hp<=0)return 0;
@@ -388,10 +389,12 @@ export class Game {
   }
   fireHostile(e,count,speed,offset=0){for(let i=0;i<count;i++){const a=offset+i/count*Math.PI*2;this.hostile.push({x:e.x,y:e.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,r:6,life:7,damage:e.damage*.65});}}
   hurt(amount){
-    const p=this.player;if(p.invincible>0||this.state!=='playing')return;
+    const p=this.player;if(!Number.isFinite(amount)||amount<=0||p.hp<=0||p.invincible>0||this.state!=='playing')return;
     if(p.dodge>0&&this.random()<Math.min(.5,p.dodge)){p.invincible=.2;this.effects.push({x:p.x,y:p.y,r:45,type:'wind',life:.3,maxLife:.3});return;}
     if(p['weathered-buckler']&&p.bucklerWave!==this.wave){amount*=.5;p.bucklerWave=this.wave;}
-    p.hp=Math.max(0,p.hp-amount*100/(100+Math.max(-10,p.armor)*6));p.invincible=.7;this.event='hurt';
+    const before=p.hp;p.hp=Math.max(0,p.hp-amount*100/(100+Math.max(-10,p.armor)*6));const lost=before-p.hp;
+    if(lost>0){this.damageNumbers.push({target:'player',x:p.x,y:p.y,r:p.r,height:2.48,amount:lost,element:'hurt',lane:0,life:1.15,maxLife:1.15});this.trimDamageNumbers();}
+    p.invincible=.7;this.event='hurt';
     if(p['second-wind']&&p.hp>0&&p.hp<=p.maxHp*.25&&p.secondWindWave!==this.wave){p.secondWindWave=this.wave;p.secondWindTime=3;p.invincible=1;this.effects.push({x:p.x,y:p.y,r:70,type:'wind',life:.5,maxLife:.5});}
     if(p.thornwake){for(const e of this.enemies)if(dist(p,e)<135)this.damageEnemy(e,p.damage*1.5,{element:'thorn'});this.effects.push({x:p.x,y:p.y,r:135,type:'bramble',life:.6,maxLife:.6});}
     if(!p.hp&&p.phoenix&&!p.phoenixUsed){p.phoenixUsed=true;for(const entry of this.upgradeHistory)if(entry.id==='phoenix')entry.status='used';p.hp=p.maxHp*.5;p.invincible=2;for(const e of this.enemies)if(dist(e,p)<250)this.damageEnemy(e,this.attackDamage()*4,{element:'mythic'});this.effects.push({x:p.x,y:p.y,r:250,type:'phoenix',life:1.2,maxLife:1.2});this.message='Phoenix Feather · death postponed';}
