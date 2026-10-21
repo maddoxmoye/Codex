@@ -5,17 +5,18 @@ import {SCENERY,SOLIDS,STRUCTURES,CHESTS,OPEN_INTERIOR,EDGE_BAND,blocked,moveBod
 const create=()=>{const g=new Game(()=>.5);g.start();g.obstacles=[];g.spawnTime=999;g.player.x=500;g.player.y=330;return g;};
 const enemy=(x=650,y=330,hp=500)=>({x,y,r:12,hp,speed:0,damage:0,slow:0,kind:'brute'});
 const advance=(g,seconds,input={})=>{for(let i=0;i<Math.round(seconds*60);i++)advanceGame(g,1/60,input);};
-function wealthy(g,level=5){g.player.level=level;g.player.coins=10000;g.openShop();}
+function visitShop(g){g.prepareShop();g.shopReturn=g.state==='paused'?'playing':g.state;g.shopReason='wave';g.state='shop';g.shopRevision++;return true;}
+function wealthy(g,level=5){g.player.level=level;g.player.coins=10000;visitShop(g);}
 function stockBuy(g,id){g.shopOffers=[{id,sold:false}];return g.buy(id);}
 
 test('movement is normalized, bounded and frozen in menus',()=>{
  const g=create(),p=g.player;g.update(.05,{right:true,down:true});assert.ok(Math.abs(Math.hypot(p.x-500,p.y-330)-10.5)<.001);
- p.x=WORLD.width-23;g.update(.05,{right:true});assert.equal(p.x,WORLD.width-22);g.openShop();const x=p.x;advance(g,1,{left:true});assert.equal(p.x,x);
+ p.x=WORLD.width-23;g.update(.05,{right:true});assert.equal(p.x,WORLD.width-22);visitShop(g);const x=p.x;advance(g,1,{left:true});assert.equal(p.x,x);
 });
 test('elapsed movement and time match at 10 and 60 FPS; long catch-up is bounded',()=>{
  const a=create(),b=create();for(let i=0;i<60;i++)advanceGame(a,1/60,{right:true});for(let i=0;i<10;i++)advanceGame(b,.1,{right:true});
  assert.ok(Math.abs(a.time-1)<1e-6);assert.ok(Math.abs(a.player.x-b.player.x)<1e-6);assert.ok(Math.abs(b.player.x-710)<1e-6);
- const g=create();advanceGame(g,10);assert.ok(Math.abs(g.time-.25)<1e-6);g.openShop();advanceGame(g,10);assert.ok(Math.abs(g.time-.25)<1e-6);
+ const g=create();advanceGame(g,10);assert.ok(Math.abs(g.time-.25)<1e-6);visitShop(g);advanceGame(g,10);assert.ok(Math.abs(g.time-.25)<1e-6);
 });
 test('shared scenery keeps wide trails clear and uses substantially fewer trees',()=>{
  assert.ok(SCENERY.filter(o=>o.type==='tree').length<200);assert.ok(SCENERY.filter(o=>o.type==='tree').length>40);
@@ -70,9 +71,9 @@ test('all four offers can be bought; rerolls escalate, reject insufficient gold 
  const g=create();wealthy(g);g.shopOffers=['power','speed','element-base','armor'].map(id=>({id,sold:false}));
  for(const slot of g.shopOffers)assert.equal(g.buy(slot.id),true);assert.ok(g.shopOffers.every(s=>s.sold));
  const balance=g.player.coins;assert.equal(g.rerollCost(),5);assert.equal(g.reroll(),true);assert.equal(g.player.coins,balance-5);assert.equal(g.rerollCost(),10);assert.ok(g.shopOffers.every(s=>!s.sold));
- assert.equal(g.reroll(),true);assert.equal(g.rerollCost(),15);const slots=JSON.stringify(g.shopOffers);g.closeShop();g.openShop();assert.equal(g.rerollCost(),15);assert.equal(JSON.stringify(g.shopOffers),slots);
+ assert.equal(g.reroll(),true);assert.equal(g.rerollCost(),15);const slots=JSON.stringify(g.shopOffers);g.closeShop();visitShop(g);assert.equal(g.rerollCost(),15);assert.equal(JSON.stringify(g.shopOffers),slots);
  g.player.coins=14;assert.equal(g.reroll(),false);assert.equal(g.player.coins,14);assert.equal(g.rerollCost(),15);
- g.closeShop();g.nextWave();assert.equal(g.rerollCost(),5);g.player.coins=100;g.reroll();assert.equal(g.rerollCost(),10);const postWave=JSON.stringify(g.shopOffers);g.closeShop();g.openShop();assert.equal(g.rerollCost(),10);assert.equal(JSON.stringify(g.shopOffers),postWave);
+ g.closeShop();g.nextWave();assert.equal(g.rerollCost(),5);g.player.coins=100;g.reroll();assert.equal(g.rerollCost(),10);const postWave=JSON.stringify(g.shopOffers);g.closeShop();visitShop(g);assert.equal(g.rerollCost(),10);assert.equal(JSON.stringify(g.shopOffers),postWave);
  g.closeShop();g.nextWave();assert.equal(g.rerollCost(),5);
  g.closeShop();g.nextWave();assert.equal(g.rerollCost(),7);
 });
@@ -203,7 +204,7 @@ test('Gale boots and Thunderstep work with non-dash Space skills; amplification 
  g.loadout.attack='rapid';g.player.nova=2;g.nova();assert.equal(g.player.rapidTime,6);assert.ok(Math.abs(g.attackInterval()-.42/2.5)<1e-6);
 });
 test('skill duration and recharge freeze in shop and every fresh run clears all effects',()=>{
- const g=create();g.loadout.space='shield';g.loadout.attack='rapid';g.dash();g.nova();g.openShop();advance(g,4);assert.equal(g.player.spaceTime,3);assert.equal(g.player.rapidTime,5);assert.equal(g.player.dashCooldown,12);g.start({space:'sprint',attack:'fury'});assert.equal(g.player.spaceTime,0);assert.equal(g.player.rapidTime,0);assert.equal(g.player.furyTime,0);assert.equal(g.player.novaCooldown,0);assert.equal(g.upgradeHistory.length,0);
+ const g=create();g.loadout.space='shield';g.loadout.attack='rapid';g.dash();g.nova();visitShop(g);advance(g,4);assert.equal(g.player.spaceTime,3);assert.equal(g.player.rapidTime,5);assert.equal(g.player.dashCooldown,12);g.start({space:'sprint',attack:'fury'});assert.equal(g.player.spaceTime,0);assert.equal(g.player.rapidTime,0);assert.equal(g.player.furyTime,0);assert.equal(g.player.novaCooldown,0);assert.equal(g.upgradeHistory.length,0);
 });
 test('build sheet compares starting/permanent stats and records repeated purchases, level rewards and replaced elemental ranks',()=>{
  const g=create();wealthy(g);stockBuy(g,'power');stockBuy(g,'power');stockBuy(g,'fire');stockBuy(g,'fire-power');stockBuy(g,'ice');
@@ -258,7 +259,7 @@ test('enemy archers telegraph shots, bombs can be dodged, shaman pulses heal and
  const boar=create();boar.player.fireTimer=999;const c=boar.spawn(false,'boar');Object.assign(c,{x:750,y:330,attack:0,speed:0});boar.update(.01);assert.ok(c.charge>1);assert.equal(boar.hazards[0].shape,'line');assert.ok(boar.hazards[0].tx<750);
 });
 test('dead casters cancel pending attacks; hazard timers freeze in menus',()=>{
- const g=create();g.player.fireTimer=999;const e=enemy(750);g.enemies=[e];g.warnAttack(e,'bomb',1,90);g.openShop();advance(g,2);assert.equal(g.hazards[0].delay,1);g.closeShop();e.hp=0;g.update(.01);assert.equal(g.hazards.length,0);assert.equal(g.player.hp,100);
+ const g=create();g.player.fireTimer=999;const e=enemy(750);g.enemies=[e];g.warnAttack(e,'bomb',1,90);visitShop(g);advance(g,2);assert.equal(g.hazards[0].delay,1);g.closeShop();e.hp=0;g.update(.01);assert.equal(g.hazards.length,0);assert.equal(g.player.hp,100);
 });
 test('all eight selected skills emit distinct activation graphics',()=>{
  const space=['dash','shield','sprint','repel'].map(id=>{const g=create();g.loadout.space=id;g.dash();return g.effects[0].type;});assert.equal(new Set(space).size,4);
@@ -287,11 +288,11 @@ test('Loaded Dice discounts separate shop and chest roll sequences without chang
  const g=create();wealthy(g);stockBuy(g,'loaded');stockBuy(g,'bargain');stockBuy(g,'mint');assert.equal(g.rerollCost(),3);const before=g.player.coins;g.reroll();assert.equal(g.rerollCost(),6);g.reroll();assert.equal(g.player.coins,before-9);assert.equal(g.rerolls,2);g.closeShop();g.dropChest({x:800,y:330});g.dropChest({x:850,y:330},'mythical');g.nextWave();g.rerolls=3;assert.equal(g.rerollCost(),12);assert.equal(g.chestRerollCost(),3);g.rerollChest();assert.equal(g.chestRerollCost(),6);assert.equal(g.rerolls,3);const balance=g.player.coins;g.resolveChest('sell');assert.equal(g.player.coins,balance+20);assert.equal(g.chestRerollCost(),9);g.rerollChest();assert.equal(g.chestRerollCost(),15);assert.equal(g.chestSellValue(),90);assert.equal(g.rerolls,3);
 });
 test('Nest Egg pays capped interest once per completed wave, before chest sales, and never on shop reopen',()=>{
- const g=create();wealthy(g);stockBuy(g,'interest');g.closeShop();g.player.coins=99;g.dropChest({x:800,y:330});g.nextWave();assert.equal(g.player.coins,108);assert.equal(g.payInterest(),0);g.resolveChest('sell');assert.equal(g.player.coins,128);g.closeShop();g.openShop();assert.equal(g.player.coins,128);g.closeShop();g.nextWave();assert.equal(g.player.coins,140);g.closeShop();g.player.coins=1000;g.nextWave();assert.equal(g.player.coins,1020);g.closeShop();g.wave=20;g.player.coins=9;g.nextWave();assert.equal(g.player.coins,9);
+ const g=create();wealthy(g);stockBuy(g,'interest');g.closeShop();g.player.coins=99;g.dropChest({x:800,y:330});g.nextWave();assert.equal(g.player.coins,108);assert.equal(g.payInterest(),0);g.resolveChest('sell');assert.equal(g.player.coins,128);g.closeShop();visitShop(g);assert.equal(g.player.coins,128);g.closeShop();g.nextWave();assert.equal(g.player.coins,140);g.closeShop();g.player.coins=1000;g.nextWave();assert.equal(g.player.coins,1020);g.closeShop();g.wave=20;g.player.coins=9;g.nextWave();assert.equal(g.player.coins,9);
 });
 test('economy items stay in the shop pool, appear in history/stat comparisons, and reset with a new run',()=>{
  const g=create();wealthy(g);for(const id of ['mint','bargain','loaded','interest']){assert.equal(g.chestPool('normal').some(i=>i.id===id),false);assert.equal(stockBuy(g,id),true);}
- assert.equal(g.upgradeHistory.filter(e=>e.category==='economy').length,4);const economy=g.statSheet().slice(-5);assert.deepEqual(economy.map(s=>s.base),[0,0,0,0,0]);assert.deepEqual(economy.map(s=>s.current),[20,15,15,41,10]);g.start();assert.equal(g.goldMultiplier(),1);assert.equal(g.rerollCost(),5);assert.equal(g.goldRemainder,0);assert.equal(g.interestWaves.size,0);assert.deepEqual(g.statSheet().slice(-4).map(s=>s.current),[0,0,0,0]);
+ assert.equal(g.upgradeHistory.filter(e=>e.category==='economy').length,4);const economy=g.statSheet().filter(s=>['Combat gold bonus (%)','Economy','Shop discount (%)','Reroll discount (%)','Wave interest (%)'].includes(s.name));assert.deepEqual(economy.map(s=>s.base),[0,0,0,0,0]);assert.deepEqual(economy.map(s=>s.current),[20,15,15,41,10]);g.start();assert.equal(g.goldMultiplier(),1);assert.equal(g.rerollCost(),5);assert.equal(g.goldRemainder,0);assert.equal(g.interestWaves.size,0);assert.deepEqual(g.statSheet().filter(s=>['Economy','Shop discount (%)','Reroll discount (%)','Wave interest (%)'].includes(s.name)).map(s=>s.current),[0,0,0,0]);
 });
 test('discounted purchases and rerolls still reject insufficient gold without consuming offers or ranks',()=>{
  const g=create();wealthy(g);stockBuy(g,'bargain');g.shopOffers=[{id:'power',sold:false}];g.player.coins=25;assert.equal(g.buy('power'),false);assert.equal(g.player.coins,25);assert.equal(g.shopOffers[0].sold,false);g.player.coins=26;assert.equal(g.buy('power'),true);assert.equal(g.player.coins,0);assert.equal(g.reroll(),false);assert.equal(g.rerolls,0);assert.equal(g.discountedPrice(0),1);
@@ -306,14 +307,14 @@ test('wave salvage preserves fractional gold across waves and never truncates a 
  g.pickups=Array.from({length:600},(_,i)=>({kind:'xp',amount:1,x:1000+i,y:1000,r:5}));g.update(.01);assert.equal(g.pickups.length,600);g.nextWave();assert.equal(g.waveSalvage.xp,600);assert.ok(g.freePicks>1);
 });
 test('Economy reduces actual purchase and both reroll prices, caps savings, and follows character starting stats',()=>{
- const g=create();g.player.coins=1000;g.openShop();g.shopOffers=[{id:'economy',sold:false}];assert.equal(g.buy('economy'),true);assert.equal(g.player.economy,5);assert.equal(g.offer(SHOP.find(i=>i.id==='power')).price,29);g.player.economy=40;g.applyItem(SHOP.find(i=>i.id==='bargain'));assert.equal(g.player.economy,55);assert.equal(g.discountedPrice(100),50);g.player.loaded=true;assert.equal(g.discountedPrice(100,'reroll'),35);assert.equal(g.discountedPrice(1,'reroll'),1);
+ const g=create();g.player.coins=1000;visitShop(g);g.shopOffers=[{id:'economy',sold:false}];assert.equal(g.buy('economy'),true);assert.equal(g.player.economy,5);assert.equal(g.offer(SHOP.find(i=>i.id==='power')).price,29);g.player.economy=40;g.applyItem(SHOP.find(i=>i.id==='bargain'));assert.equal(g.player.economy,55);assert.equal(g.discountedPrice(100),50);g.player.loaded=true;assert.equal(g.discountedPrice(100,'reroll'),35);assert.equal(g.discountedPrice(1,'reroll'),1);
  const pip=new Game(()=>.5,{kills:250});pip.start({character:'tinker'});assert.equal(pip.player.economy,10);assert.equal(pip.statSheet().find(s=>s.name==='Economy').base,10);assert.equal(pip.discountedPrice(100),90);
 });
 test('Borrowed Time slows nearby enemies and projectiles, grants speed and protection, then expires',()=>{
  const g=new Game(()=>.5,{kills:250});g.start({character:'tinker'});g.obstacles=[];g.spawnTime=999;g.player.fireTimer=999;const p=g.player;g.enemies=[enemy(p.x+150,p.y)];g.enemies[0].speed=100;g.hostile=[{x:p.x+200,y:p.y,vx:100,vy:0,r:5,life:9}];g.dash();assert.equal(g.moveSpeed(),262.5);g.hurt(100);assert.equal(p.hp,95);g.update(.05);const x=g.enemies[0].x;g.update(.05);assert.ok(Math.abs(x-g.enemies[0].x-1.75)<1e-6);assert.ok(Math.abs(g.hostile[0].x-(p.x+203.5))<1e-6);g.enemies=[];advance(g,4.1);assert.equal(g.moveSpeed(),210);assert.equal(p.spaceTime,0);g.hurt(10);assert.equal(p.hp,85);
 });
 test('Gear Expectations emits empowered elemental fans with visible gear styles and respects arrow hit rules',()=>{
- const g=new Game(()=>.5,{kills:250});g.start({character:'tinker'});g.obstacles=[];g.spawnTime=999;g.player.fireTimer=999;g.player.nova=1;g.swapElement('poison');g.nova();assert.equal(g.player.gearTime,4.4);assert.equal(g.effects[0].type,'gears');g.update(.01);assert.equal(g.bullets.length,3);assert.ok(g.bullets.every(b=>b.style==='gear'&&b.element==='poison'&&b.damage===g.attackDamage()*1.25&&b.pierceLeft===0));g.openShop();const t=g.player.gearTime;advance(g,1);assert.equal(g.player.gearTime,t);
+ const g=new Game(()=>.5,{kills:250});g.start({character:'tinker'});g.obstacles=[];g.spawnTime=999;g.player.fireTimer=999;g.player.nova=1;g.swapElement('poison');g.nova();assert.equal(g.player.gearTime,4.4);assert.equal(g.effects[0].type,'gears');g.update(.01);assert.equal(g.bullets.length,3);assert.ok(g.bullets.every(b=>b.style==='gear'&&b.element==='poison'&&b.damage===g.attackDamage()*1.25&&b.pierceLeft===0));visitShop(g);const t=g.player.gearTime;advance(g,1);assert.equal(g.player.gearTime,t);
 });
 test('late waves introduce stalkers, juggernauts and elites; endless guardians cycle valid archetypes and grow stronger',()=>{
  const early=new Game(()=>.99);early.start();early.wave=1;assert.equal(early.spawn().kind,'crawler');early.wave=6;assert.equal(early.spawn().kind,'bomber');early.wave=11;assert.equal(early.spawn().kind,'stalker');early.wave=16;const j=early.spawn();assert.equal(j.kind,'juggernaut');assert.ok(j.hp>=300);
@@ -364,7 +365,7 @@ test('saved combat restores timer, loot, pets, cooldowns, enemy references and S
  const restored=new Game(()=>.5,{kills:100,bosses:2});assert.equal(restored.restoreSnapshot(snapshot),true);assert.equal(restored.state,'paused');assert.equal(restored.waveTime,12.5);assert.equal(restored.player.coins,63);assert.equal(restored.player.dashCooldown,2);assert.equal(restored.player.rapidTime,3);assert.equal(restored.pickups.length,1);assert.equal(restored.pets.length,1);assert.equal(restored.hazards[0].source,restored.enemies[0]);assert.ok(restored.bullets[0].hitEnemies.has(restored.enemies[0]));assert.ok(restored.settledWaves.has(4));assert.ok(restored.interestWaves.has(4));assert.equal(restored.progress.kills,100);assert.equal(restored.progress.bosses,2);advance(restored,2);assert.equal(restored.waveTime,12.5);assert.equal(restored.hazards[0].delay,1);assert.equal(restored.resume(),true);assert.equal(restored.state,'playing');
 });
 test('saved reward menus resume exactly, cannot skip stat choices, and preserve distinct level reward descriptions',()=>{
- const g=create();g.gainXP(20);g.nextWave();g.draftChoices=[{id:'economy'}];g.pause();assert.equal(g.pausedFrom,'draft');const restored=create();assert.equal(restored.restoreSnapshot(g.snapshot()),true);assert.equal(restored.state,'paused');assert.equal(restored.openShop(),false);restored.resume();assert.equal(restored.state,'draft');assert.equal(restored.freePicks,1);restored.chooseUpgrade('economy');assert.equal(restored.upgradeHistory[0].name,'Deal Maker');restored.player.coins=100;restored.shopOffers=[{id:'magnet',sold:false},{id:'phoenix',sold:true}];restored.rerolls=3;restored.pause();const again=create();assert.equal(again.restoreSnapshot(restored.snapshot()),true);again.resume();assert.equal(again.state,'shop');assert.equal(again.shopOffers[1].sold,true);assert.equal(again.rerolls,3);assert.equal(again.upgradeHistory[0].name,'Deal Maker');assert.match(again.upgradeHistory[0].text,/5 Economy/);
+ const g=create();g.gainXP(20);g.nextWave();g.draftChoices=[{id:'economy'}];g.pause();assert.equal(g.pausedFrom,'draft');const restored=create();assert.equal(restored.restoreSnapshot(g.snapshot()),true);assert.equal(restored.state,'paused');assert.equal(restored.openShop(),false);restored.resume();assert.equal(restored.state,'draft');assert.equal(restored.freePicks,1);restored.chooseUpgrade('economy');assert.equal(restored.upgradeHistory[0].name,'Deal Maker');restored.player.coins=100;restored.shopOffers=[{id:'magnet',sold:false},{id:'phoenix',sold:true}];restored.rerolls=3;restored.pendingWave=2;restored.pause();const again=create();assert.equal(again.restoreSnapshot(restored.snapshot()),true);again.resume();assert.equal(again.state,'shop');assert.equal(again.shopOffers[1].sold,true);assert.equal(again.rerolls,3);assert.equal(again.upgradeHistory[0].name,'Deal Maker');assert.match(again.upgradeHistory[0].text,/5 Economy/);
  const chest=create();chest.dropChest({x:800,y:800},'mythical');chest.nextWave();chest.chestQueue[0].rerolls=2;const id=chest.chestQueue[0].reward.id;assert.equal(again.restoreSnapshot(chest.snapshot()),true);assert.equal(again.state,'reward');assert.equal(again.chestQueue[0].reward.id,id);assert.equal(again.chestQueue[0].rerolls,2);again.resolveChest('take');assert.equal(again.player[id],true);assert.equal(again.resolveChest('take'),false);
 });
 test('invalid or incompatible saved runs are rejected without modifying the active game',()=>{
@@ -372,6 +373,50 @@ test('invalid or incompatible saved runs are rejected without modifying the acti
 });
 
 
-test('visiting the shop from pause and reopening the run menu cannot trap the player in a pause/shop loop',()=>{
- const g=create();g.pause();assert.equal(g.openShop(),true);assert.equal(g.state,'shop');g.pause();assert.equal(g.pausedFrom,'shop');g.resume();assert.equal(g.state,'shop');g.closeShop();assert.equal(g.state,'playing');
+test('combat and pause never open the shop; merchant opens automatically only after the wave',()=>{
+ const g=create();assert.equal(g.openShop(),false);assert.equal(g.state,'playing');g.pause();assert.equal(g.openShop(),false);assert.equal(g.state,'paused');g.resume();g.nextWave();assert.equal(g.state,'shop');assert.equal(g.shopOffers.length,4);assert.equal(g.pendingWave,2);g.pause();g.resume();assert.equal(g.state,'shop');g.closeShop();assert.equal(g.state,'playing');assert.equal(g.wave,2);assert.equal(g.openShop(),false);
+});
+
+
+test('expanded physical catalog has 77 distinct items with equipment types and 32 new gear entries',()=>{
+ assert.equal(SHOP.length,77);assert.equal(new Set(SHOP.map(i=>i.id)).size,77);for(const item of SHOP){assert.ok(item.type&&item.name&&item.text&&item.price>0);assert.ok(!/attunement|pact|foundation|vow|instinct/i.test(item.name));}
+ assert.equal(SHOP.find(i=>i.id==='haste').name,'Silk Bowstring');assert.equal(SHOP.find(i=>i.id==='fire').name,'Ember Quiver');assert.equal(SHOP.find(i=>i.id==='fire-duration').name,'Coalwick Oil');assert.equal(MYTHICAL_UPGRADES[0].name,'Phoenix Feather');
+});
+test('item tradeoffs alter real stats, health floors are safe, copies cap, and spent tonics stay consumed',()=>{
+ const g=create();wealthy(g);const hp=g.player.hp;stockBuy(g,'padded-vest');assert.equal(g.player.maxHp,112);assert.equal(g.player.hp,hp+12);assert.equal(g.player.speed,203.7);stockBuy(g,'archery-glove');assert.equal(g.player.armor,-1);assert.ok(Math.abs(g.attackInterval()-.3864)<1e-8);for(let i=0;i<5;i++)stockBuy(g,'rivet-pouch');assert.equal(g.player.damage,28);assert.equal(stockBuy(g,'rivet-pouch'),false);stockBuy(g,'vampire-fang');assert.equal(g.player.maxHp,102);assert.equal(g.player.hp,102);g.player.hp=20;stockBuy(g,'heal');assert.equal(g.player.hp,80);assert.equal(g.upgradeHistory.at(-1).status,'used');assert.equal(g.upgradeHistory.at(-1).type,'Consumable');
+});
+test('critical arrows heal through lifesteal, respect actual target health and leave pet darts unmodified',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='copper-ring'));g.applyItem(SHOP.find(i=>i.id==='vampire-fang'));g.random=()=>0;g.player.hp=50;const e=enemy(650,330,5);g.enemies=[e];g.arrow(g.player,e,20);const b=g.bullets.pop();assert.equal(b.critical,true);assert.equal(b.damage,35);g.hitBullet(b,e);assert.ok(Math.abs(g.player.hp-50.15)<1e-8);g.arrow(g.player,e,20,'physical','pet');assert.equal(g.bullets[0].critical,false);assert.equal(g.bullets[0].damage,20);
+});
+test('guardian lens, hunting token and voltaic spool apply their conditional damage to real targets',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='boss-lens'));assert.equal(g.player.bossDamage,.3);assert.equal(g.player.damage,18*.92);const e={...enemy(650,330,2000),kind:'boss'};g.enemies=[e];g.arrow(g.player,e,100);g.hitBullet(g.bullets.pop(),e);assert.equal(e.hp,1870);
+ const marks=create();marks.applyItem(SHOP.find(i=>i.id==='marked-prey'));const target=enemy(650,330,1000);marks.enemies=[target];for(let i=0;i<6;i++){marks.arrow(marks.player,target,100);marks.hitBullet(marks.bullets.pop(),target);}assert.equal(target.hp,325);assert.equal(target.marks,5);
+ const chain=create();chain.applyItem(SHOP.find(i=>i.id==='voltaic-spool'));chain.player.critChance=1;chain.random=()=>0;const a=enemy(650),other=enemy(720);chain.enemies=[a,other];chain.arrow(chain.player,a,20);chain.hitBullet(chain.bullets.pop(),a);assert.ok(Math.abs(other.hp-(500-18*.4))<1e-8);assert.ok(chain.effects.some(e=>e.type==='thunder'));
+});
+test('dodge, buckler and emergency locket have real defensive effects and reset on new waves',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='lucky-button'));g.random=()=>0;g.hurt(20);assert.equal(g.player.hp,100);g.player.dodge=0;g.player.invincible=0;g.hurt(10);assert.ok(g.player.hp<90);
+ const shield=create();shield.applyItem(SHOP.find(i=>i.id==='weathered-buckler'));shield.hurt(20);assert.equal(shield.player.hp,90);shield.player.invincible=0;shield.hurt(20);assert.equal(shield.player.hp,70);shield.wave=2;shield.player.invincible=0;shield.hurt(20);assert.equal(shield.player.hp,60);
+ const wind=create();wind.applyItem(SHOP.find(i=>i.id==='second-wind'));wind.player.hp=30;wind.hurt(10);assert.equal(wind.player.secondWindTime,3);assert.equal(wind.player.invincible,1);assert.equal(wind.moveSpeed(),283.5);advance(wind,3.1);assert.equal(wind.moveSpeed(),210);wind.hurt(1);assert.equal(wind.player.secondWindTime,0);wind.wave=2;wind.player.invincible=0;wind.hurt(1);assert.equal(wind.player.secondWindTime,3);
+});
+test('wind chimes and spurs affect both skill cooldowns and only the next player arrow',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='wind-chime'));assert.ok(Math.abs(g.dashDuration()-2.6*.92)<1e-8);assert.ok(Math.abs(g.attackCooldown()-11*.92)<1e-8);g.applyItem(SHOP.find(i=>i.id==='spark-spurs'));g.dash();const e=enemy();g.arrow(g.player,e,20,'physical','pet');assert.equal(g.player.empoweredShots,1);g.arrow(g.player,e,20);g.arrow(g.player,e,20);assert.deepEqual(g.bullets.map(b=>b.damage),[20,40,20]);
+});
+test('journal, coinpurse, harness, bandage and satchel change actual XP, gold, healing and salvage',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='field-journal'));g.gainXP(10);assert.equal(g.player.xp,10.8);assert.equal(g.player.damage,18*.96);g.applyItem(SHOP.find(i=>i.id==='coin-purse'));g.collect({kind:'coin',amount:100});assert.equal(g.player.coins,108);assert.equal(g.player.magnet,70);g.applyItem(SHOP.find(i=>i.id==='flask-harness'));g.player.hp=50;g.collect({kind:'heal',amount:10});assert.equal(g.player.hp,65);g.applyItem(SHOP.find(i=>i.id==='wool-wrap'));advance(g,1);assert.ok(Math.abs(g.player.hp-65.4)<1e-8);g.applyItem(SHOP.find(i=>i.id==='salvage-satchel'));g.pickups=[{kind:'coin',amount:20},{kind:'xp',amount:5}];g.nextWave();assert.equal(g.waveSalvage.rate,.75);assert.equal(g.waveSalvage.xp,5.4);assert.equal(g.waveSalvage.gold,16);
+});
+test('pet equipment requires a companion, buffs actual darts and extends beetle scouting',()=>{
+ const g=create();const collar=SHOP.find(i=>i.id==='wolf-collar'),pack=SHOP.find(i=>i.id==='beetle-pack');assert.equal(g.offer(collar,{reward:true}).available,false);assert.equal(g.offer(pack,{reward:true}).available,false);g.applyItem(SHOP.find(i=>i.id==='pet'));g.applyItem(collar);g.applyItem(SHOP.find(i=>i.id==='fox-whistle'));g.enemies=[enemy()];g.updatePets(.01);assert.ok(g.bullets.every(b=>Math.abs(b.damage-18*.95*.45*1.25)<1e-8));assert.ok(Math.abs(g.pets[0].attack-1.1*.85)<1e-8);
+ g.applyItem(SHOP.find(i=>i.id==='collector'));g.applyItem(pack);g.pickups=[{kind:'coin',amount:2,x:850,y:330}];g.pets=[{kind:'collector',x:500,y:330,r:12,attack:0,howl:0,roam:100,angle:Math.PI,fireTime:0}];g.updatePets(.01);assert.ok(g.pets[0].x>500);assert.equal(g.player.collectorBonus,60);
+});
+test('range, projectile speed and knockback work without changing arrow travel distance or piercing exclusivity',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='spyglass'));g.applyItem(SHOP.find(i=>i.id==='fletching-kit'));g.applyItem(SHOP.find(i=>i.id==='barbed-heads'));assert.equal(g.player.range,690);assert.equal(g.player.projectileSpeed,650);const e=enemy();g.enemies=[e];g.arrow(g.player,e,20);const b=g.bullets.pop();assert.ok(Math.abs(Math.hypot(b.vx,b.vy)*b.life-948)<1e-8);g.hitBullet(b,e);assert.ok(Math.abs(e.x-670)<1e-8);assert.equal(b.life,0);
+});
+test('new gear and renamed legacy equipment survive saves; old saves receive defaults without losing their build',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='copper-ring'));g.recordUpgrade(SHOP.find(i=>i.id==='copper-ring'),'shop');g.applyItem(SHOP.find(i=>i.id==='second-wind'));g.player.secondWindWave=1;g.player.secondWindTime=2;const restored=create();assert.equal(restored.restoreSnapshot(g.snapshot()),true);assert.equal(restored.player.critChance,.06);assert.equal(restored.player['second-wind'],true);assert.equal(restored.player.secondWindTime,2);assert.equal(restored.upgradeHistory[0].name,'Copper Ring');
+ const old=create();old.applyItem(SHOP.find(i=>i.id==='haste'));old.recordUpgrade(SHOP.find(i=>i.id==='haste'),'shop');const snapshot=old.snapshot();for(const key of ['critChance','lifesteal','regenRate','petDamage','range','secondWindTime']){delete snapshot.data.player[key];delete snapshot.data.startStats[key];}snapshot.data.upgradeHistory[0].name='Quick hands';assert.equal(restored.restoreSnapshot(snapshot),true);assert.equal(restored.player.fireRate,.42*.88);assert.equal(restored.player.range,600);assert.equal(restored.upgradeHistory[0].name,'Silk Bowstring');
+});
+
+
+test('Crimson Thimble heals on kills while alive and keeps its maximum-health tradeoff',()=>{
+ const g=create();g.applyItem(SHOP.find(i=>i.id==='crimson-thimble'));assert.equal(g.player.maxHp,85);g.player.hp=50;g.enemies=[enemy(800,330,0),enemy(850,330,0)];g.update(.01);assert.equal(g.player.hp,52);g.player.hp=85;g.enemies=[enemy(800,330,0)];g.update(.01);assert.equal(g.player.hp,85);
 });

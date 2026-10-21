@@ -1,3 +1,4 @@
+import {EXTRA_ITEMS} from './items.js';
 import {withRarity,RARITIES,CHARACTERS,cleanProgress,isUnlocked,ECONOMY_UPGRADES,RARE_UPGRADES,MYTHICAL_UPGRADES} from './content.js';
 export {CHARACTERS,isUnlocked,MYTHICAL_UPGRADES,ELEMENT_COLORS,RARITIES} from './content.js';
 import { WORLD, REGIONS, regionAt, SOLIDS, firstObstacleHit, segmentHit, moveBody, seekBody, findFree, projectileBlocked } from './world.js';
@@ -28,9 +29,10 @@ export const SKILLS={
     {id:'fury',name:'Hunter’s Moon',icon:'☾',cooldown:14,duration:4,text:'Double your physical and elemental arrow impact damage for 4 seconds.'}
   ]
 };
-export const BASE_STATS=Object.freeze({maxHp:100,damage:18,elementalDamage:12,armor:0,speed:210,fireRate:.42,magnet:75,economy:0});
+export const BASE_STATS=Object.freeze({maxHp:100,damage:18,elementalDamage:12,armor:0,speed:210,fireRate:.42,magnet:75,economy:0,regenRate:0,critChance:0,critMultiplier:1.75,lifesteal:0,dodge:0,xpBoost:0,goldBonus:0,knockback:0,range:600,projectileSpeed:520,skillHaste:0,petDamage:1,petInterval:1,collectorBonus:0,healingBonus:0,healthOnKill:0,bossDamage:0});
 export const SHOP=[
   ...MYTHICAL_UPGRADES,
+  ...EXTRA_ITEMS,
   {id:'magnet',name:'Gathering Compass',icon:'◉',text:'+30 pickup radius for gold and XP · maximum 5 ranks',price:35,level:1,repeat:true,max:5,category:'general',rarity:'uncommon'},
   {id:'heal',name:'Forest tonic',icon:'♥',text:'Restore 60 health',price:20,level:1,repeat:true,category:'general'},
   {id:'power',name:'Honed broadheads',icon:'➶',text:'+25% physical arrow damage · retained on swaps',price:30,level:1,repeat:true,category:'general'},
@@ -48,8 +50,8 @@ export const SHOP=[
   {id:'momentum',name:'Trailrunner',icon:'➟',text:'Build up to +35% speed while moving; stopping resets it',price:45,level:2,category:'ability'},
   ...ECONOMY_UPGRADES,
   ...RARE_UPGRADES,
-  {id:'piercing',name:'Thread the Needle',icon:'⇥',text:'Arrows pierce two extra targets, losing 25% damage per hit. Excludes Echo arrows.',price:65,level:2,category:'ability'},
-  {id:'ricochet',name:'Echo arrows',icon:'↝',text:'Your arrows bounce once to another nearby enemy for 65% damage. Excludes piercing',price:65,level:3,category:'ability'},
+  {id:'piercing',name:'Needlepoint Broadheads',icon:'⇥',text:'Arrows pierce two extra targets, losing 25% damage per hit. Excludes Echo Crystal Nocks.',price:65,level:2,category:'ability'},
+  {id:'ricochet',name:'Echo Crystal Nocks',icon:'↝',text:'Your arrows bounce once to another nearby enemy for 65% damage. Excludes piercing',price:65,level:3,category:'ability'},
   {id:'dashburst',name:'Thunderstep',icon:'✺',text:'Using your Space skill releases a physical shockwave and briefly slows nearby enemies',price:55,level:2,category:'ability'},
   {id:'gale',name:'Gale boots',icon:'≋',text:'Reduce your selected Space skill cooldown by 38%',price:45,level:2,category:'ability'},
   {id:'reaper',name:'Harvest pact',icon:'♥',text:'Every fifth enemy defeated restores 6 health',price:60,level:3,category:'ability'},
@@ -75,7 +77,7 @@ export class Game {
   reset(){
     this.state='title';this.time=0;this.wave=1;this.waveTime=0;this.spawnTime=0;
     this.player={x:2400,y:2000,r:13,hp:100,maxHp:100,speed:210,economy:0,gearTime:0,gearTimer:0,armor:0,momentumTime:0,damage:18,elementalDamage:12,fireRate:.42,fireTimer:0,level:1,xp:0,xpNext:xpForLevel(1),coins:0,kills:0,magnet:75,dashCooldown:0,dashTime:0,spaceTime:0,rapidTime:0,furyTime:0,dx:1,dy:0,invincible:0,nova:0,novaCooldown:0,multi:false,regen:false,pet:false,wolf:false,collector:false,element:'physical',elementUpgrades:{power:0,duration:0,special:0},ranks:{},aimX:0,aimY:-1,shotTime:0,moving:false};
-    this.pausedFrom='playing';this.defeatReason='';this.endless=false;this.waveSalvage=null;this.settledWaves=new Set();this.character='ranger';this.startStats={...BASE_STATS};this.chestQueue=[];this.chestSerial=0;this.hazards=[];this.shots=0;this.orbitTimer=0;this.victoryRecorded=false;this.goldRemainder=0;this.interestWaves=new Set();
+    this.pausedFrom='playing';this.defeatReason='';this.endless=false;this.waveSalvage=null;this.settledWaves=new Set();Object.assign(this.player,BASE_STATS,{secondWindTime:0,secondWindWave:0,bucklerWave:0,empoweredShots:0});this.character='ranger';this.startStats={...BASE_STATS};this.chestQueue=[];this.chestSerial=0;this.hazards=[];this.shots=0;this.orbitTimer=0;this.victoryRecorded=false;this.goldRemainder=0;this.interestWaves=new Set();
     this.loadout={space:'dash',attack:'salvo'};this.loadoutChoices={space:[],attack:[]};this.upgradeHistory=[];this.freePicks=0;this.levelRewards=[];this.draftChoices=[];this.shopOffers=[];this.rerolls=0;this.shopRound=null;this.shopBaseCost=5;this.shopReason='manual';this.shopReturn='playing';this.shopRevision=0;this.pendingWave=null;this.pendingVictory=false;
     this.pets=[];this.chests=[];this.enemies=[];this.bullets=[];this.hostile=[];this.pickups=[];this.effects=[];this.bossesDefeated=0;this.bossSpawned=false;this.message='';this.event=null;
   }
@@ -95,6 +97,7 @@ export class Game {
       const d=JSON.parse(JSON.stringify(snapshot.data)),allowed=['playing','paused','shop','draft','reward','won'];
       if(!allowed.includes(d.state)||!CHARACTERS.some(c=>c.id===d.character)||!Number.isInteger(d.wave)||d.wave<1||!Number.isFinite(d.waveTime)||d.waveTime<0||!d.player||!Number.isFinite(d.player.hp)||d.player.hp<=0||!Number.isFinite(d.player.coins)||d.player.coins<0)return false;
       const template=new Game(this.random,this.progress);
+      d.player={...template.player,...d.player};d.startStats={...BASE_STATS,...d.startStats};
       for(const [key,value] of Object.entries(template))if(typeof value==='number'&&key!=='progressRevision'&&!Number.isFinite(d[key]))return false;
       for(const [key,value] of Object.entries(template.player))if(typeof value==='number'&&!Number.isFinite(d.player[key]))return false;
       if(d.player.fireRate<=0||d.player.maxHp<=0||d.player.xpNext<=0||!d.player.ranks||typeof d.player.ranks!=='object'||!d.player.elementUpgrades||typeof d.player.elementUpgrades!=='object')return false;
@@ -103,7 +106,7 @@ export class Game {
       if(!SKILLS.space.some(s=>s.id===d.loadout?.space)||!SKILLS.attack.some(s=>s.id===d.loadout?.attack))return false;
       const history=d.upgradeHistory,findItem=e=>(e.source==='level'?LEVEL_UPGRADES:SHOP).find(i=>i.id===e.id);
       if(history.some(e=>!findItem(e)))return false;
-      d.upgradeHistory=history.map(e=>{const item=findItem(e);return {...e,name:item.name,text:item.text,rarity:item.rarity||'common'};});
+      d.upgradeHistory=history.map(e=>{const item=findItem(e);return {...e,name:item.name,text:item.text,type:item.type||'Training',rarity:item.rarity||'common'};});
       if(d.levelRewards.some(level=>!Number.isInteger(level)||level<2))return false;
       d.draftChoices=d.draftChoices.map(choice=>LEVEL_UPGRADES.find(i=>i.id===choice.id));if(d.draftChoices.some(i=>!i))return false;
       d.shopOffers=d.shopOffers.filter(o=>SHOP.some(i=>i.id===o.id));
@@ -116,6 +119,8 @@ export class Game {
       restored.progress=progress;restored.progressRevision=this.progressRevision+1;restored.obstacles=this.obstacles;
       if(restored.state==='playing'){restored.pausedFrom='playing';restored.state='paused';}
       if(restored.state==='paused'&&!['playing','shop','draft','reward','won'].includes(restored.pausedFrom))return false;
+      if(restored.state==='shop'&&restored.pendingWave===null){restored.state='paused';restored.pausedFrom='playing';}
+      if(restored.state==='paused'&&restored.pausedFrom==='shop'&&restored.pendingWave===null)restored.pausedFrom='playing';
       Object.assign(this,restored);return true;
     }catch{return false;}
   }
@@ -129,21 +134,21 @@ export class Game {
   }
   chooseCharacter(id){const c=CHARACTERS.find(c=>c.id===id);if(this.state!=='loadout'||!c||!isUnlocked(c,this.progress))return false;this.character=id;this.loadout={...c.skills};this.shopRevision++;return true;}
   skill(slot){return SKILLS[slot].find(s=>s.id===this.loadout[slot]);}
-  recordUpgrade(item,source){this.upgradeHistory.push({id:item.id,name:item.name,text:item.text,category:item.category||'stat',element:item.element||null,rankKey:item.rankKey||null,source,level:this.player.level,wave:this.wave,rarity:item.rarity||'common',status:item.id==='heal'?'used':'active'});}
+  recordUpgrade(item,source){this.upgradeHistory.push({id:item.id,name:item.name,text:item.text,category:item.category||'stat',element:item.element||null,rankKey:item.rankKey||null,type:item.type||'Training',source,level:this.player.level,wave:this.wave,rarity:item.rarity||'common',status:item.id==='heal'?'used':'active'});}
   statSheet(){
     const p=this.player;
     return [
       ['Maximum health',this.startStats.maxHp,p.maxHp],['Physical damage',this.startStats.damage,p.damage],
       ['Shared elemental damage',this.startStats.elementalDamage,p.elementalDamage],['Armor',this.startStats.armor,p.armor],
       ['Movement speed',this.startStats.speed,p.speed],['Bow shots / second',1/this.startStats.fireRate,1/p.fireRate],
-      ['Pickup range',this.startStats.magnet,p.magnet],['Health regen / second',0,p.regen?2:0],
+      ['Pickup range',this.startStats.magnet,p.magnet],['Health regen / second',0,(p.regen?2:0)+p.regenRate],
       ['Combat gold bonus (%)',0,Math.round((this.goldMultiplier()-1)*100)],['Economy',this.startStats.economy,p.economy],['Shop discount (%)',Math.min(50,this.startStats.economy),this.economyDiscount()*100],
-      ['Reroll discount (%)',Math.min(50,this.startStats.economy),Math.round((1-(p.loaded?.7:1)*(1-this.economyDiscount()))*100)],['Wave interest (%)',0,p.interest?10:0]
+      ['Reroll discount (%)',Math.min(50,this.startStats.economy),Math.round((1-(p.loaded?.7:1)*(1-this.economyDiscount()))*100)],['Wave interest (%)',0,p.interest?10:0],['Critical hit chance (%)',0,Math.round(Math.min(.75,p.critChance)*100)],['Critical damage multiplier',1.75,p.critMultiplier],['Lifesteal (%)',0,p.lifesteal*100],['Dodge chance (%)',0,Math.min(.5,p.dodge)*100],['XP bonus (%)',0,p.xpBoost*100],['Arrow range',600,p.range],['Projectile speed',520,p.projectileSpeed],['Arrow knockback',0,p.knockback],['Skill cooldown reduction (%)',0,Math.min(.6,p.skillHaste)*100],['Pet damage multiplier',1,p.petDamage],['Pet attack interval multiplier',1,p.petInterval],['Collector scouting radius',300,300+p.collectorBonus],['Healing pickup bonus (%)',0,p.healingBonus*100],['Healing / kill',0,p.healthOnKill],['Guardian arrow bonus (%)',0,p.bossDamage*100],['Ground gold recovery (%)',50,p['salvage-satchel']?75:50]
     ].map(([name,base,current])=>({name,base,current}));
   }
   gainXP(amount){
     if(!Number.isFinite(amount)||amount<=0)return;
-    const p=this.player;p.xp+=amount;let gained=0;
+    const p=this.player;p.xp+=amount*(1+p.xpBoost);let gained=0;
     while(p.xp>=p.xpNext){p.xp-=p.xpNext;p.level++;p.xpNext=xpForLevel(p.level);this.levelRewards.push(p.level);gained++;}
     this.freePicks=this.levelRewards.length;
     if(gained)this.message='Level '+p.level+' · stat choice waiting after this wave';
@@ -176,7 +181,7 @@ export class Game {
   }
   weightedSample(items,count){const pool=[...items],out=[];while(pool.length&&out.length<count){const weights=pool.map(i=>RARITIES[i.rarity||'common'].weight),sum=weights.reduce((a,b)=>a+b,0);let roll=this.random()*sum,index=0;while(index<pool.length-1&&roll>=weights[index]){roll-=weights[index];index++;}out.push(pool.splice(index,1)[0]);}return out;}
   rollOffers(){this.shopOffers=this.weightedSample(SHOP.filter(i=>this.offer(i).available),4).map(item=>({id:item.id,sold:false}));this.shopRevision++;}
-  goldMultiplier(){return 1+(this.player.ranks.mint||0)*.2+(this.player.goldrush?.5:0);}
+  goldMultiplier(){return 1+this.player.goldBonus+(this.player.ranks.mint||0)*.2+(this.player.goldrush?.5:0);}
   earnCombatGold(amount){
     if(!Number.isFinite(amount)||amount<=0)return 0;
     const total=amount*this.goldMultiplier()+this.goldRemainder,whole=Math.floor(total+1e-9);
@@ -193,10 +198,7 @@ export class Game {
     if(this.state!=='shop'||this.player.coins<this.rerollCost())return false;
     this.player.coins-=this.rerollCost();this.rerolls++;this.rollOffers();return true;
   }
-  openShop(reason='manual'){
-    if(this.state!=='playing'&&(this.state!=='paused'||this.pausedFrom!=='playing'))return false;
-    this.prepareShop();this.shopReturn=this.state==='paused'?'playing':this.state;this.shopReason=reason;this.state='shop';this.shopRevision++;return true;
-  }
+  openShop(){return false;}
   closeShop(){
     if(this.state!=='shop')return false;
     if(this.pendingWave!==null){this.wave=this.pendingWave;this.pendingWave=null;this.waveTime=0;this.spawnTime=1;this.bossSpawned=false;this.player.hp=Math.min(this.player.maxHp,this.player.hp+8);this.state='playing';this.message='Wave '+this.wave+' · +8 health';}
@@ -207,7 +209,9 @@ export class Game {
   offer(item,{reward=false}={}){
     const p=this.player,rank=this.rank(item),basePrice=item.price+(item.category==='element'?rank*10:0),price=this.discountedPrice(basePrice);
     let reason='';
-    if((item.id==='piercing'&&p.ricochet)||(item.id==='ricochet'&&p.piercing))reason='Conflicts with '+(p.piercing?'Thread the Needle':'Echo arrows');
+    if(item.requires&&!p[item.requires])reason='Requires Lantern Beetle Brooch';
+    else if(item.requiresPet&&!p.pet&&!p.wolf)reason='Requires a fox or wolf whistle';
+    else if((item.id==='piercing'&&p.ricochet)||(item.id==='ricochet'&&p.piercing))reason='Conflicts with '+(p.piercing?'Needlepoint Broadheads':'Echo Crystal Nocks');
     else if(['economy','bargain'].includes(item.id)&&this.economyDiscount()>=.5)reason='Economy savings capped';
     else if(!reward&&p.level<item.level)reason='Level '+item.level+' required';
     else if(item.category==='element'&&p.element!==item.element)reason='Requires '+ELEMENTS[item.element].name;
@@ -229,7 +233,8 @@ export class Game {
     else if(item.category==='element')p.elementUpgrades[item.rankKey]++;
     else {
       p.ranks[id]=(p.ranks[id]||0)+1;
-      if(id==='heal')p.hp=Math.min(p.maxHp,p.hp+60);
+      if(item.add||item.multiply){const oldMax=p.maxHp;for(const [key,value] of Object.entries(item.add||{}))p[key]+=value;for(const [key,value] of Object.entries(item.multiply||{}))p[key]*=value;p.maxHp=Math.max(25,p.maxHp);p.hp=Math.min(p.maxHp,p.hp+Math.max(0,p.maxHp-oldMax));p.magnet=Math.max(20,p.magnet);p[id]=true;}
+      else if(id==='heal')p.hp=Math.min(p.maxHp,p.hp+60);
       else if(id==='power')p.damage*=1.25;
       else if(id==='element-base')p.elementalDamage*=1.25;
       else if(id==='haste')p.fireRate*=.88;
@@ -271,14 +276,14 @@ export class Game {
   secureChest(c){
     if(!this.chests.includes(c))return false;
     this.chests=this.chests.filter(x=>x!==c);this.chestQueue.push({id:c.id,tier:c.tier,rerolls:0,reward:null,sourceWave:this.wave});
-    this.message=(c.tier==='mythical'?'Mythical':'Ability')+' chest secured · opens after the wave';return true;
+    this.message=(c.tier==='mythical'?'Mythical':'Item')+' chest secured · opens after the wave';return true;
   }
   interact(){
     if(this.state!=='playing')return false;
     const c=this.chests.find(c=>dist(c,this.player)<90);if(!c){this.message='All dropped chests are collected automatically when the wave ends';return false;}
     return this.secureChest(c);
   }
-  chestPool(tier){return (tier==='mythical'?MYTHICAL_UPGRADES:SHOP.filter(i=>['ability','pet','rare'].includes(i.category)||['nova','multi','regen'].includes(i.id))).filter(i=>this.offer(i,{reward:true}).available);}
+  chestPool(tier){return (tier==='mythical'?MYTHICAL_UPGRADES:SHOP.filter(i=>['ability','pet','rare','equipment'].includes(i.category)||['nova','multi','regen'].includes(i.id))).filter(i=>this.offer(i,{reward:true}).available);}
   rollChest(chest){const choices=this.chestPool(chest.tier).filter(i=>i.id!==chest.reward?.id);if(!choices.length)return false;chest.reward=this.weightedSample(choices,1)[0];this.shopRevision++;return true;}
   chestRerollCost(){const c=this.chestQueue[0];return c?this.discountedPrice((c.tier==='mythical'?15:5)+c.rerolls*(c.tier==='mythical'?10:5),'reroll'):0;}
   chestSellValue(){return this.chestQueue[0]?.tier==='mythical'?90:20;}
@@ -308,15 +313,18 @@ export class Game {
     if(element==='poison'){e.poison=payload.duration;e.poisonDamage=payload.dot;e.poisonStacks=Math.min(5,(e.poisonStacks||0)+1);}
   }
   arrow(source,target,damage,element=this.player.element,kind='arrow',spread=0){
+    const p=this.player,critical=kind==='arrow'&&p.critChance>0&&this.random()<Math.min(.75,p.critChance),speed=kind==='pet'?520:p.projectileSpeed;
+    if(critical)damage*=p.critMultiplier;if(kind==='arrow'&&p.empoweredShots>0){damage*=2;p.empoweredShots--;}
     const a=Math.atan2(target.y-source.y,target.x-source.x)+spread;
-    this.bullets.push({x:source.x,y:source.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:4,life:1.65,damage,element,kind,payload:this.profile(element),hitEnemies:new Set(),pierceLeft:kind==='arrow'&&this.player.piercing?2:0,style:kind==='pet'?'fox':this.player.furyTime>0?'moon':this.player.rapidTime>0?'rapid':'arrow'});
+    this.bullets.push({x:source.x,y:source.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,r:4,life:kind==='pet'?1.65:(p.range+258)/speed,damage,critical,element,kind,payload:this.profile(element),hitEnemies:new Set(),pierceLeft:kind==='arrow'&&this.player.piercing?2:0,style:kind==='pet'?'fox':this.player.furyTime>0?'moon':this.player.rapidTime>0?'rapid':'arrow'});
   }
-  dashDuration(){return (this.skill('space')?.cooldown||2.6)*(this.player.gale?1.6/2.6:1);}
-  attackCooldown(){return this.skill('attack')?.cooldown||8;}
+  dashDuration(){return (this.skill('space')?.cooldown||2.6)*(this.player.gale?1.6/2.6:1)*(1-Math.min(.6,this.player.skillHaste));}
+  attackCooldown(){return (this.skill('attack')?.cooldown||8)*(1-Math.min(.6,this.player.skillHaste));}
   attackInterval(){return this.player.fireRate/(this.player.rapidTime>0?2+this.player.nova*.25:1);}
-  moveSpeed(){return this.player.speed*(1+(this.player.momentum?Math.min(1,this.player.momentumTime/2)*.35:0))*(this.player.spaceTime>0?(this.loadout.space==='sprint'?1.7:this.loadout.space==='clock'?1.25:1):1);}
+  moveSpeed(){return this.player.speed*(this.player.secondWindTime>0?1.35:1)*(1+(this.player.momentum?Math.min(1,this.player.momentumTime/2)*.35:0))*(this.player.spaceTime>0?(this.loadout.space==='sprint'?1.7:this.loadout.space==='clock'?1.25:1):1);}
   dash(){
     const p=this.player,skill=this.skill('space');if(this.state!=='playing'||p.dashCooldown>0||!skill)return false;
+    if(p['spark-spurs'])p.empoweredShots=1;
     p.dashCooldown=this.dashDuration();p.spaceTime=skill.duration;this.event='dash';
     if(skill.id==='dash'){p.dashTime=.19;p.invincible=Math.max(p.invincible,.3);}
     if(skill.id==='shield'||skill.id==='repel')p.invincible=Math.max(p.invincible,skill.duration);
@@ -344,7 +352,7 @@ export class Game {
       this.hostile=this.hostile.filter(b=>dist(p,b)>180);
     }
     if(skill.id==='salvo'){
-      const targets=this.enemies.filter(e=>e.hp>0&&dist(e,p)<600&&!projectileBlocked(p,e,this.obstacles)).sort((a,b)=>dist(a,p)-dist(b,p));
+      const targets=this.enemies.filter(e=>e.hp>0&&dist(e,p)<p.range&&!projectileBlocked(p,e,this.obstacles)).sort((a,b)=>dist(a,p)-dist(b,p));
       for(let i=0;i<8;i++){this.arrow(p,targets.length?targets[i%targets.length]:{x:p.x+p.aimX*100,y:p.y+p.aimY*100},this.attackDamage()*1.4*power,p.element,'arrow',targets.length?0:(i-3.5)*.12);this.bullets.at(-1).style='flock';}this.effects.push({x:p.x,y:p.y,r:70,type:'flock',life:.55,maxLife:.55});
     }
     p.shotTime=.3;this.event='nova';return true;
@@ -361,16 +369,19 @@ export class Game {
   fireHostile(e,count,speed,offset=0){for(let i=0;i<count;i++){const a=offset+i/count*Math.PI*2;this.hostile.push({x:e.x,y:e.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,r:6,life:7,damage:e.damage*.65});}}
   hurt(amount){
     const p=this.player;if(p.invincible>0||this.state!=='playing')return;
-    p.hp=Math.max(0,p.hp-amount*100/(100+Math.max(0,p.armor)*6));p.invincible=.7;this.event='hurt';
+    if(p.dodge>0&&this.random()<Math.min(.5,p.dodge)){p.invincible=.2;this.effects.push({x:p.x,y:p.y,r:45,type:'wind',life:.3,maxLife:.3});return;}
+    if(p['weathered-buckler']&&p.bucklerWave!==this.wave){amount*=.5;p.bucklerWave=this.wave;}
+    p.hp=Math.max(0,p.hp-amount*100/(100+Math.max(-10,p.armor)*6));p.invincible=.7;this.event='hurt';
+    if(p['second-wind']&&p.hp>0&&p.hp<=p.maxHp*.25&&p.secondWindWave!==this.wave){p.secondWindWave=this.wave;p.secondWindTime=3;p.invincible=1;this.effects.push({x:p.x,y:p.y,r:70,type:'wind',life:.5,maxLife:.5});}
     if(p.thornwake){for(const e of this.enemies)if(dist(p,e)<135)e.hp-=p.damage*1.5;this.effects.push({x:p.x,y:p.y,r:135,type:'bramble',life:.6,maxLife:.6});}
-    if(!p.hp&&p.phoenix&&!p.phoenixUsed){p.phoenixUsed=true;for(const entry of this.upgradeHistory)if(entry.id==='phoenix')entry.status='used';p.hp=p.maxHp*.5;p.invincible=2;for(const e of this.enemies)if(dist(e,p)<250)e.hp-=this.attackDamage()*4;this.effects.push({x:p.x,y:p.y,r:250,type:'phoenix',life:1.2,maxLife:1.2});this.message='Phoenix IOU · death postponed';}
+    if(!p.hp&&p.phoenix&&!p.phoenixUsed){p.phoenixUsed=true;for(const entry of this.upgradeHistory)if(entry.id==='phoenix')entry.status='used';p.hp=p.maxHp*.5;p.invincible=2;for(const e of this.enemies)if(dist(e,p)<250)e.hp-=this.attackDamage()*4;this.effects.push({x:p.x,y:p.y,r:250,type:'phoenix',life:1.2,maxLife:1.2});this.message='Phoenix Feather · death postponed';}
     else if(!p.hp)this.state='dead';
   }
   nextWave(){
     if(this.state!=='playing'||this.settledWaves.has(this.wave))return false;
     this.settledWaves.add(this.wave);
     let xp=0,gold=0;for(const item of this.pickups)if(!item.collected){if(item.kind==='xp')xp+=item.amount;if(item.kind==='coin')gold+=item.amount;item.collected=true;}
-    this.pickups=[];this.gainXP(xp);const recovered=this.earnCombatGold(gold*.5);this.waveSalvage={wave:this.wave,xp,gold:recovered,rate:.5};
+    this.pickups=[];this.gainXP(xp);const recovered=this.earnCombatGold(gold*(this.player['salvage-satchel']?.75:.5));this.waveSalvage={wave:this.wave,xp:xp*(1+this.player.xpBoost),gold:recovered,rate:this.player['salvage-satchel']?.75:.5};
     const interest=this.payInterest();
     for(const c of [...this.chests])this.secureChest(c);
     this.hazards=[];this.enemies=[];this.hostile=[];this.bullets=[];this.effects=[];
@@ -409,7 +420,11 @@ export class Game {
   }
   hitBullet(b,e){
     b.hitEnemies??=new Set();b.hitEnemies.add(e);
-    const chilled=e.slow>0,profile=b.payload||this.profile(b.element);e.hp-=b.damage*((e.guard||0)>0?.7:e.kind==='juggernaut'?.75:1);
+    const p=this.player,before=Math.max(0,e.hp),chilled=e.slow>0,profile=b.payload||this.profile(b.element);
+    const hitBonus=b.kind==='arrow'?(1+(e.kind==='boss'?p.bossDamage:0))*(p['marked-prey']?1+Math.min(5,e.marks||0)*.05:1):1;
+    e.hp-=b.damage*hitBonus*((e.guard||0)>0?.7:e.kind==='juggernaut'?.75:1);
+    if(b.critical)this.effects.push({x:e.x,y:e.y,r:38,type:'critical',element:'physical',life:.35,maxLife:.35});
+    if(b.kind==='arrow'){if(p['marked-prey'])e.marks=Math.min(5,(e.marks||0)+1);if(p.lifesteal)p.hp=Math.min(p.maxHp,p.hp+Math.min(before,Math.max(0,before-e.hp))*p.lifesteal);if(p.knockback&&e.kind!=='boss'){const a=Math.atan2(b.vy,b.vx);moveBody(e,Math.cos(a)*p.knockback,Math.sin(a)*p.knockback,this.obstacles);}if(b.critical&&p['voltaic-spool']){const other=this.enemies.find(o=>o!==e&&o.hp>0&&dist(o,e)<140);if(other){other.hp-=p.damage*.4;this.effects.push({x:other.x,y:other.y,r:45,type:'thunder',life:.35,maxLife:.35});}}}
     if(b.element==='ice'&&chilled)e.hp-=profile.hit*.5*profile.special;
     this.statusHit(e,b.element,profile);
     if(b.element==='fire'&&profile.special){for(const other of this.enemies)if(other!==e&&other.hp>0&&dist(other,e)<65){other.hp-=profile.hit*.4*profile.special;this.statusHit(other,'fire',profile);}this.effects.push({x:e.x,y:e.y,r:65,type:'embers',life:.4,maxLife:.4});}
@@ -417,7 +432,7 @@ export class Game {
     if(b.kind==='arrow'&&this.player.piercing&&b.pierceLeft>0){b.pierceLeft--;b.damage*=.75;return 'pierce';}
     if(b.kind==='arrow'&&this.player.ricochet&&!this.player.piercing&&!b.bounced){
       const next=this.enemies.filter(o=>o!==e&&o.hp>0&&!b.hitEnemies.has(o)&&dist(o,e)<210&&!projectileBlocked(e,o,this.obstacles)).sort((a,c)=>dist(a,e)-dist(c,e))[0];
-      if(next){const a=Math.atan2(next.y-e.y,next.x-e.x);b.x=e.x;b.y=e.y;b.vx=Math.cos(a)*520;b.vy=Math.sin(a)*520;b.damage*=.65;b.bounced=true;b.life=.6;this.effects.push({x:e.x,y:e.y,r:35,type:'echo',life:.3,maxLife:.3});return 'bounce';}
+      if(next){const a=Math.atan2(next.y-e.y,next.x-e.x);b.x=e.x;b.y=e.y;b.vx=Math.cos(a)*p.projectileSpeed;b.vy=Math.sin(a)*p.projectileSpeed;b.damage*=.65;b.bounced=true;b.life=.6;this.effects.push({x:e.x,y:e.y,r:35,type:'echo',life:.3,maxLife:.3});return 'bounce';}
     }
     b.life=0;return 'stop';
   }
@@ -426,7 +441,7 @@ export class Game {
     item.collected=true;
     if(item.kind==='xp')this.gainXP(item.amount);
     if(item.kind==='coin')this.earnCombatGold(item.amount);
-    if(item.kind==='heal')this.player.hp=Math.min(this.player.maxHp,this.player.hp+item.amount);
+    if(item.kind==='heal')this.player.hp=Math.min(this.player.maxHp,this.player.hp+item.amount*(1+this.player.healingBonus));
   }
   updatePets(dt){
     const p=this.player;
@@ -435,30 +450,30 @@ export class Game {
       const kind=id==='pet'?'fox':id;let pet=this.pets.find(a=>a.kind===kind);
       if(!pet){pet={...findFree({x:p.x+(index? -90:90),y:p.y+55},12,this.obstacles),r:12,kind,attack:0,howl:0,roam:0,angle:index*Math.PI,fireTime:0};this.pets.push(pet);}
       pet.attack-=dt;pet.howl-=dt;pet.roam-=dt;pet.fireTime=Math.max(0,pet.fireTime-dt);
-      const candidates=id==='collector'?this.pickups.filter(i=>!i.collected&&i.kind!=='heal'&&dist(i,p)<300):this.enemies.filter(e=>e.hp>0&&dist(e,p)<450&&dist(e,pet)<370);
+      const candidates=id==='collector'?this.pickups.filter(i=>!i.collected&&i.kind!=='heal'&&dist(i,p)<300+p.collectorBonus):this.enemies.filter(e=>e.hp>0&&dist(e,p)<450&&dist(e,pet)<370);
       const target=candidates.length?candidates.reduce((a,b)=>dist(pet,a)<dist(pet,b)?a:b):null;
       let goal;
-      if(dist(pet,p)>315)goal=p;
+      if(dist(pet,p)>(id==='collector'?315+p.collectorBonus:315))goal=p;
       else if(target){const a=Math.atan2(pet.y-target.y,pet.x-target.x),reach=id==='pet'?105:id==='wolf'?18:0;goal={x:target.x+Math.cos(a)*reach,y:target.y+Math.sin(a)*reach};}
       else {if(pet.roam<=0){pet.angle=this.random()*Math.PI*2+index*2;pet.roam=1.5+this.random();}goal={x:p.x+Math.cos(pet.angle)*130,y:p.y+Math.sin(pet.angle)*130};}
-      const leash=id==='collector'?300:230,d=dist(goal,p);if(d>leash)goal={x:p.x+(goal.x-p.x)/d*leash,y:p.y+(goal.y-p.y)/d*leash};
+      const leash=id==='collector'?300+p.collectorBonus:230,d=dist(goal,p);if(d>leash)goal={x:p.x+(goal.x-p.x)/d*leash,y:p.y+(goal.y-p.y)/d*leash};
       seekBody(pet,goal,dist(pet,p)>250?350:id==='collector'?260:id==='wolf'?240:180,dt,this.obstacles);
-      if(dist(pet,p)>420)Object.assign(pet,findFree({x:p.x+80,y:p.y+30},pet.r,this.obstacles));
+      if(dist(pet,p)>(id==='collector'?420+p.collectorBonus:420))Object.assign(pet,findFree({x:p.x+80,y:p.y+30},pet.r,this.obstacles));
       if(!target)continue;
       pet.aimX=target.x-pet.x;pet.aimY=target.y-pet.y;
       if(id==='collector'){if(dist(pet,target)<24){this.collect(target);pet.fireTime=.3;}continue;}
       if(id==='wolf'){
-        if(dist(pet,target)<target.r+32&&pet.attack<=0){target.hp-=p.damage*1.3;pet.attack=.8;pet.fireTime=.3;this.effects.push({x:target.x,y:target.y,r:28,type:'claw',element:'physical',life:.25,maxLife:.25});}
+        if(dist(pet,target)<target.r+32&&pet.attack<=0){target.hp-=p.damage*1.3*p.petDamage;pet.attack=.8*p.petInterval;pet.fireTime=.3;this.effects.push({x:target.x,y:target.y,r:28,type:'claw',element:'physical',life:.25,maxLife:.25});}
         if(pet.howl<=0&&dist(pet,target)<100){for(const e of candidates)if(dist(e,pet)<135)e.petSlow=2;pet.howl=6;this.effects.push({x:pet.x,y:pet.y,r:135,type:'howl',element:'ice',life:.55,maxLife:.55});}
       }else if(pet.attack<=0&&!projectileBlocked(pet,target,this.obstacles)){
-        for(const spread of [-.12,0,.12])this.arrow(pet,target,p.damage*.45,'physical','pet',spread);pet.attack=1.1;pet.fireTime=.25;
+        for(const spread of [-.12,0,.12])this.arrow(pet,target,p.damage*.45*p.petDamage,'physical','pet',spread);pet.attack=1.1*p.petInterval;pet.fireTime=.25;
       }
     }
   }
   update(dt,input={}){
     if(this.state!=='playing')return;dt=Math.min(.05,Math.max(0,dt));this.time+=dt;this.waveTime+=dt;const p=this.player;
-    for(const key of ['dashCooldown','novaCooldown','invincible','dashTime','shotTime','spaceTime','rapidTime','furyTime','gearTime'])p[key]=Math.max(0,p[key]-dt);
-    if(p.regen)p.hp=Math.min(p.maxHp,p.hp+dt*2);
+    for(const key of ['dashCooldown','novaCooldown','invincible','dashTime','shotTime','spaceTime','rapidTime','furyTime','gearTime','secondWindTime'])p[key]=Math.max(0,p[key]-dt);
+    if(p.regen||p.regenRate)p.hp=Math.min(p.maxHp,p.hp+dt*((p.regen?2:0)+p.regenRate));
     let mx=input.moveX??((input.right?1:0)-(input.left?1:0)),my=input.moveY??((input.down?1:0)-(input.up?1:0));const len=Math.hypot(mx,my);
     p.moving=!!len;p.momentumTime=len?Math.min(2,p.momentumTime+dt):0;if(len){mx/=len;my/=len;p.dx=mx;p.dy=my;}
     const isDash=p.dashTime>0;moveBody(p,(isDash?p.dx*700:mx*this.moveSpeed())*dt,(isDash?p.dy*700:my*this.moveSpeed())*dt,this.obstacles);
@@ -469,7 +484,7 @@ export class Game {
     for(const e of this.enemies)if(e.kind==='boss'&&dist(e,p)>850)Object.assign(e,findFree({x:clamp(p.x+350,40,WORLD.width-40),y:clamp(p.y-200,40,WORLD.height-40)},e.r,this.obstacles));
     this.spawnTime-=dt;if(isBossWave(this.wave)&&!this.bossSpawned){this.spawn(true);this.bossSpawned=true;}
     if(this.spawnTime<=0&&this.enemies.length<Math.min(140,55+this.wave*4)&&this.waveTime<waveDuration(this.wave)){const count=Math.min(4,1+Math.floor(this.wave/7)),limit=Math.min(140,55+this.wave*4);for(let i=0;i<count&&this.enemies.length<limit;i++)this.spawn();this.spawnTime=Math.max(.12,.78-this.wave*.022);}
-    p.fireTimer-=dt;const targets=this.enemies.filter(e=>e.hp>0&&dist(p,e)<600&&!projectileBlocked(p,e,this.obstacles));
+    p.fireTimer-=dt;const targets=this.enemies.filter(e=>e.hp>0&&dist(p,e)<p.range&&!projectileBlocked(p,e,this.obstacles));
     if(p.fireTimer<=0&&targets.length){
       const nearest=targets.reduce((a,b)=>dist(p,a)<dist(p,b)?a:b),a=Math.atan2(nearest.y-p.y,nearest.x-p.x);p.aimX=Math.cos(a);p.aimY=Math.sin(a);p.shotTime=.3;
       for(const spread of p.multi?[-.16,0,.16]:[0])this.arrow(p,nearest,this.attackDamage(),p.element,'arrow',spread);p.fireTimer=this.attackInterval();
@@ -510,7 +525,7 @@ export class Game {
     for(const b of this.hostile){const old={x:b.x,y:b.y};const slow=p.spaceTime>0&&this.loadout.space==='clock'&&dist(b,p)<240?.35:1;b.x+=b.vx*dt*slow;b.y+=b.vy*dt*slow;b.life-=dt;if(projectileBlocked(old,b,this.obstacles))b.life=0;if(b.life>0&&dist(b,p)<b.r+p.r){this.hurt(b.damage||14);this.effects.push({x:b.x,y:b.y,r:35,type:'enemy-blast',life:.3,maxLife:.3});b.life=0;}}
     this.hostile=this.hostile.filter(b=>b.life>0&&b.x>0&&b.x<WORLD.width&&b.y>0&&b.y<WORLD.height);
     for(const e of this.enemies)if(e.hp<=0){
-      p.kills++;this.progress.kills++;this.progressRevision++;if(p.reaper&&p.kills%5===0){p.hp=Math.min(p.maxHp,p.hp+6);this.effects.push({x:p.x,y:p.y,r:55,type:'harvest',life:.6,maxLife:.6});}const boss=e.kind==='boss';
+      p.kills++;if(p.healthOnKill&&p.hp>0)p.hp=Math.min(p.maxHp,p.hp+p.healthOnKill);this.progress.kills++;this.progressRevision++;if(p.reaper&&p.kills%5===0){p.hp=Math.min(p.maxHp,p.hp+6);this.effects.push({x:p.x,y:p.y,r:55,type:'harvest',life:.6,maxLife:.6});}const boss=e.kind==='boss';
       if(boss||this.random()<.03)this.dropChest(e,boss?'mythical':'normal');
       if(p.element==='poison'&&p.elementUpgrades.special&&e.poison>0)for(const other of this.enemies)if(other!==e&&other.hp>0&&dist(e,other)<90+p.elementUpgrades.special*15)this.statusHit(other,'poison');
       this.pickups.push({x:e.x-7,y:e.y,kind:'xp',amount:boss?35:5,r:5},{x:e.x+7,y:e.y,kind:'coin',amount:boss?10:2,r:5});if(this.random()<.07)this.pickups.push({x:e.x,y:e.y+8,kind:'heal',amount:12,r:6});
