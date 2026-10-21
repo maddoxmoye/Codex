@@ -1,0 +1,47 @@
+{
+  "id": "hollowhart",
+  "clips": {
+    "Idle": 3.6,
+    "Run": 1.4,
+    "Attack": 3.1,
+    "Hit": 0.95,
+    "Death": 2.2
+  },
+  "attackType": "slam",
+  "attackContact": 1.42,
+  "attackRecovery": 2.0,
+  "windupTime": 0.9,
+  "health": 180,
+  "arrowDamage": 60,
+  "dummyDamage": 36,
+  "hitCenter": 1.43,
+  "hitRadius": 0.4,
+  "healthBone": "head",
+  "healthOffset": 1.37,
+  "damageStyle": "heart",
+  "runLabel": "Heavy walk",
+  "attackLabel": "Root hammer",
+  "bones": 18,
+  "name": "Hollowhart / motion study",
+  "file": "assets/hollowhart-motion.glb",
+  "triangles": 3166,
+  "sockets": {
+    "handL": {
+      "bone": "hand.L",
+      "local": [
+        0.013302832841873169,
+        0.2142554372549057,
+        -0.12968218326568604
+      ]
+    },
+    "handR": {
+      "bone": "hand.R",
+      "local": [
+        -0.013302832841873169,
+        0.2142554372549057,
+        -0.12968218326568604
+      ]
+    }
+  },
+  "notes": "Authored Blender clips; isolated attack timing and damage study, not campaign AI or balance."
+}

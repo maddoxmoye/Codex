@@ -14,7 +14,7 @@ Inspect the first **[archer and pet model collection](https://maddoxmoye.github.
 
 ## Woodland monster lineup
 
-Inspect four original **[Blender monster designs in Godot](https://maddoxmoye.github.io/Codex/monster-preview/)**: Briarling, Sporecaller, Thornback and the antlered Hollowhart guardian. Compare them in a small woodland clearing or a plain studio, orbit each model and download the editable source. Briarling now has the first animation study: idle, scurry, claw swipe and arrow-hit/defeat feedback. The other three designs remain static; full-game combat integration comes later. See [the monster study notes](godot-monsters/README.md).
+Inspect four original **[Blender monster designs in Godot](https://maddoxmoye.github.io/Codex/monster-preview/)**: Briarling, Sporecaller, Thornback and the antlered Hollowhart guardian. Compare them in a small woodland clearing or a plain studio, orbit each model and download the editable source. All four now have authored movement, attack, hit and defeat clips: Briarling swipes, Sporecaller lobs a visible spore, Thornback charges a marked lane, and Hollowhart slams with a ground warning and shockwave. Preview health bars, damage numbers, held windups and slow motion are included; full-game combat integration comes later. See [the monster study notes](godot-monsters/README.md).
 
 ## Rowan animation preview
 

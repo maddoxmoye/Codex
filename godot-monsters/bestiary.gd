@@ -1,7 +1,10 @@
 extends Node3D
-## Isolated monster design review with one Blender-authored enemy motion prototype.
+## Four isolated Blender-authored monster attack and damage studies.
 const BRIAR_MOTION := preload("res://briarling_motion.gd")
+const OTHER_MOTION := preload("res://monster_motion.gd")
 var briar: Node3D
+var selected_motion: Node3D
+var attack_view := true
 var manifest: Dictionary
 var models: Dictionary = {}
 var environment: Node3D
@@ -61,7 +64,10 @@ func _ready() -> void:
 			model = Node3D.new()
 			model.set_script(BRIAR_MOTION)
 			briar = model
-		else:model = load("res://"+item.file).instantiate()
+		else:
+			model = Node3D.new()
+			model.set_script(OTHER_MOTION)
+			model.set("creature_id",item.id)
 		add_child(model)
 		models[item.id] = model
 	camera = Camera3D.new()
@@ -77,7 +83,7 @@ func _ready() -> void:
 	set_environment(true)
 	update_camera(1.0)
 	if OS.has_feature("web"):JavaScriptBridge.eval("window.bestiaryReady=true",true)
-	print("BESTIARY_READY: first Briarling motion study and three static designs")
+	print("BESTIARY_READY: four Blender-authored enemy motion studies")
 
 func select_model(id: String) -> void:
 	if id!="lineup" and not models.has(id):return
@@ -90,7 +96,8 @@ func select_model(id: String) -> void:
 	pitch = 0.18
 	zoom = 1
 	auto_rotate = false
-	if is_instance_valid(briar):briar.set_active(id=="briarling")
+	selected_motion = models.get(id,null)
+	for key in models:models[key].set_active(key==id)
 
 func set_environment(enabled: bool) -> void:
 	woodland = enabled
@@ -105,16 +112,48 @@ func update_camera(dt: float) -> void:
 	if current!="lineup":
 		var item := data(current)
 		var height := float(item.heightMeters)
-		focus.y = height*(0.39 if current=="briarling" else 0.52)
+		focus.y = height*0.39
+		if attack_view and current!="briarling":
+			focus.y = 0.55 if current=="hollowhart" else 0.24
+			focus.z = 1.0 if current=="hollowhart" else 1.55 if current=="sporecaller" else 1.60
 		var sphere_radius := sqrt(pow(float(item.radius),2)+pow(height*0.52,2))
 		var limiting_half_fov := atan(tan(deg_to_rad(camera.fov)*0.5)*minf(1.0,aspect))
 		distance = maxf(height*2.6,sphere_radius/sin(limiting_half_fov)*1.15)
 		distance = maxf(distance,2.5)
 		if current=="briarling":distance *= 1.08
-	distance *= zoom
-	var offset := Vector3(sin(turn)*cos(pitch),sin(pitch),cos(turn)*cos(pitch))*distance
+		elif attack_view:distance *= 1.50 if current=="sporecaller" else 1.40
+	var tilt := pitch+(0.20 if attack_view and current!="briarling" and current!="lineup" else 0.0)
+	var back := Vector3(sin(turn)*cos(tilt),sin(tilt),cos(turn)*cos(tilt))
+	if current!="lineup":distance = fit_review_frame(focus,back,distance,aspect)
+	var offset := back*distance*zoom
 	camera.position = camera.position.lerp(focus+offset,minf(1.0,dt*9))
 	camera.look_at(focus)
+
+func fit_review_frame(focus: Vector3, back: Vector3, minimum: float, aspect: float) -> float:
+	# Keep the model, overhead bar and warning area above the HTML review controls.
+	var right := Vector3.UP.cross(back).normalized()
+	var up := back.cross(right).normalized()
+	var tangent := tan(deg_to_rad(camera.fov)*0.5)
+	var points: Array[Vector3] = []
+	var actor: Node3D = models[current].actor
+	for mesh in actor.find_children("*","MeshInstance3D",true,false):
+		if not mesh.skin:continue
+		var transform: Transform3D = actor.global_transform.affine_inverse()*mesh.global_transform
+		var bounds: AABB = mesh.mesh.get_aabb()
+		for i in 8:points.append(transform*bounds.get_endpoint(i))
+	points.append(Vector3(0,float(data(current).heightMeters)*1.16,0))
+	if attack_view and current!="briarling":
+		var extents := Vector3(0.75,0,3.25) if current=="sporecaller" else Vector3(0.50,0,3.35) if current=="thornback" else Vector3(1.90,0,3.05)
+		for x in [-extents.x,extents.x]:
+			for z in [-0.55,extents.z]:points.append(Vector3(x,0.03,z))
+	var distance := minimum
+	for point in points:
+		var offset := point-focus
+		var near := offset.dot(back)
+		distance = maxf(distance,near+absf(offset.dot(right))/(tangent*aspect*0.83))
+		var vertical := offset.dot(up)
+		distance = maxf(distance,near+absf(vertical)/(tangent*(0.80 if vertical>=0 else 0.33)))
+	return distance*1.02
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -134,13 +173,13 @@ func _input(event: InputEvent) -> void:
 		if event.keycode in keys:select_model(["lineup","briarling","sporecaller","thornback","hollowhart"][keys.find(event.keycode)])
 
 func _process(delta: float) -> void:
-	if is_instance_valid(briar):
-		var remaining: float = minf(delta,0.10)*briar.speed
+	if is_instance_valid(selected_motion):
+		var remaining: float = minf(delta,0.10)*selected_motion.speed
 		while remaining>0.000001:
 			var step := minf(remaining,1.0/60.0)
-			briar.advance_simulation(step)
+			selected_motion.advance_simulation(step)
 			remaining -= step
-		briar.update_view(camera)
+		selected_motion.update_view(camera)
 	if auto_rotate and not dragging:turn += minf(delta,0.1)*0.25
 	update_camera(delta)
 	poll += delta
@@ -151,10 +190,12 @@ func _process(delta: float) -> void:
 		var id := str(request.get("id",current))
 		if id!=current:select_model(id)
 		if request.has("motion"):
-			if current=="briarling":briar.command(str(request.motion))
+			if is_instance_valid(selected_motion):selected_motion.command(str(request.motion))
 			JavaScriptBridge.eval("delete window.bestiaryRequest.motion",true)
-		briar.paused = bool(request.get("paused",false))
-		briar.speed = clampf(float(request.get("speed",1.0)),0.25,1.0)
+		if is_instance_valid(selected_motion):
+			selected_motion.paused = bool(request.get("paused",false))
+			selected_motion.speed = clampf(float(request.get("speed",1.0)),0.25,1.0)
+		attack_view = bool(request.get("attackView",true))
 		if request.has("woodland") and bool(request.woodland)!=woodland:set_environment(bool(request.woodland))
 		if request.has("rotate"):
 			auto_rotate = bool(request.rotate)
@@ -167,5 +208,5 @@ func _process(delta: float) -> void:
 			pitch = 0.18
 			zoom = 1
 			JavaScriptBridge.eval("window.bestiaryRequest.reset=false",true)
-	var state := {"id":current,"woodland":woodland,"rotate":auto_rotate,"fps":Engine.get_frames_per_second(),"animated":current=="briarling","motion":briar.state(),"zoom":snappedf(zoom,0.01),"visibleModels":4 if current=="lineup" else 1}
+	var state := {"id":current,"woodland":woodland,"rotate":auto_rotate,"fps":Engine.get_frames_per_second(),"animated":current!="lineup","motion":selected_motion.state() if is_instance_valid(selected_motion) else {},"attackView":attack_view,"zoom":snappedf(zoom,0.01),"visibleModels":4 if current=="lineup" else 1}
 	JavaScriptBridge.eval("window.bestiaryState="+JSON.stringify(state),true)

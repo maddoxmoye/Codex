@@ -9,9 +9,8 @@ func validate() -> void:
 	if stage.manifest.assets.size()!=4:failures.append("Expected four monster concepts")
 	for item in stage.manifest.assets:
 		var model: Node3D = stage.models[item.id]
-		if item.id=="briarling":
-			model = load("res://"+item.file).instantiate()
-			root.add_child(model)
+		model = load("res://"+item.file).instantiate()
+		root.add_child(model)
 		var skeletons := model.find_children("*","Skeleton3D",true,false)
 		if skeletons.size()!=1 or skeletons[0].get_bone_count()!=int(item.bones):failures.append(item.id+" skeleton mismatch")
 		for mesh in model.find_children("*","MeshInstance3D",true,false):
@@ -22,7 +21,7 @@ func validate() -> void:
 		if not stage.models[item.id].visible or stage.models[item.id].position!=Vector3.ZERO:failures.append(item.id+" cannot be inspected at origin")
 		for other in stage.models:
 			if other!=item.id and stage.models[other].visible:failures.append("Other models obscure selected monster")
-		if item.id=="briarling":model.free()
+		model.free()
 	stage.select_model("lineup")
 	for item in stage.manifest.assets:
 		if not stage.models[item.id].visible or not is_equal_approx(stage.models[item.id].position.x,float(item.slot)):failures.append("Lineup loses original proportions/spacing")
@@ -39,6 +38,7 @@ func validate() -> void:
 				stage.update_camera(1.0)
 				var camera: Camera3D = stage.camera
 				for mesh in stage.models[item.id].find_children("*","MeshInstance3D",true,false):
+					if not mesh.skin:continue
 					var bounds: AABB = mesh.mesh.get_aabb()
 					for i in 8:
 						var point: Vector3 = mesh.global_transform*bounds.get_endpoint(i)

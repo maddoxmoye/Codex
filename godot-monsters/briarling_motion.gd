@@ -1,6 +1,6 @@
 extends Node3D
 ## One-enemy animation/contact study. The campaign combat system is not migrated.
-const MODEL := preload("res://assets/briarling-motion.glb")
+var creature_id := "briarling"
 var metadata: Dictionary
 var actor: Node3D
 var player: AnimationPlayer
@@ -58,8 +58,8 @@ func box(size: Vector3) -> BoxMesh:
 	return mesh
 
 func _ready() -> void:
-	metadata = JSON.parse_string(FileAccess.get_file_as_string("res://assets/briarling-motion.json"))
-	actor = MODEL.instantiate()
+	metadata = JSON.parse_string(FileAccess.get_file_as_string("res://assets/"+creature_id+"-motion.json"))
+	actor = load("res://"+str(metadata.file)).instantiate()
 	add_child(actor)
 	player = actor.find_children("*","AnimationPlayer",true,false)[0]
 	skeleton = actor.find_children("*","Skeleton3D",true,false)[0]
@@ -87,6 +87,12 @@ func _ready() -> void:
 	hp_text.outline_size = 10
 	hp_text.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	hp_root.add_child(hp_text)
+	setup_attack_target()
+	setup_extras()
+	reset_health()
+	set_active(false)
+
+func setup_attack_target() -> void:
 	# Place the timing-study post at the actual authored left-claw contact pose.
 	player.stop()
 	player.play("Attack",0)
@@ -109,8 +115,6 @@ func _ready() -> void:
 	dummy_material.emission = Color("e5c184")
 	mesh_part(box(Vector3(0.24,0.22,0.07)),dummy_material,dummy,Vector3(0,contact_height,0))
 	mesh_part(box(Vector3(0.025,0.16,0.015)),mat("e3d9b8"),dummy,Vector3(0,contact_height,-0.044))
-	reset_health()
-	set_active(false)
 
 func play_clip(name: String) -> void:
 	clip = name
@@ -120,8 +124,10 @@ func play_clip(name: String) -> void:
 	player.play(name,0.07)
 	player.advance(0)
 	if is_instance_valid(dummy):dummy.visible = active and name=="Attack"
+	on_clip_started(name)
 
 func clear_effects() -> void:
+	clear_extra()
 	if is_instance_valid(arrow):arrow.queue_free()
 	arrow = null
 	for item in effects:item.node.queue_free()
@@ -136,6 +142,7 @@ func reset_health() -> void:
 	dummy_material.emission_energy_multiplier = 0
 	play_clip("Idle")
 	update_health()
+	reset_extra()
 
 func set_active(enabled: bool) -> void:
 	active = enabled
@@ -154,6 +161,19 @@ func command(request: String) -> bool:
 		mode = "Idle"
 		return true
 	if hp<=0 and request!="Demo":return false
+	if request=="Hold":
+		mode = "Attack"
+		clear_effects()
+		play_clip("Attack")
+		phase = float(metadata.get("windupTime",0.30))
+		player.stop()
+		player.play("Attack",0)
+		player.advance(0)
+		player.seek(phase,true)
+		update_attack_motion(0.0,phase)
+		update_extra(0.0)
+		paused = true
+		return true
 	if request=="Arrow":
 		if is_instance_valid(arrow) or clip=="Hit":return false
 		mode = "Idle"
@@ -173,8 +193,8 @@ func command(request: String) -> bool:
 func shoot_arrow() -> void:
 	arrow = Node3D.new()
 	add_child(arrow)
-	arrow.position = actor.position+Vector3(-0.72,0.82,2.4)
-	arrow_direction = (actor.position+Vector3(0,0.69,0)-arrow.position).normalized()
+	arrow.position = actor.position+Vector3(-0.72,float(metadata.get("hitCenter",0.69))+0.13,2.4)
+	arrow_direction = (actor.position+Vector3(0,float(metadata.get("hitCenter",0.69)),0)-arrow.position).normalized()
 	arrow.look_at(arrow.position+arrow_direction,Vector3.UP,true)
 	mesh_part(box(Vector3(0.012,0.012,0.43)),mat("c4b57c"),arrow,Vector3.ZERO)
 	mesh_part(box(Vector3(0.04,0.016,0.07)),mat("b6ddd0",0.3),arrow,Vector3(0,0,0.23))
@@ -196,7 +216,7 @@ func number(text: String, point: Vector3, tint := Color("ffe3a1")) -> void:
 
 func chips(point: Vector3, count := 7, leaves := false) -> void:
 	for i in count:
-		var shard := mesh_part(box(Vector3(0.045,0.012,0.025) if leaves else Vector3(0.025,0.025,0.025)),mat("9cba71" if leaves else "bc9a65"),self,point)
+		var shard := mesh_part(chip_mesh(leaves),mat(chip_tint(leaves)),self,point)
 		shard.rotation = Vector3(i*0.7,i*1.4,i*0.9)
 		effects.append({"node":shard,"life":0.55,"duration":0.55,"velocity":Vector3(sin(i*2.4)*0.55,0.5+(i%3)*0.13,cos(i*2.4)*0.5),"label":false})
 
@@ -205,8 +225,8 @@ func take_damage(amount: int) -> bool:
 	hp = maxi(0,hp-amount)
 	hits += 1
 	flash = 0.12
-	number("−"+str(amount),actor.position+Vector3(0.10,1.03,0))
-	chips(actor.position+Vector3(0,0.72,0.1))
+	number("−"+str(amount),actor.position+Vector3(0.10,float(metadata.get("hitCenter",0.69))+0.34,0))
+	chips(actor.position+Vector3(0,float(metadata.get("hitCenter",0.69))+0.03,0.1))
 	play_clip("Death" if hp==0 else "Hit")
 	if hp==0:chips(actor.position+Vector3(0,1.1,0),10,true)
 	update_health()
@@ -220,7 +240,7 @@ func update_health() -> void:
 
 func advance_demo(dt: float) -> void:
 	demo_time += dt
-	var limits := [1.3,2.7,1.6,1.2,1.2,3.0]
+	var limits := [1.3,2.7,float(metadata.clips.Attack)+0.4,float(metadata.clips.Hit)+0.65,float(metadata.clips.Hit)+0.65,float(metadata.clips.Death)+1.6]
 	if demo_time<float(limits[demo_step]):return
 	demo_time = 0
 	demo_step += 1
@@ -240,25 +260,18 @@ func advance_simulation(dt: float) -> void:
 	var old := phase
 	phase += dt
 	player.advance(dt)
-	if clip=="Run":actor.position.x = sin(phase*TAU/2.7)*0.20
-	elif clip=="Attack":
-		actor.position.z = 0.20*smoothstep(0.36,0.57,phase)*(1-smoothstep(0.75,1.14,phase))
-		if not contact_fired and old<float(metadata.attackContact) and phase>=float(metadata.attackContact):
-			contact_fired = true
-			contacts += 1
-			dummy_flash = 0.18
-			chips(dummy.position+Vector3(0,contact_height,-0.04),5)
-			number(str(int(metadata.dummyDamage)),dummy.position+Vector3(0.08,contact_height+0.18,-0.04),Color("dbe9c0"))
-	elif clip=="Hit":actor.position.z = -sin(minf(1.0,phase/0.55)*PI)*0.11
+	if clip=="Run":update_run_motion(dt)
+	elif clip=="Attack":update_attack_motion(dt,old)
+	elif clip=="Hit":actor.position.z = -sin(minf(1.0,phase/float(metadata.clips.Hit))*PI)*0.11
 	if clip in ["Attack","Hit"] and phase>=float(metadata.clips[clip]):play_clip("Idle")
 	if is_instance_valid(arrow):
 		var previous := arrow.position+arrow_direction*0.26
 		arrow.position += arrow_direction*dt*9
 		arrow_age += dt
 		var next := arrow.position+arrow_direction*0.26
-		var center := actor.position+Vector3(0,0.69,0)
+		var center := actor.position+Vector3(0,float(metadata.get("hitCenter",0.69)),0)
 		var closest := Geometry3D.get_closest_points_between_segments(previous,next,center-Vector3(0,0.2,0),center+Vector3(0,0.2,0))
-		if closest[0].distance_to(closest[1])<0.22:
+		if closest[0].distance_to(closest[1])<float(metadata.get("hitRadius",0.22)):
 			arrow.queue_free()
 			arrow = null
 			take_damage(int(metadata.arrowDamage))
@@ -279,8 +292,9 @@ func advance_simulation(dt: float) -> void:
 		if item.life<=0:
 			item.node.queue_free()
 			effects.remove_at(i)
-	var head := skeleton.global_transform*skeleton.get_bone_global_pose(skeleton.find_bone("head"))
-	hp_root.position = global_transform.affine_inverse()*head.origin+Vector3.UP*0.49
+	var head := skeleton.global_transform*skeleton.get_bone_global_pose(skeleton.find_bone(str(metadata.get("healthBone","head"))))
+	hp_root.position = global_transform.affine_inverse()*head.origin+Vector3.UP*float(metadata.get("healthOffset",0.49))
+	update_extra(dt)
 	if mode=="Demo":advance_demo(dt)
 
 func update_view(camera: Camera3D) -> void:
@@ -295,3 +309,27 @@ func phase_label() -> String:
 
 func state() -> Dictionary:
 	return {"mode":mode,"clip":clip,"phase":phase_label(),"time":snappedf(phase,0.01),"hp":hp,"maxHp":int(metadata.health),"hits":hits,"contacts":contacts,"arrows":arrows_fired,"flying":is_instance_valid(arrow),"paused":paused,"speed":speed,"effects":effects.size()}
+
+func update_attack_motion(_dt: float, old: float) -> void:
+	actor.position.z = 0.20*smoothstep(0.36,0.57,phase)*(1-smoothstep(0.75,1.14,phase))
+	if not contact_fired and old<float(metadata.attackContact) and phase>=float(metadata.attackContact):
+		contact_fired = true
+		contacts += 1
+		dummy_flash = 0.18
+		chips(dummy.position+Vector3(0,contact_height,-0.04),5)
+		number(str(int(metadata.dummyDamage)),dummy.position+Vector3(0.08,contact_height+0.18,-0.04),Color("dbe9c0"))
+
+func update_run_motion(_dt: float) -> void:
+	actor.position.x = sin(phase*TAU/2.7)*0.20
+
+func chip_mesh(leaves: bool) -> Mesh:
+	return box(Vector3(0.045,0.012,0.025) if leaves else Vector3(0.025,0.025,0.025))
+
+func chip_tint(leaves: bool) -> String:
+	return "9cba71" if leaves else "bc9a65"
+
+func setup_extras() -> void:pass
+func update_extra(_dt: float) -> void:pass
+func clear_extra() -> void:pass
+func reset_extra() -> void:pass
+func on_clip_started(_name: String) -> void:pass

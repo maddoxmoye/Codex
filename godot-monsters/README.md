@@ -1,61 +1,61 @@
-# Woodland monster designs 01
+# Woodland bestiary — four monster motion studies
 
-**[Open the monster lineup](https://maddoxmoye.github.io/Codex/monster-preview/)** · [Blender lineup render](https://maddoxmoye.github.io/Codex/monster-preview/lineup.png)
+**[Open the animated bestiary](https://maddoxmoye.github.io/Codex/monster-preview/)** · [Original Blender lineup render](https://maddoxmoye.github.io/Codex/monster-preview/lineup.png)
 
-Four original, editable Blender models in an isolated Godot 4.6.3 inspection scene. This pass establishes silhouettes, scale, colors and animation-friendly parts. **The base model library stays static; Briarling now has a separate first motion study.** Sporecaller, Thornback and Hollowhart are still static. Enemy AI and full-game integration are deferred. The woodland is a small visual backdrop, not a performance benchmark or finished arena.
+All four original monster designs now have Blender-authored Idle, Run, Attack, Hit and Death clips, played in an isolated Godot 4.6.3 preview. The woodland, approved static models, original Blender library, existing game, Rowan/fox preview and saved game progress are preserved. The base static library is still available for design comparison. This scene demonstrates animation, telegraphs and target feedback; it is not the campaign, enemy AI or a finished combat system.
 
-| Design | Proposed role | Visual identity | Proposed damage reaction |
+| Monster | Movement and attack | Hit/defeat feedback | Motion rig |
 | --- | --- | --- | --- |
-| Briarling | Swarm / melee | Seed mask, crooked root limbs, fern collar, hooked thorn fingers | Chest recoil, leaf shake, bark chips |
-| Sporecaller | Ranged / area denial | Plum mushroom cap, luminous gills, hanging spore pods | Cap wobble, squash, harmless spore puff |
-| Thornback | Heavy / charging | Stocky boar, slate-bark plates, curved ivory tusks | Weighty shoulder jolt; different chips/feedback on armor and exposed areas |
-| Hollowhart | Guardian / boss concept | Branch antlers, open ribs, seed-heart, root hammer arms | Bark impact feedback; heart pulse and body recoil on a clean hit |
+| Briarling | Quick scurry, raised-claw windup, lunge and swipe | Bark chips, leaf shake, recoil and collapse | 13 bones / 2,156 triangles |
+| Sporecaller | Waddle, squashing cap, swinging pods, brightening gills and a lobbed spore | Cap/pendant wobble, harmless loose spores, soft collapse | 9 bones / 3,714 triangles |
+| Thornback | Planted quadruped trot, braced hooves, lowered tusks and a heavy charge | Dust, slate-colored armor chips, shoulder recoil and side topple | 17 bones / 4,542 triangles |
+| Hollowhart | Heavy steps, raised root hammers, crouching slam and expanding shockwave | Torso stagger, swaying antlers, pulsing seed-heart and buckled defeat pose | 18 bones / 3,166 triangles |
 
-The table records the original proposals. The Briarling study below implements its first motions and target feedback; the other three rows remain proposals, with no new combat mechanics or animation. The Design notes panel labels them as next steps. After model review, attacks can get readable anticipation and contact/recovery timing; damage reactions can be authored around the rigs rather than simply tinting whole meshes.
+These are species-specific deform rigs and authored clips, not copies of the human archer animation. Additional hoof/toe controls keep feet flat during the analytical IK cycles. Bone transforms and scale are baked in Blender and exported in GLB; the source libraries are editable but do not contain finished animator-facing IK control panels, facial/finger articulation, ragdolls or cloth simulation.
 
-## Viewing
+## Preview controls
 
-Open **Full lineup** to compare real proportions, then select a monster for a closer view. Drag to orbit, use + / − or the wheel to zoom, or enable Turntable to orbit automatically. Woodland switches between the scenery and plain studio. Reset view restores the camera; Fullscreen is available on supporting browsers. Selecting a monster hides the others and recenters it without changing its scale. Camera fitting includes the antlers, tusks and mushroom cap in both desktop and portrait layouts. Native keys 1–5 select the lineup and four models. This is a full-window 3D viewer with overlays, separate from the existing game, Rowan animation study and original roster atelier. It now opens on the Briarling animation study; Full lineup keeps all four designs in rest pose.
+Select a monster to start its **Demo loop**: idle, movement, attack, three incoming arrows, defeated pose and reset. Movement and attack buttons play individual examples. **Hold windup** seeks to an authored preparation pose and pauses; **Resume** then carries the attack through its release/contact and recovery. **Test arrow** fires a single projectile at a stationary target. Three hits defeat each preview target; **Reset health** brings it back. Pause and ½× / ¼× speed affect the animation, root motion, projectiles, telegraphs, damage numbers and effects together.
 
-## Assets and budgets
+**Attack view** frames more of the ground/flight path, with extra room for the charge and shockwave. **Close detail** returns to the model framing. Drag to orbit, use + / − or the wheel to zoom, Turntable to orbit automatically, and Reset view to reset the camera. Woodland toggles the environment. Fullscreen is offered on supporting browsers. The controls scroll horizontally on narrow screens. **Full lineup** shows all four motion variants in their original rest poses at their real proportions, without attack props or health bars. Native keys 1–5 select the lineup/monsters; web selection uses the visible buttons.
 
-The static base models use the existing Wildfall palette-based art style, an embedded 256×256 palette and two material surfaces each. They range from roughly 2,100–4,600 triangles and 9–16 deform bones. They are exported as skinned GLBs in rest pose, without animation clips. Parts are weighted to species-specific bones for the head, cap, hanging pods, limbs, tusked jaw, antlers and seed-heart. These are base deform skeletons, not finished animator-facing IK control rigs, corrective skinning or simulated foliage.
+## Timing and feedback
 
-`assets/woodland.glb` contains 11,116 triangles in one merged static mesh with one material: opaque tree crowns, roots, a pale path, rocks, ferns, fallen log, fungi and broken waystones. Scenery is kept around the edges of the clearing. This deliberately small scene has no collision/navigation data, baked lighting, LOD system, foliage wind or enemy horde. It uses simple Godot lighting with one shadow-casting directional light. FPS shown by the viewer measures this static scene only; smoothness under actual late-wave gameplay still needs device testing.
+- **Briarling:** 1.2s attack; contact at 0.56s. A practice post is positioned from its authored claw socket. Windup interruption cancels the contact event. Its 60 HP target takes 20 damage per test arrow.
+- **Sporecaller:** 2.2s attack; release at 0.72s. A visible spore leaves an animated head socket, follows a 1.05s parabola and lands in a purple warning circle, producing a puff and ring. One release produces one landing. A launched spore continues if the caster recoils; an interrupted pre-release windup does not spawn it. The 90 HP target takes 30 damage per arrow.
+- **Thornback:** 2.65s attack; charge begins at 0.78s, advances 1.65m and reaches the contact marker at 1.23s. An amber lane and chevrons precede the burst; dust follows the hooves. It brakes, holds briefly and returns to its start during recovery. The 120 HP target takes 40 damage per arrow.
+- **Hollowhart:** 3.1s attack; slam at 1.42s. Both fists move from overhead toward the ground while its legs brace and chest leans. A red warning circle precedes the expanding shockwave. The 180 HP target takes 60 damage per arrow; recoil scales/pulses the seed-heart and briefly brightens the luminous surface (including the eyes).
 
-The editable library is `art/blender/wildfall-monsters.blend`. It contains four separately rigged monster collections, one environment collection, packed palette and a presentation camera/light setup. Each GLB is exported at the origin, in meters. The .blend stages their rigs at lineup positions for review. Blender is Z-up / −Y forward; Godot receives Y-up / +Z forward. The small Briarling is approximately 1.35m tall; Hollowhart reaches approximately 3.03m including antlers. Scale remains adjustable during gameplay integration.
+Incoming arrows use swept tip segments against upright body capsules. A confirmed impact updates the health bar, emits the matching damage number, flashes the body while retaining the original luminous surface, scatters species-specific debris and starts recoil or defeat. Arrow damage values are illustrative preview values, chosen for a three-hit review cycle; they do **not** change campaign balance. Body capsules are a simple target test, not per-limb armor or weak-point collision. Thornback's armor chips and the guardian's seed-heart feedback are visual studies, not implemented armor/weak-point modifiers.
 
-**Blender files** downloads the source `.blend`, palette, generator, shared geometry helpers, render, GLBs, manifest and Godot project. Individual monster GLBs are available in Design notes. The previous roster and animation source archives remain separate.
+The small practice markers show example damage values (12 / 14 / 24 / 36). Melee contact markers and the slam ring demonstrate authored timing; they do **not** physically hit a player, damage scenery or run full-game area-of-effect collision. The spore's path/ground landing is simulated to its training marker. Root movement is a small inspection patrol or authored charge/recovery path, not pathfinding. Effects expire, only one incoming arrow is allowed at a time, and each attack has a once-only release/contact guard.
 
-## Rebuild and validate
+## Source and downloads
+
+**Blender files** downloads both static and animated editable libraries, packed palettes, generators, the original lineup render, all GLBs/metadata and the Godot project. Design notes downloads the selected animated GLB. Static GLBs remain under `assets/<id>.glb`; motion variants are `assets/<id>-motion.glb` with matching JSON metadata.
+
+- `art/blender/wildfall-monsters.blend`: approved static monster lineup and woodland.
+- `art/blender/briarling-motion.blend`, generated by `animate_briarling.py`.
+- `art/blender/sporecaller-motion.blend`, `thornback-motion.blend`, `hollowhart-motion.blend`, generated by `animate_monsters.py`.
+- `briarling_motion.gd`: shared lifecycle, health, arrow target test, pause/demo and material feedback; retains Briarling's original contact study.
+- `monster_motion.gd`: spore flight, charge lane/dust, slam warning/shockwave and species-specific effects.
+
+Source files open with the Attack action active at a windup pose; other actions are saved as muted NLA tracks. Select the desired action, or unmute/isolate its NLA track, to inspect in Blender. The static GLBs and `.blend` library are never overwritten by animation generators. All use meters, Blender Z-up / −Y forward, exported Godot Y-up / +Z forward. The Briarling is about 1.35m tall and Hollowhart about 3.03m including antlers.
+
+The shared environment is a single merged static mesh with one material and 11,116 triangles: opaque tree crowns, roots, a path, rocks, ferns, fallen log, fungi and broken waystones. It has no navigation/collision data, baked lighting, LOD system or foliage wind. Godot uses one shadow-casting directional light and simple fill lights. This is a small animation scene; FPS is not a full-game, late-wave or physical iPhone performance benchmark.
+
+## Rebuild and validation
 
 ```sh
 blender -b --factory-startup --python art/blender/build_monsters.py
+blender -b --factory-startup --python art/blender/animate_briarling.py
+blender -b --factory-startup --python art/blender/animate_monsters.py
 npm test
 npm run build:godot
 npm run build:monsters
 PORT=3002 node server.mjs
 ```
 
-Then open `/dist/monster-preview/`. Add `-- --no-render` to skip the Cycles lineup render. Blender 4.3+ and Godot 4.6.3 are used here. The build shares the existing single-threaded web engine but exports a separate project pack, runs `check_assets.gd` and packages the source ZIP.
+Open `/dist/monster-preview/`. The first command renders the static lineup; append `-- --no-render` to skip that render. To rebuild one new species, append e.g. `-- sporecaller` to the `animate_monsters.py` command. Blender 4.3+ and Godot 4.6.3 are used here. The build shares the existing single-threaded web engine, exports a content-versioned project pack to avoid stale browser caches, runs all Godot checks and packages the source.
 
-Node checks verify GLB bounds/indices, finite vertices, palette UVs, normalized skin weights and valid joints, material/triangle budgets, embedded palette sizes, absence of animations and opaque static scenery. Godot checks verify importable skeletons and skin surfaces, selection/lineup spacing, scenery toggles and camera fitting at front/side/back angles on desktop and portrait viewports. Browser checks cover actual Godot web rendering, selecting all designs, drag orbit, turntable, scenery toggles, design notes/download links and portrait layout. No physical iPhone performance claim is made.
-
-## First animation pass: Briarling
-
-`art/blender/animate_briarling.py` derives a separate motion variant from the approved Briarling geometry, adding shin and foot controls for a 13-bone deform rig. It exports **Idle (2.4s), Run (0.72s), Attack (1.2s), Hit (0.55s), and Death (1.4s)** to `assets/briarling-motion.glb` and saves the editable `art/blender/briarling-motion.blend`. The static GLB, source library and the other monsters are unchanged. Bones are baked from Blender poses and analytical leg IK; this is not motion capture, runtime IK or a finished animator control rig.
-
-Selecting Briarling starts a **Demo loop**: breathe, scurry, claw attack, three arrow impacts, defeat, reset. Individual controls let you inspect Scurry, Claw swipe, Test arrow and Idle. Pause and ½× / ¼× speed affect the animation, arrows, health feedback and particles together. The scurry is a baked gait with a small sideways inspection patrol, not navigation AI or a finished root-motion controller. The attack has a crouch/raised-claw windup, lunge, contact marker at **0.56s**, and recovery. The practice post is placed from an exported claw socket at the authored contact pose, then flashes and shows a sample 12-damage label at that marker. This is an authored contact/timing demonstration, **not physical melee collision or player damage**. Getting hit before contact cancels that attack event.
-
-**Test arrow** starts a single physical projectile toward the stationary target. Its swept tip segment is tested against an upright body capsule; a confirmed impact removes **20 HP** from a **60 HP** target, updates the overhead health bar, spawns a matching damage number and bark chips, and plays a recoil. A short body flash leaves the luminous eyes on their original material. Three hits trigger the defeated animation and falling leaf fragments; further arrows are rejected. Reset health restores the target. The demo resets after the defeated pose; there is no campaign loot, experience or persistence here. Effects expire and are bounded by the single-arrow/recovery gating.
-
-The standalone motion controller is `briarling_motion.gd`; `bestiary.gd` handles its stage selection, camera and simulation stepping. It uses the existing woodland backdrop and no additional engine dependency. The source ZIP includes both static and animated Blender studies. In Design notes, Briarling downloads the animated GLB; the base static GLB remains available under `assets/briarling.glb`.
-
-```sh
-blender -b --factory-startup --python art/blender/animate_briarling.py
-npm run build:monsters
-```
-
-The added Node asset test checks the unchanged triangle count, 13-joint normalized skin, five distinct animated clips and release timing. `check_motion.gd` checks actual imported bone motion, forward claw travel from windup to strike, once-only attack contact at 16ms and 100ms steps, interruption before contact, swept arrow impacts, three-hit defeat/reset, pause, repeated demo cycles and effect cleanup. Browser checks cover real WebGL playback, health changes, attack contact, defeat/reset, slow motion/pause, other model views and portrait controls. This small prototype is still not a late-wave or physical iPhone performance benchmark.
-
-Suggested order after Briarling timing review: Sporecaller (cap/pendant follow-through and a lobbed spore), Thornback (weight shift and a telegraphed charge), then Hollowhart (slow slam and seed-heart reaction). Only after these readable motions are approved should a small Rowan/fox combat encounter exercise the Godot gameplay integration.
+Node tests validate the approved/static and animated GLBs, finite geometry, triangle/material/joint budgets, normalized skin weights, palette UVs, embedded texture sizes, distinct clips and timing metadata. Godot tests validate imported bone motion, desktop/portrait framing, forward claw travel, raised-to-ground guardian hands, single contacts at 16ms/100ms steps, spore launch/flight/pause/landing and post-launch recoil, interruption before release, charge displacement, physical incoming arrow hits, three-hit defeat/reset, held-windup/resume and repeated effect cleanup. Browser tests exercise actual Godot WebGL playback, each attack, target damage, inspection controls, cameras, downloads, scenery toggles and portrait layout.
