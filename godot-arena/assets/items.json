@@ -1,0 +1,380 @@
+[
+  {
+    "id": "quiver",
+    "name": "Weathered Quiver",
+    "icon": "quiver",
+    "description": "A dependable leather quiver. +3 base arrow damage.",
+    "price": 14,
+    "rarity": "common",
+    "effects": {
+      "damage": 3
+    },
+    "cap": 5,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "arrowheads",
+    "name": "Flint Arrowheads",
+    "icon": "arrow",
+    "description": "Knapped points that bite deeper. +8% physical arrow damage.",
+    "price": 18,
+    "rarity": "common",
+    "effects": {
+      "damage_bonus": 0.08
+    },
+    "cap": 5,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "jerkin",
+    "name": "Ranger’s Jerkin",
+    "icon": "armor",
+    "description": "Stitched for another close call. +20 maximum health and heal 20.",
+    "price": 16,
+    "rarity": "common",
+    "effects": {
+      "max_hp": 20
+    },
+    "cap": 5,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "buckle",
+    "name": "Iron Buckle",
+    "icon": "shield",
+    "description": "A sturdy fastening that turns glancing blows. +2 armor.",
+    "price": 16,
+    "rarity": "common",
+    "effects": {
+      "armor": 2
+    },
+    "cap": 6,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "boots",
+    "name": "Trail Boots",
+    "icon": "boots",
+    "description": "Light soles for narrow escapes. +8% movement speed.",
+    "price": 22,
+    "rarity": "uncommon",
+    "effects": {
+      "speed_bonus": 0.08
+    },
+    "cap": 4,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "compass",
+    "name": "Gathering Compass",
+    "icon": "compass",
+    "description": "Pull nearby gold and XP toward you. +0.65m pickup radius.",
+    "price": 18,
+    "rarity": "uncommon",
+    "effects": {
+      "pickup_radius": 0.65
+    },
+    "cap": 5,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "seal",
+    "name": "Merchant’s Seal",
+    "icon": "coin",
+    "description": "Recognized by woodland traders. +10 Economy: save 10% on items and rerolls, up to 50%.",
+    "price": 22,
+    "rarity": "uncommon",
+    "effects": {
+      "economy": 10
+    },
+    "cap": 5,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "satchel",
+    "name": "Salvage Satchel",
+    "icon": "satchel",
+    "description": "Recover 75% of leftover ground gold at wave end, instead of 50%.",
+    "price": 26,
+    "rarity": "rare",
+    "effects": {
+      "salvage": 0.25
+    },
+    "cap": 1,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "purse",
+    "name": "Prospector’s Purse",
+    "icon": "purse",
+    "description": "A lucky pouch for every haul. +15% gold earned.",
+    "price": 24,
+    "rarity": "uncommon",
+    "effects": {
+      "gold_bonus": 0.15
+    },
+    "cap": 3,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "bandages",
+    "name": "Field Bandages",
+    "icon": "bandage",
+    "description": "A fresh dressing for the trail. Restore 35% of maximum health now.",
+    "price": 12,
+    "rarity": "common",
+    "effects": {
+      "heal": 0.35
+    },
+    "cap": 8,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "bowstring",
+    "name": "Beeswax Bowstring",
+    "icon": "bow",
+    "description": "A smoother draw and faster release. +12% attack speed.",
+    "price": 24,
+    "rarity": "uncommon",
+    "effects": {
+      "attack_speed": 0.12
+    },
+    "cap": 4,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "fox-charm",
+    "name": "Fox Charm",
+    "icon": "paw",
+    "description": "A carved tribute to your companion. +25% fox dart damage; darts stay physical.",
+    "price": 22,
+    "rarity": "uncommon",
+    "effects": {
+      "pet_damage": 0.25
+    },
+    "cap": 3,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "lodestone",
+    "name": "Etched Lodestone",
+    "icon": "gem",
+    "description": "A focus for any element. +4 shared elemental power.",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {
+      "elemental_power": 4
+    },
+    "cap": 5,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "lens",
+    "name": "Hawk’s Eye Lens",
+    "icon": "lens",
+    "description": "Find the weak seam. +8% critical chance; critical arrows deal 1.75× damage.",
+    "price": 24,
+    "rarity": "rare",
+    "effects": {
+      "crit": 0.08
+    },
+    "cap": 4,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "brooch",
+    "name": "Bloodroot Brooch",
+    "icon": "brooch",
+    "description": "A living root set in brass. Heal 1 health whenever an enemy dies.",
+    "price": 28,
+    "rarity": "rare",
+    "effects": {
+      "heal_kill": 1
+    },
+    "cap": 3,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "dewglass",
+    "name": "Dewglass Flask",
+    "icon": "flask",
+    "description": "Slowly restores your strength during combat. +0.5 health per second.",
+    "price": 28,
+    "rarity": "rare",
+    "effects": {
+      "regen": 0.5
+    },
+    "cap": 3,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "watch",
+    "name": "Pocket Watch",
+    "icon": "clock",
+    "description": "Borrow a moment when it matters. −12% ability cooldowns; maximum 45% reduction.",
+    "price": 30,
+    "rarity": "rare",
+    "effects": {
+      "haste": 0.12
+    },
+    "cap": 4,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "heartwood",
+    "name": "Heartwood Relic",
+    "icon": "heart",
+    "description": "Once this run, survive a lethal hit and restore 35% maximum health. Cannot appear again once owned.",
+    "price": 60,
+    "rarity": "mythic",
+    "effects": {
+      "revive": 1
+    },
+    "cap": 1,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "ember-vial",
+    "name": "Ember Vial",
+    "icon": "vial",
+    "description": "Feed your flame. Fire burns deal 35% more damage.",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {
+      "burn_bonus": 0.35
+    },
+    "cap": 4,
+    "element": "fire",
+    "category": "element"
+  },
+  {
+    "id": "coalglass",
+    "name": "Coalglass Lantern",
+    "icon": "lantern",
+    "description": "Shelter the flame from the wind. Burns last 1 second longer.",
+    "price": 22,
+    "rarity": "rare",
+    "effects": {
+      "duration": 1
+    },
+    "cap": 3,
+    "element": "fire",
+    "category": "element"
+  },
+  {
+    "id": "cinder",
+    "name": "Cinder Fletching",
+    "icon": "arrow",
+    "description": "Charred feathers carry a hotter spark. +20% fire impact damage from elemental power.",
+    "price": 24,
+    "rarity": "uncommon",
+    "effects": {
+      "element_bonus": 0.2
+    },
+    "cap": 4,
+    "element": "fire",
+    "category": "element"
+  },
+  {
+    "id": "rime",
+    "name": "Rime Shard",
+    "icon": "shard",
+    "description": "A winter edge. Ice slowing improves by 8 points against mobs, 4 against bosses.",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {
+      "slow_bonus": 0.08
+    },
+    "cap": 3,
+    "element": "ice",
+    "category": "element"
+  },
+  {
+    "id": "frostglass",
+    "name": "Frostglass Bell",
+    "icon": "bell",
+    "description": "Its frozen note lingers. Ice slowing lasts 1 second longer.",
+    "price": 22,
+    "rarity": "rare",
+    "effects": {
+      "duration": 1
+    },
+    "cap": 3,
+    "element": "ice",
+    "category": "element"
+  },
+  {
+    "id": "winter",
+    "name": "Winter Arrowhead",
+    "icon": "arrow",
+    "description": "A point cut from ancient ice. +25% ice impact damage from elemental power.",
+    "price": 24,
+    "rarity": "uncommon",
+    "effects": {
+      "element_bonus": 0.25
+    },
+    "cap": 4,
+    "element": "ice",
+    "category": "element"
+  },
+  {
+    "id": "fang",
+    "name": "Venom Fang",
+    "icon": "fang",
+    "description": "Distilled venom coats each wound. Poison ticks deal 25% more damage.",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {
+      "venom_bonus": 0.25
+    },
+    "cap": 4,
+    "element": "poison",
+    "category": "element"
+  },
+  {
+    "id": "amethyst",
+    "name": "Amethyst Flask",
+    "icon": "flask",
+    "description": "A deeper reserve of venom. +1 maximum poison stack, up to 7.",
+    "price": 24,
+    "rarity": "rare",
+    "effects": {
+      "stacks": 1
+    },
+    "cap": 3,
+    "element": "poison",
+    "category": "element"
+  },
+  {
+    "id": "nightshade",
+    "name": "Nightshade Sprig",
+    "icon": "sprig",
+    "description": "A potent woodland cutting. Poison lasts 1 second longer.",
+    "price": 22,
+    "rarity": "uncommon",
+    "effects": {
+      "duration": 1
+    },
+    "cap": 3,
+    "element": "poison",
+    "category": "element"
+  }
+]

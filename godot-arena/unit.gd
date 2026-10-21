@@ -10,6 +10,7 @@ var maximum := 60.0
 var radius := .4
 var height := 1.0
 var speed := 2.2
+var damage_scale := 1.0
 var clip := "Idle"
 var anim_time := 0.0
 var action_time := 0.0

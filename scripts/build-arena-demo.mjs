@@ -8,7 +8,7 @@ const out=path.join(root,'dist/arena-demo');
 await mkdir(out,{recursive:true});await mkdir(path.join(root,'godot-arena/.templates'),{recursive:true});
 await copyFile(path.join(root,'godot-demo/.templates/web_nothreads_release.zip'),path.join(root,'godot-arena/.templates/web_nothreads_release.zip'));
 const env={...process.env,XDG_CACHE_HOME:process.env.XDG_CACHE_HOME||'/tmp/wildfall-godot-cache',XDG_CONFIG_HOME:process.env.XDG_CONFIG_HOME||'/tmp/wildfall-godot-config',XDG_DATA_HOME:process.env.XDG_DATA_HOME||'/tmp/wildfall-godot-data'};
-for(const args of [['--headless','--path','godot-arena','--editor','--import'],['--headless','--path','godot-arena','--script','check_hunt.gd'],['--headless','--path','godot-arena','--script','check_animation.gd'],['--headless','--path','godot-arena','--export-release','Web',path.join(out,'arena.html')]]){
+for(const args of [['--headless','--path','godot-arena','--editor','--import'],['--headless','--path','godot-arena','--script','check_hunt.gd'],['--headless','--path','godot-arena','--script','check_animation.gd'],['--headless','--path','godot-arena','--script','check_run.gd'],['--headless','--path','godot-arena','--export-release','Web',path.join(out,'arena.html')]]){
  const r=spawnSync(process.env.GODOT_BIN||'godot',args,{cwd:root,env,encoding:'utf8',maxBuffer:24*1024*1024});
  process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
  if(r.error||r.status!==0||/SCRIPT ERROR:|Parse Error:|Failed to export project/.test((r.stdout||'')+(r.stderr||'')))throw Error('Godot arena export failed');

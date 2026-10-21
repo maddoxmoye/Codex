@@ -99,9 +99,11 @@ func run() -> void:
 		game.update_fox(.016);game.update_projectiles(.016)
 	check(game.pet_hits>0 and target.hp<145 and target.poison_stacks==0,"Fox attacks physically and independently of player's element")
 	# Encounter progression, pickup radius, defeat and clean restart.
-	empty_arena();game.stage="skirmish";game.killed=8;game.spawned=8
-	advance(.1);check(game.stage=="breather","Skirmish clear opens breather")
-	advance(3.1);check(game.stage=="boss" and game.boss_spawned,"Breather spawns King")
+	empty_arena();game.stage="skirmish";game.wave_left=.01
+	advance(.1);check(game.stage=="shop","Timed wave opens camp shop")
+	check(game.continue_run() and game.wave==2,"Camp continues to stronger second wave")
+	game.wave_left=.01;advance(.1)
+	check(game.stage=="shop" and game.continue_run() and game.wave==3 and game.boss_spawned,"Second camp starts the King wave")
 	game.start_run(true);check(game.enemies.size()==1 and game.enemies[0].kind=="briar-king","Boss practice starts directly at King")
 	game.invulnerable=0;game.hurt_player(200,"test")
 	check(game.ended and not game.victory and game.player_unit.hp==0,"Player defeat ends the encounter")
@@ -113,7 +115,7 @@ func run() -> void:
 	check(game.gold==0,"Distant pickups are not collected")
 	game.player_unit.position=Vector3(5,0,0)
 	for i in 30:game.update_pickups(.016)
-	check(game.gold==3 and game.experience==12,"Pickup radius collects nearby gold and XP")
+	check(game.gold==6 and game.experience==12,"Pickup radius collects nearby gold and XP")
 	game.free()
 	if failures.is_empty():print("FIRST_HUNT_VALIDATION_OK: movement, first-hit arrows, elements, status swaps, ability cooldowns, invulnerability, pause, collision, boss AI, pet, pickups, victory/defeat and restart")
 	else:print("FIRST_HUNT_VALIDATION_FAILED: ",failures)
