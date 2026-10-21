@@ -38,3 +38,7 @@ blender -b --factory-startup --python art/blender/build_roster.py
 Use `-- --no-render` at the end to skip the approximately one-minute CPU presentation render. The script rebuilds **only these generated asset files**, the Blender library, manifest and lineup PNG; keep manual art revisions separately before regenerating. The source is procedural mesh modeling in Blender, not image-generated stand-ins. The GLB files, rigs and preview all come from the same scene.
 
 All designs and meshes in this folder are original to this project; no stock models, paid assets, third-party character designs or external animation packs were used. Blender is a tool dependency, not a runtime dependency. Godot licensing is documented in `godot-demo/GODOT-LICENSE.txt` in the repository.
+
+## Rowan motion study
+
+`rowan-motion.blend` and `animate_rowan.py` are a separate animation study derived from this geometry. They add a bow/string rig and baked Idle, Run, Shoot, RunShoot and Dodge clips for Rowan only. See `../../godot-animation/README.md` from the repository root (`godot-animation/README.md`) for timing and integration details. The base library, roster exports and original clips are unchanged. The study has its own download archive and preview; it is not bundled into the base model archive.

@@ -47,6 +47,10 @@ jobs:
         run: npm run build:models
         env:
           GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
+      - name: Validate and export Rowan animation preview
+        run: npm run build:animation
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website

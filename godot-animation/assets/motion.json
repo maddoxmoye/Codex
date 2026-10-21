@@ -1,0 +1,24 @@
+{
+  "name": "Rowan / motion study 01",
+  "file": "rowan-motion.glb",
+  "bones": 22,
+  "triangles": 5958,
+  "clips": {
+    "Idle": 3.2,
+    "Run": 0.8,
+    "Shoot": 3.2,
+    "RunShoot": 3.2,
+    "Dodge": 0.9
+  },
+  "releaseTime": 1.82,
+  "anchorTime": 1.75,
+  "bowBone": "bow",
+  "stringBone": "bowstring",
+  "runStrideSpeed": 1.2727272727272727,
+  "loopClips": [
+    "Idle",
+    "Run",
+    "RunShoot"
+  ],
+  "notes": "Prototype IK-baked motion. Fixed mitten hands; no finger or facial rig. Dodge is a short sidestep, not a roll."
+}

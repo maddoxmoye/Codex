@@ -12,6 +12,10 @@ The link opens directly into a viewport-filling game, without a website header, 
 
 Inspect the first **[archer and pet model collection](https://maddoxmoye.github.io/Codex/models/)** rendered in Godot. It contains five distinct archers and three companions, editable Blender source, individual GLBs, basic idle/movement clips and downloadable source. See [the art notes](art/blender/README.md) and [viewer/build instructions](godot-models/README.md). This is a separate design-review stage; the current game is not migrated by this asset pass.
 
+## Rowan animation preview
+
+Try the **[Rowan motion preview](https://maddoxmoye.github.io/Codex/animation-preview/)**: a moving run cycle, bow draw/string flex, synchronized arrow release and target hits, an in-place running shot, and a sidestep. Pause and slow motion let you inspect the body and bow. This is a focused Blender-to-Godot study before retargeting the roster. See [the study notes](godot-animation/README.md).
+
 ## The Emberwild — Babylon.js edition
 
 The main game has a new **Babylon.js** renderer and original art built for this edition. The previous Three.js renderer is no longer used by the main game. Gameplay remains the existing, tested JavaScript simulation: all unlocks, saved runs, items, exclusive elements, rewards and 45/75-second waves carry over.
