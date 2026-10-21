@@ -23,8 +23,8 @@ function resumeSaved(){if(!savedRun||!game.restoreSnapshot(savedRun)){clearSaved
 let graphics='3d';
 // Start every visit in 3D, including browsers with an older saved 2D preference.
 try { localStorage.removeItem('wildfall-graphics'); } catch {}
-let cameraFree=false, quality=window.innerWidth<700?'low':'high';
-try { cameraFree=localStorage.getItem('wildfall-camera-mode')==='free';quality=localStorage.getItem('wildfall-quality')||quality; } catch {}
+let cameraFree=false, quality='auto';
+try { cameraFree=localStorage.getItem('wildfall-camera-mode')==='free';quality=localStorage.getItem('wildfall-quality')||quality;if(!['auto','high','low'].includes(quality))quality='auto'; } catch {}
 const keys=new Set(); let previous=performance.now(),shown='',sound=false,audio,toastTimer;
 let best=0;try{best=Number(localStorage.getItem('wildfall-best'))||0;}catch{}
 function beep(freq=440,duration=.1,type='sine',volume=.025){if(!sound)return;try{audio ||= new AudioContext();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);}catch{}}
@@ -75,7 +75,7 @@ function updateCameraLabel(){
 }
 function toggleCamera(){cameraFree=!cameraFree;updateCameraLabel();try{localStorage.setItem('wildfall-camera-mode',cameraFree?'free':'locked');}catch{}if(game.state==='playing')canvas.focus();}
 $('camera-mode').onclick=toggleCamera;
-$('detail-button').onclick=()=>{quality=quality==='high'?'low':'high';view.setQuality?.(quality);$('detail-button').textContent='Detail: '+(quality==='high'?'High':'Low');try{localStorage.setItem('wildfall-quality',quality);}catch{}};
+$('detail-button').onclick=()=>{quality=quality==='auto'?'high':quality==='high'?'low':'auto';view.setQuality?.(quality);$('detail-button').textContent='Detail: '+(quality==='auto'?'Auto':quality==='high'?'High':'Low');try{localStorage.setItem('wildfall-quality',quality);}catch{}};
 $('orbit-left').onclick=()=>view.orbit?.(-Math.PI/6);$('orbit-right').onclick=()=>view.orbit?.(Math.PI/6);
 let shownShopRevision=-1;
 function requestElement(element){
@@ -124,9 +124,9 @@ function showState(){
  }else if(state==='loadout'){renderLoadout();}
  else if(state==='paused'){
  renderPaused();
- }else if(state==='draft'){renderDraft();}
- else if(state==='shop'){renderShop();}
- else if(state==='reward'){if(entering)chestRevealKey='';renderChest();}
+ }else if(state==='draft'){if(entering)statsOpen=false;renderDraft();}
+ else if(state==='shop'){if(entering)statsOpen=false;renderShop();}
+ else if(state==='reward'){if(entering){chestRevealKey='';statsOpen=false;}renderChest();}
  else if(state==='dead'||state==='won'){
  best=Math.max(best,game.player.kills);try{localStorage.setItem('wildfall-best',String(best));}catch{}
  const won=state==='won';if(!won)clearSavedRun();modal(`<div class="crest">${won?'✧':'☾'}</div><div class="eyebrow">${won?'THE HOLLOW IS FREE':'EVERY SPARK LEAVES A STORY'}</div><h2>${won?'You brought the dawn.':'The wild remembers.'}</h2><p>${won?'All four guardians have fallen. Continue into endless waves with your current build, or start a new journey.':game.defeatReason||'Rest, Wayfarer. The woods will be waiting for your next journey.'}</p><p>Wave ${game.wave} &nbsp; · &nbsp; Level ${game.player.level} &nbsp; · &nbsp; ${game.player.kills} defeated<br>${game.bossesDefeated} guardians defeated &nbsp; · &nbsp; Best: ${best} defeated</p>${won?'<button id="endless" class="button">Continue endless →</button>':''}<button id="restart" class="button secondary">${won?'Wander again':'Try again'} &nbsp; →</button><p class="subtext">Coins and upgrades reset each run. Your best score is saved.</p>`);$('restart').onclick=start;if(won)$('endless').onclick=()=>{keys.clear();game.continueEndless();shown='';};
@@ -156,19 +156,25 @@ function renderPaused(){
  wireSheet();$('progress-settings').onclick=openProgressPanel;$('resume').onclick=pause;$('save-quit').onclick=saveAndQuit;$('quit-run').onclick=quitRun;
  $('paused-menu').onclick=()=>{pauseStatsOpen=false;renderPaused();};$('paused-stats').onclick=()=>{pauseStatsOpen=true;renderPaused();};
 }
-function rewardPath(){const steps=[['draft','01','Training'],['reward','02','Treasure'],['shop','03','Merchant']];return `<div class="reward-path" aria-label="Between-wave rewards">${steps.map(([state,n,label])=>`<span class="${game.state===state?'current':''}" ${game.state===state?'aria-current="step"':''}><b>${n}</b> ${label}</span>`).join('')}</div>`;}
 let chestRevealKey='';
 function buildModal(content){
- modal(`<div class="build-tabs"><button id="show-offers" aria-pressed="${!statsOpen}">${game.state==='draft'?'Level choices':game.state==='reward'?'Chest reward':'Shop offers'}</button><button id="show-stats" aria-pressed="${statsOpen}">Stats & inventory (${game.upgradeHistory.length})</button></div><div class="shop-layout ${statsOpen?'stats-open':''}"><div class="shop-main">${rewardPath()}${content}</div><section class="build-panel" aria-label="Player stats and upgrade history">${buildSheet()}</section></div>`,'shop-modal build-modal '+(game.state==='shop'?'merchant-modal':game.state==='draft'?'level-reward-modal':'chest-reward-modal'));
+ modal(`<div class="build-tabs"><button id="show-offers" aria-pressed="${!statsOpen}">${game.state==='draft'?'Level choices':game.state==='reward'?'Chest reward':'Shop offers'}</button><button id="show-stats" aria-pressed="${statsOpen}">Stats & inventory (${game.upgradeHistory.length})</button></div><div class="shop-layout ${statsOpen?'stats-open':''}"><div class="shop-main">${content}</div><section class="build-panel" aria-label="Player stats and upgrade history">${buildSheet()}</section></div>`,'shop-modal build-modal merchant-modal');
  wireSheet();
  $('show-offers').onclick=()=>{statsOpen=false;renderIntermission();};
  $('show-stats').onclick=()=>{statsOpen=true;renderIntermission();};
+}
+function rewardModal(content,{kind,title,subtitle}){
+ const inventory=statsOpen?`<section class="reward-inventory">${buildSheet()}</section>`:content;
+ modal(`<header class="reward-header"><div><div class="eyebrow">${kind==='training'?'LEVEL REWARD':'CHEST REWARD'} · WAVE ${game.wave} COMPLETE</div><h2>${title}</h2><p>${subtitle}</p></div><button class="button secondary" id="reward-inventory-toggle" aria-pressed="${statsOpen}">${statsOpen?'← Back to reward':'Stats & inventory'}</button></header><div class="reward-content">${inventory}</div>`, 'reward-screen '+kind+'-screen');
+ $('reward-inventory-toggle').onclick=()=>{statsOpen=!statsOpen;renderIntermission();};
+ if(statsOpen)wireSheet();
 }
 function renderIntermission(){if(game.state==='draft')renderDraft();else if(game.state==='reward')renderChest();else renderShop();}
 function renderChest(){
  shownShopRevision=game.shopRevision;const chest=game.chestQueue[0],item=chest.reward,myth=chest.tier==='mythical',cost=game.chestRerollCost(),alternatives=game.chestPool(chest.tier).some(i=>i.id!==item?.id);
  const revealKey=chest.id+':'+chest.rerolls+':'+item?.id,animate=revealKey!==chestRevealKey;chestRevealKey=revealKey;
- buildModal(`<div class="eyebrow">${myth?'GUARDIAN MYTHICAL CHEST':'ENEMY-DROPPED ITEM CHEST'} · ${game.chestQueue.length} LEFT</div><h2>${myth?'A legend in the lock':'A little stolen luck'}</h2>${statLine(true)}${chestReveal(item,myth,animate)}<div class="chest-reward rarity-${item?.rarity||'common'} ${myth?'mythical':'normal'}"><span class="equipment-type">${item?.type||'Equipment chest'}</span><span class="rarity-label">${item?RARITIES[item.rarity].label.toUpperCase():'ITEM'} REWARD</span><h3>${item?.name||'A well-stocked ranger'}</h3><p>${item?.text||'You already own every eligible item. Sell this chest for gold.'}</p><small>Take this item for free, reroll it, or sell it for gold. Chest rolls have their own cost.</small></div><div class="reward-actions"><button class="button" id="take-chest" ${!item||!game.offer(item,{reward:true}).available?'disabled':''}>Take item</button><button class="button secondary" id="reroll-chest" ${game.player.coins<cost||!alternatives?'disabled':''}>↻ Reroll · ◈ ${cost}</button><button class="button secondary" id="sell-chest">Sell · ◈ ${game.chestSellValue()}</button></div><div class="shop-footnote">${myth?'Guardians guarantee a Mythic chest; Mythics can also appear very rarely in the shop. ':'Only this chest is rerolled. '}Reroll costs rise for this chest and start fresh on the next one.</div>`);
+ rewardModal(`<div class="treasure-stage">${chestReveal(item,myth,animate)}<section class="treasure-item rarity-${item?.rarity||'common'} ${myth?'mythical':''}"><div class="eyebrow rarity-label">${item?RARITIES[item.rarity].label.toUpperCase():'ITEM'} · ${item?.type||'Equipment'}</div><h3>${item?.name||'A well-stocked ranger'}</h3><p>${item?.text||'You already own every eligible item. Sell this chest for gold.'}</p><span class="treasure-free">YOURS TO KEEP · NO GOLD REQUIRED</span></section></div><footer class="treasure-footer"><div class="reward-actions"><button class="button" id="take-chest" ${!item||!game.offer(item,{reward:true}).available?'disabled':''}>Keep item →</button><button class="button secondary" id="reroll-chest" ${game.player.coins<cost||!alternatives?'disabled':''}>↻ Reroll · ◈ ${cost}</button><button class="button secondary" id="sell-chest">Sell · ◈ ${game.chestSellValue()}</button></div><small>${game.player.coins.toLocaleString()} gold available · This chest has its own reroll price.</small></footer>`,{kind:'treasure',title:myth?'A mythical discovery':'Open your treasure',subtitle:`${game.chestQueue.length} ${game.chestQueue.length===1?'chest':'chests'} to open · Keep, reroll or sell each reward before visiting the merchant.`});
+ if(statsOpen)return;
  $('take-chest').onclick=()=>{if(game.resolveChest('take')){beep(990);showState();hud();}};
  $('sell-chest').onclick=()=>{if(game.resolveChest('sell')){beep(660);showState();hud();}};
  $('reroll-chest').onclick=()=>{if(game.rerollChest()){beep(550);renderChest();hud();}};
@@ -176,7 +182,8 @@ function renderChest(){
 function statLine(compact=false){const p=game.player;return `<div class="shop-player-stats"><span>LEVEL <b id="shop-level">${p.level}</b></span><span>♥ <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>◈ <b>${p.coins.toLocaleString()}</b> GOLD</span></div>${compact?'':`<div class="shop-stat-line">➶ ${p.damage.toFixed(1)} physical · ✧ ${p.elementalDamage.toFixed(1)} elemental · ⬡ ${p.armor} armor · ➟ ${Math.round(p.speed)} speed · ◈ ${p.economy} Economy (${Math.round(game.economyDiscount()*100)}% savings)</div>`}${game.shopReason==='wave'&&game.waveSalvage?`<div class="salvage-receipt">Wave ${game.waveSalvage.wave} recovery · +${Number(game.waveSalvage.xp.toFixed(1))} XP${compact?'':' (100% + item bonuses)'} · +${game.waveSalvage.gold} gold${compact?'':` (${Math.round(game.waveSalvage.rate*100)}% + combat bonuses)`}</div>`:''}`;}
 function renderDraft(){
  shownShopRevision=game.shopRevision;
- buildModal(`<div class="training-heading"><div class="training-seal"><small>LEVEL</small><strong>${game.levelRewards[0]}</strong></div><div><div class="eyebrow">A FREE STEP FORWARD</div><h2>Choose your training</h2></div></div>${statLine(true)}<div class="shop-build"><strong>Reward for level ${game.levelRewards[0]}</strong><span>${game.freePicks} ${game.freePicks===1?'choice':'choices'} remaining · pick one below</span></div><div class="shop-catalog"><div class="shop-grid draft-grid">${game.draftChoices.map(c=>`<button class="shop-card" data-upgrade="${c.id}"><span class="card-symbol">${c.icon}</span><strong>${c.name}</strong><small>${c.text}</small><span class="price">LEARN THIS · FREE</span></button>`).join('')}</div></div><div class="shop-bottom"><span>One free training choice per level earned. Shop purchases are physical items. The shop follows your choices.</span></div>`);
+ rewardModal(`<div class="training-intro"><span class="training-level">${game.levelRewards[0]}</span><div><strong>LEVEL UP</strong><p>Choose one permanent boost.<br>${game.freePicks} free ${game.freePicks===1?'choice':'choices'} remaining.</p></div></div><div class="training-choices">${game.draftChoices.map((c,i)=>`<button class="training-choice" data-upgrade="${c.id}"><span class="choice-number">0${i+1}</span><span class="choice-symbol" aria-hidden="true">${c.icon}</span><strong>${c.name}</strong><span class="choice-description">${c.text}</span><span class="choice-action">Choose boost →</span></button>`).join('')}</div><p class="reward-next">${game.chestQueue.length?'Next: open your recovered chests.':'Next: visit the merchant.'} Your gold stays untouched.</p>`,{kind:'training',title:'Choose your next strength',subtitle:'A reward for your experience. Pick one of four boosts to shape your build.'});
+ if(statsOpen)return;
  for(const b of document.querySelectorAll('[data-upgrade]'))b.onclick=()=>{if(game.chooseUpgrade(b.dataset.upgrade)){beep(880);showState();hud();}};
 }
 function equipmentSummary(limit=4){
@@ -197,11 +204,13 @@ function renderShop(){
  $('leave-shop').onclick=()=>game.closeShop();
 }
 let lastBoss=0, bossBannerUntil=0;
-let countdownKey='';
-function updateWaveCountdown(){
- const remaining=game.waveCountdown,show=game.state==='playing'&&(remaining>0||game.waveTime<.5),box=$('wave-countdown');box.hidden=!show;if(!show)return;
- const count=remaining>0?Math.ceil(remaining):'GO!',key=game.wave+':'+count;if(key===countdownKey)return;countdownKey=key;
- box.innerHTML=`<small>${isBossWave(game.wave)?'GUARDIAN WAVE':'GET READY'} · WAVE ${game.wave}</small><strong>${count}</strong><span>${waveDuration(game.wave)} seconds · ${isBossWave(game.wave)?'Defeat the guardian and survive':'Survive the wave'}</span>`;
+function updateWaveClock(){
+ const clock=$('wave-clock'),show=['playing','paused'].includes(game.state);clock.hidden=!show;if(!show)return;
+ const remaining=Math.max(0,Math.ceil(waveDuration(game.wave)-game.waveTime));
+ const text=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
+ if($('wave-clock-time').textContent!==text)$('wave-clock-time').textContent=text;
+ $('wave-clock-label').textContent=(isBossWave(game.wave)?'BOSS · ':'WAVE ')+game.wave;
+ clock.classList.toggle('urgent',remaining<=10);clock.classList.toggle('boss-wave',isBossWave(game.wave));
 }
 function hud(){
  const p=game.player;
@@ -224,7 +233,7 @@ function hud(){
 $('hp-text').textContent=`${Math.ceil(p.hp)} / ${p.maxHp}`;$('hp-fill').style.width=(p.hp/p.maxHp*100)+'%';$('xp-text').textContent=`${Math.floor(p.xp)} / ${p.xpNext}`;$('xp-fill').style.width=(p.xp/p.xpNext*100)+'%';$('level-badge').textContent='LV. '+p.level;$('coins').textContent=p.coins;$('kills').textContent=p.kills;
  $('wave').textContent=`WAVE ${String(game.wave).padStart(2,'0')} / ${game.endless?'∞ ENDLESS':'20'}`;const remaining=Math.max(0,Math.ceil(waveDuration(game.wave)-game.waveTime));$('timer').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0')+' LEFT';
  $('phase').textContent=isBossWave(game.wave)?(game.bossSpawned&&!game.enemies.some(e=>e.kind==='boss')?'GUARDIAN DOWN · SURVIVE':'GUARDIAN · 75s DEADLINE'):regionAt(p).name.toUpperCase();
- updateWaveCountdown();
+ updateWaveClock();
  $('location').textContent=`${Math.round(p.x)}, ${Math.round(p.y)} · ${game.chestQueue.length+game.chests.length} chests secured / dropped`;
  const nearby=game.chests.some(c=>Math.hypot(c.x-p.x,c.y-p.y)<90);$('interact-hint').hidden=!nearby||game.state!=='playing';
  $('weapon-description').textContent=`${Math.round(game.attackDamage())} hit · ${p.element}${p.multi?' · triple shot':''}${p.piercing?' · pierces 3':p.ricochet?' · ricochet':' · first hit stops'}`;
@@ -251,7 +260,7 @@ function minimap(){
  for(const e of game.enemies)if(e.kind==='boss'){m.fillStyle='#f2a4d8';m.beginPath();m.arc(e.x*sx,e.y*sy,4,0,Math.PI*2);m.fill();}
  m.fillStyle='#fff6d2';m.beginPath();m.arc(game.player.x*sx,game.player.y*sy,3,0,Math.PI*2);m.fill();
 }
-let lastHud=-Infinity;
+let lastHud=-Infinity,lastMenuRender=-Infinity;
 function frame(now){
  const dt=(now-previous)/1000;previous=now;
  if(game.state==='playing')view.orbit?.(((keys.has('KeyR')?1:0)-(keys.has('KeyQ')?1:0))*Math.min(.25,dt)*1.8);
@@ -259,7 +268,7 @@ function frame(now){
  advanceGame(game,dt,view.movement?view.movement(x,y):{moveX:x,moveY:y});
  if(now-lastAutosave>10000){if(game.state==='dead')clearSavedRun();else saveRun();lastAutosave=now;}
  if(game.message){toast(game.message);game.message='';}if(game.event){beep(game.event==='hurt'?130:game.event==='boss'?880:440,.15);game.event=null;}
- view.render(now/1000);if(now-lastHud>=100 || shown!==game.state){hud();lastHud=now;}showState();requestAnimationFrame(frame);
+ if(game.state==='playing'||shown!==game.state||now-lastMenuRender>=200){view.render(now/1000);lastMenuRender=now;}if(now-lastHud>=100 || shown!==game.state){hud();lastHud=now;}showState();requestAnimationFrame(frame);
 }
 function setGraphics(mode) {
   const wasPlaying = game.state === 'playing';
@@ -273,7 +282,7 @@ function setGraphics(mode) {
   }
   $('graphics-button').textContent=graphics==='3d'?'3D VIEW':'2D VIEW';
   $('graphics-button').setAttribute('aria-label',graphics==='3d'?'Switch to 2D graphics':'Switch to 3D graphics');
-  view.setQuality?.(quality);$('detail-button').textContent='Detail: '+(quality==='high'?'High':'Low');
+  view.setQuality?.(quality);$('detail-button').textContent='Detail: '+(quality==='auto'?'Auto':quality==='high'?'High':'Low');
   updateCameraLabel();
   let pointer=null,drag=false;
   canvas.addEventListener('wheel',e=>{if(view.zoom){e.preventDefault();view.zoom(e.deltaY);}},{passive:false});

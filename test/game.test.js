@@ -6,7 +6,7 @@ const create=()=>{const g=new Game(()=>.5);g.start({countdown:false});g.obstacle
 const enemy=(x=650,y=330,hp=500)=>({x,y,r:12,hp,speed:0,damage:0,slow:0,kind:'brute'});
 const advance=(g,seconds,input={})=>{for(let i=0;i<Math.round(seconds*60);i++)advanceGame(g,1/60,input);};
 function visitShop(g){g.prepareShop();g.shopReturn=g.state==='paused'?'playing':g.state;g.shopReason='wave';g.state='shop';g.shopRevision++;return true;}
-function finishShop(g){const result=g.closeShop();if(result&&g.waveCountdown>0)advance(g,3);return result;}
+function finishShop(g){return g.closeShop();}
 function wealthy(g,level=5){g.player.level=level;g.player.coins=10000;visitShop(g);}
 function stockBuy(g,id){g.shopOffers=[{id,sold:false}];return g.buy(id);}
 
@@ -464,12 +464,12 @@ test('crowded enemy feedback cannot evict a recent incoming player hit',()=>{
 test('normal waves last 45 seconds and guardian waves last 75 seconds, including endless',()=>{
  for(const wave of [1,2,4,6,19,21,24])assert.equal(waveDuration(wave),45);for(const wave of [5,10,15,20,25,100])assert.equal(waveDuration(wave),75);
 });
-test('wave countdown freezes combat and preserves the full wave budget',()=>{
- const g=new Game(()=>.5);g.start();const x=g.player.x;assert.equal(g.waveCountdown,3);assert.equal(g.dash(),false);assert.equal(g.nova(),false);g.hurt(90);assert.equal(g.player.hp,100);advance(g,2,{right:true});assert.ok(Math.abs(g.waveCountdown-1)<1e-7);assert.equal(g.player.x,x);assert.equal(g.waveTime,0);assert.equal(g.time,0);assert.equal(g.enemies.length,0);advance(g,1);assert.equal(g.waveCountdown,0);assert.equal(g.waveTime,0);g.update(.02,{right:true});assert.equal(g.waveTime,.02);assert.ok(g.player.x>x);
+test('a new run starts combat immediately, without a preparation countdown',()=>{
+ const g=new Game(()=>.5);g.start();const x=g.player.x;g.update(.02,{right:true});assert.equal(g.waveTime,.02);assert.ok(g.player.x>x);assert.equal(g.waveCountdown,undefined);assert.equal(g.dash(),true);
 });
-test('every new round, including a boss round, prepares before spawning enemies',()=>{
- const g=create();g.wave=4;g.nextWave();assert.equal(g.state,'shop');g.closeShop();assert.equal(g.wave,5);assert.equal(g.waveCountdown,3);advance(g,3);assert.equal(g.bossSpawned,false);assert.equal(g.waveTime,0);g.update(.01);assert.equal(g.bossSpawned,true);assert.equal(g.enemies.filter(e=>e.kind==='boss').length,1);
+test('leaving the shop starts the next boss wave immediately with its full budget',()=>{
+ const g=create();g.wave=4;g.nextWave();assert.equal(g.state,'shop');g.closeShop();assert.equal(g.wave,5);assert.equal(g.waveTime,0);g.update(.01);assert.equal(g.bossSpawned,true);assert.equal(g.enemies.filter(e=>e.kind==='boss').length,1);assert.equal(waveDuration(g.wave),75);
 });
-test('countdown pause and saved checkpoints resume accurately; older saves do not replay a countdown',()=>{
- const g=new Game(()=>.5);g.start();advance(g,.8);g.pause();const remaining=g.waveCountdown;advance(g,5);assert.equal(g.waveCountdown,remaining);const snapshot=g.snapshot(),restored=new Game();assert.ok(restored.restoreSnapshot(snapshot));assert.equal(restored.waveCountdown,remaining);restored.resume();advance(restored,2.2);assert.equal(restored.waveCountdown,0);assert.equal(restored.waveTime,0);delete snapshot.data.waveCountdown;const legacy=new Game();assert.ok(legacy.restoreSnapshot(snapshot));assert.equal(legacy.waveCountdown,0);snapshot.data.waveCountdown=-1;assert.equal(new Game().restoreSnapshot(snapshot),false);
+test('legacy saves with a preparation countdown resume directly into combat',()=>{
+ const g=create();g.pause();const snapshot=g.snapshot();snapshot.data.waveCountdown=2.2;const restored=new Game();assert.ok(restored.restoreSnapshot(snapshot));assert.equal(restored.waveCountdown,undefined);restored.resume();restored.update(.02);assert.equal(restored.waveTime,.02);
 });

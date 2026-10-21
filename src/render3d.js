@@ -1,3 +1,4 @@
+import {createEnemyBatch,createPickupBatch} from './instance-batch.js';
 import {resolveFollowCamera} from './follow-camera.js';
 import {createStyledActors} from './styled-actors.js';
 import {createStyledWorld} from './styled-world.js';
@@ -35,9 +36,12 @@ export function create3DRenderer(canvas, game) {
   sun.shadow.normalBias = .025; sun.shadow.bias = -.0002;
   scene.add(sun);
   const rim = new THREE.DirectionalLight('#b8d9ed', 1.3); rim.position.set(4, 5, 5); scene.add(rim);
-  const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));const bloom=new UnrealBloomPass(new THREE.Vector2(800,600),.2,.55,1.45);composer.addPass(bloom);composer.addPass(new OutputPass());
+  // Auto and Low do not allocate bloom framebuffers at all.
+  let composer=null;
+  function getComposer(){if(!composer){composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(width,height),.2,.55,1.45));composer.addPass(new OutputPass());composer.setPixelRatio(renderer.getPixelRatio());composer?.setSize(width,height);}return composer;}
+  function disposeComposer(){if(composer){for(const pass of composer.passes)pass.dispose?.();composer.dispose();composer=null;}}
   const cameraObstacles=SOLIDS.map(o=>({...o,x:(o.x-WORLD.width/2)/100,z:(o.y-WORLD.height/2)/100,r:(o.cameraR||o.r)/100,height:o.height/100}));
-  const geometries = [], materials = [], dynamicMaterials=new Set();
+  const geometries = [], materials = [];
   const geometry = g => { geometries.push(g); return g; };
   const mat = (color, extra = {}) => { const m = new THREE.MeshStandardMaterial({ color, roughness: .86, flatShading: false, ...extra }); materials.push(m); return m; };
   const glowing = color => mat(color, { emissive: color, emissiveIntensity: 1.4 });
@@ -175,14 +179,14 @@ export function create3DRenderer(canvas, game) {
       // Charge lane is visible during the Briar King's wind-up.
       const lane = mesh(group, box, chargeMaterial, 0, .035, 0, .48, .02, 2.3, false); lane.visible = false; group.userData.lane = lane;
     }
-    const clones=new Map();body.traverse(o=>{if(!o.isMesh)return;const original=o.material;if(!clones.has(original)){const clone=original.clone();dynamicMaterials.add(clone);clones.set(original,{material:clone,color:original.color.clone(),emissive:original.emissive.clone()});}o.material=clones.get(original).material;});
-    group.userData.tints=[...clones.values()];group.userData.release=()=>{for(const {material} of clones.values()){dynamicMaterials.delete(material);material.dispose();}};
+    enemyBatch.register(group);
     const status=new THREE.Group();group.add(status);group.userData.status=status;
     for(const material of [colors.fire,colors.ice,colors.poison,colors.gold])flatRing(status,material,boss?.8:.32,.04);
     return group;
   }
   // Object-keyed meshes survive frames, and share reusable geometry/materials.
-  const enemyMeshes = new Map(), pickupMeshes = new Map(), boltMeshes = new Map(), effectMeshes = new Map(), petMeshes=new Map(), chestMeshes=new Map(),hazardMeshes=new Map();
+  const enemyBatch=createEnemyBatch(scene),pickupBatch=createPickupBatch(scene,{coin:cylinder,gem:crystal},{coin:colors.gold,xp:colors.xp,heal:colors.heal});
+  const enemyMeshes = new Map(), boltMeshes = new Map(), effectMeshes = new Map(), petMeshes=new Map(), chestMeshes=new Map(),hazardMeshes=new Map();
   function sync(map, objects, create, update) {
     const alive = new Set(objects);
     for (const [object, m] of map) if (!alive.has(object)) { scene.remove(m);m.userData.release?.(); map.delete(object); }
@@ -196,14 +200,16 @@ export function create3DRenderer(canvas, game) {
   // Instanced fireflies use one draw call.
   const flies = new THREE.InstancedMesh(sphere, colors.gold, 24); scene.add(flies);
   const transform = new THREE.Object3D();
-  let width = 0, height = 0, facing = 0, lastTime=0,characterId=null;
+  let width = 0, height = 0, facing = 0, lastTime=0,characterId=null,detailMode='auto',renderScale=1,budgetTime=0,budgetFrames=0;
+  function applyScale(scale){renderScale=scale;renderer.setPixelRatio(scale);composer?.setPixelRatio(scale);if(width){renderer.setSize(width,height,false);composer?.setSize(width,height);}}
   function render(time) {
     const w = Math.max(1, Math.round(canvas.clientWidth)), h = Math.max(1, Math.round(canvas.clientHeight));
     if (w !== width || h !== height) {
-      width = w; height = h; renderer.setSize(w, h, false);composer.setSize(w,h);feedbackCanvas.width=w;feedbackCanvas.height=h;
+      width = w; height = h; renderer.setSize(w, h, false);composer?.setSize(w,h);feedbackCanvas.width=w;feedbackCanvas.height=h;
       camera.aspect=w/h;camera.updateProjectionMatrix();
     }
     const p=game.player, dt=Math.min(.25,lastTime?time-lastTime:.016);lastTime=time;
+    if(detailMode==='auto'&&game.state==='playing'&&dt>0&&dt<.25){budgetTime+=dt;budgetFrames++;if(budgetTime>=2&&budgetFrames>=15){const fps=budgetFrames/budgetTime,next=fps<45?Math.max(.65,renderScale-.1):fps>57?Math.min(1,renderScale+.05):renderScale;if(Math.abs(next-renderScale)>.01)applyScale(next);budgetTime=0;budgetFrames=0;}}else{budgetTime=0;budgetFrames=0;}
     const px=(p.x-WORLD.width/2)/100,pz=(p.y-WORLD.height/2)/100;
     if(characterId!==game.character){player.visible=false;characterId=game.character;player=heroes.get(characterId)||heroes.get('ranger');}
     player.position.set(px,.02,pz);
@@ -229,7 +235,6 @@ export function create3DRenderer(canvas, game) {
     campFlame.scale.y=.4+Math.sin(time*7)*.05;
     sync(enemyMeshes, game.enemies, makeEnemy, (m, e) => {
       m.scale.setScalar(e.elite?1.2:1);
-      const tint=e.poison>0?ELEMENT_COLORS.poison:e.burn>0?ELEMENT_COLORS.fire:e.slow>0?ELEMENT_COLORS.ice:null;for(const entry of m.userData.tints){entry.material.color.copy(entry.color);entry.material.emissive.copy(entry.emissive);if(tint){entry.material.color.lerp(new THREE.Color(tint),.6);entry.material.emissive.set(tint);entry.material.emissiveIntensity=.25;}else entry.material.emissiveIntensity=.1;if(e.hitFlash>0){entry.material.emissive.set('#d2aa80');entry.material.emissiveIntensity=.55;}}
       m.rotation.y = e.charge>0?Math.atan2(e.cx,e.cy):Math.atan2(p.x - e.x, p.y - e.y);
       m.userData.body.rotation.x=e.charge>0?-.12:['archer','shaman'].includes(e.kind)&&e.attack<.8?-.08:0;
       m.userData.body.position.y = Math.sin(time * (e.kind === 'wisp' ? 4 : 7) + e.x) * (e.kind === 'wisp' ? .08 : .015);
@@ -243,12 +248,8 @@ export function create3DRenderer(canvas, game) {
         const a = lane.rotation.y; lane.position.x = Math.sin(a) * 1.15; lane.position.z = Math.cos(a) * 1.15;
       }
     });
-    sync(pickupMeshes, game.pickups, i => {
-      const g = new THREE.Group();
-      const m = mesh(g, i.kind === 'coin' ? cylinder : crystal, i.kind === 'coin' ? colors.gold : i.kind === 'heal' ? colors.heal : colors.xp, 0, 0, 0, .065, i.kind === 'coin' ? .025 : .1, .065, false);
-      if (i.kind === 'coin') m.rotation.x = Math.PI / 2;
-      return g;
-    }, (m, i) => { m.position.y = .16 + Math.sin(time * 3 + i.x) * .045; m.rotation.y = time * 1.8; });
+    enemyBatch.update(enemyMeshes,camera);
+    pickupBatch.update(game.pickups,time);
     sync(boltMeshes,[...game.bullets,...game.hostile],b=>{
       if(game.hostile.includes(b)){
         if(b.style==='arrow'){const g=makeArrow('fire');g.scale.setScalar(1.3);return g;}
@@ -289,8 +290,8 @@ export function create3DRenderer(canvas, game) {
     }
     flies.instanceMatrix.needsUpdate = true;
     sun.color.set(isBossWave(game.wave) ? '#e9d4e8' : '#fff0c9');worldArt.update(game.time);
-    if(highQuality)composer.render();else renderer.render(scene,camera);
+    if(highQuality)getComposer().render();else renderer.render(scene,camera);
     feedback.clearRect(0,0,width,height);drawCombatFeedback(feedback,game,(x,y,h)=>{labelPoint.set((x-WORLD.width/2)/100,h,(y-WORLD.height/2)/100).project(camera);if(labelPoint.z< -1||labelPoint.z>1)return null;return {x:(labelPoint.x+1)*width/2,y:(1-labelPoint.y)*height/2};},width,height);
   }
-  return { render, setQuality(quality) { highQuality=quality==='high';renderer.shadowMap.enabled=highQuality;renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,highQuality?1.25:1));composer.setPixelRatio(renderer.getPixelRatio());worldArt.setQuality(highQuality);if(width){renderer.setSize(width,height,false);composer.setSize(width,height);} }, look(dx,dy) { cameraYaw+=dx*.006;cameraLift=THREE.MathUtils.clamp(cameraLift+dy*.018,1.8,8); }, orbit(delta) { cameraYaw+=delta; }, zoom(delta){cameraDistance=THREE.MathUtils.clamp(cameraDistance+delta*.008,4.4,13);}, movement(x,y) { return {moveX:x*Math.cos(actualYaw)+y*Math.sin(actualYaw),moveY:y*Math.cos(actualYaw)-x*Math.sin(actualYaw)}; }, dispose() { feedbackCanvas.remove();worldArt.dispose();for(const pass of composer.passes)pass.dispose?.();composer.dispose();scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());dynamicMaterials.forEach(m=>m.dispose());dynamicMaterials.clear(); renderer.dispose(); } };
+  return { render, setQuality(quality) { detailMode=quality;highQuality=quality==='high';if(!highQuality)disposeComposer();budgetTime=0;budgetFrames=0;renderer.shadowMap.enabled=quality!=='low';const shadowSize=highQuality?1024:512;if(sun.shadow.mapSize.x!==shadowSize){sun.shadow.map?.dispose();sun.shadow.map=null;sun.shadow.mapSize.set(shadowSize,shadowSize);}worldArt.setQuality(highQuality);applyScale(quality==='auto'?1:Math.min(window.devicePixelRatio||1,highQuality?1.25:1)); }, look(dx,dy) { cameraYaw+=dx*.006;cameraLift=THREE.MathUtils.clamp(cameraLift+dy*.018,1.8,8); }, orbit(delta) { cameraYaw+=delta; }, zoom(delta){cameraDistance=THREE.MathUtils.clamp(cameraDistance+delta*.008,4.4,13);}, movement(x,y) { return {moveX:x*Math.cos(actualYaw)+y*Math.sin(actualYaw),moveY:y*Math.cos(actualYaw)-x*Math.sin(actualYaw)}; }, dispose() { feedbackCanvas.remove();enemyBatch.dispose();pickupBatch.dispose();worldArt.dispose();disposeComposer();scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());renderer.dispose(); } };
 }

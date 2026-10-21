@@ -19,7 +19,7 @@ function setElement(element){
 }
 function reset(){
  const element=started?game.player.element:'fire';
- game.start({countdown:false});game.obstacles=[{x:1700,y:1700,r:80},{x:3200,y:1400,r:100},{x:1500,y:2500,r:90},{x:3300,y:2600,r:80},{x:1950,y:1400,r:36},{x:2760,y:1200,r:38},{x:1800,y:1800,r:15}];
+ game.start();game.obstacles=[{x:1700,y:1700,r:80},{x:3200,y:1400,r:100},{x:1500,y:2500,r:90},{x:3300,y:2600,r:80},{x:1950,y:1400,r:36},{x:2760,y:1200,r:38},{x:1800,y:1800,r:15}];
  Object.assign(game.player,{hp:100,maxHp:100,regenRate:1.1,fireRate:.78,damage:14,elementalDamage:8,critChance:.12});
  setElement(element||'fire');game.spawnTime=999;spawnTimer=4;serial=0;for(let i=0;i<3;i++)spawn();
  keys.clear();paused=false;playing=started;game.player.fireTimer=.3;
