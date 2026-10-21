@@ -9,6 +9,7 @@ const coin=circle(24,24,15)+circle(24,24,10)+path('M24 17v14m-4-12h8m-8 10h8');
 const shield=path('M24 6 39 12v12q-2 12-15 18Q11 36 9 24V12Z');
 const spark=path('m24 5 5 13 14 6-14 5-5 14-5-14-14-5 14-6Z');
 const drawings={
+ magnet:circle(24,24,17)+path('m30 12-3 15-15 9 9-15ZM21 21l6 6')+circle(24,24,3),
  heal:path('M18 7h12m-10 0v10l-9 13q-5 11 7 11h12q12 0 7-11l-9-13V7M15 29h18m-9-9v13m-5-7h10'),
  power:arrow+path('m29 13 6 6m-21 9 6 6'),
  'element-base':path('m24 5 14 19-14 19L10 24ZM10 24h28M24 5v38')+circle(24,24,5),

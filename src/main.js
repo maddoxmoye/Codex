@@ -1,5 +1,5 @@
 import { upgradeArt } from './upgrade-art.js';
-import { Game, SHOP, WORLD, REGIONS, regionAt, advanceGame, ELEMENTS, CHARACTERS, isUnlocked, MYTHICAL_UPGRADES, RARITIES, isBossWave } from './game.js';
+import { Game, SHOP, WORLD, REGIONS, regionAt, advanceGame, ELEMENTS, CHARACTERS, isUnlocked, RARITIES, isBossWave, waveDuration } from './game.js';
 import { create3DRenderer } from './render3d.js';
 import { create2DRenderer } from './render2d.js';
 const $ = id => document.getElementById(id);
@@ -8,7 +8,15 @@ function readProgress(){try{return JSON.parse(localStorage.getItem('wildfall-unl
 const game=new Game(Math.random,readProgress());
 let savedProgressRevision=game.progressRevision,knownUnlocks=new Set(CHARACTERS.filter(c=>isUnlocked(c,game.progress)).map(c=>c.id));
 function saveProgress(){try{localStorage.setItem('wildfall-unlocks',JSON.stringify(game.progress));}catch{}}
-window.addEventListener('pagehide',saveProgress);
+window.addEventListener('pagehide',()=>{saveProgress();saveRun();});
+let savedRun=readSavedRun(),lastAutosave=0;
+function readSavedRun(){try{const value=JSON.parse(localStorage.getItem('wildfall-run'));return new Game(Math.random,readProgress()).restoreSnapshot(value)?value:null;}catch{return null;}}
+function saveRun(){const snapshot=game.snapshot();if(!snapshot)return false;try{localStorage.setItem('wildfall-run',JSON.stringify(snapshot));savedRun=snapshot;return true;}catch{return false;}}
+function clearSavedRun(){savedRun=null;try{localStorage.removeItem('wildfall-run');}catch{}}
+function saveAndQuit(){if(!saveRun()){$('save-status').hidden=false;$('save-status').textContent='Could not save in this browser. Your run is still paused; retry Save & quit.';return;}saveProgress();keys.clear();game.reset();shown='';toast('Run saved · continue from the main menu on this browser.');}
+function quitRun(){clearSavedRun();saveProgress();keys.clear();game.reset();shown='';}
+function resumeSaved(){if(!savedRun||!game.restoreSnapshot(savedRun)){clearSavedRun();shown='';toast('This saved run could not be loaded. Start a new journey.');return;}keys.clear();shown='';lastBoss=0;}
+
 let graphics='3d';
 // Start every visit in 3D, including browsers with an older saved 2D preference.
 try { localStorage.removeItem('wildfall-graphics'); } catch {}
@@ -19,8 +27,8 @@ let best=0;try{best=Number(localStorage.getItem('wildfall-best'))||0;}catch{}
 function beep(freq=440,duration=.1,type='sine',volume=.025){if(!sound)return;try{audio ||= new AudioContext();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);}catch{}}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3200);}
 function start(){keys.clear();game.prepareLoadout();shown='';lastBoss=0;}
-function launch(){if(game.startLoadout()){keys.clear();shown='';canvas.focus();beep(550,.2);}}
-function pause(){if(game.state==='playing')game.state='paused';else if(game.state==='paused')game.state='playing';keys.clear();}
+function launch(){if(game.startLoadout()){clearSavedRun();keys.clear();shown='';canvas.focus();beep(550,.2);}}
+function pause(){if(game.state==='paused')game.resume();else game.pause();keys.clear();}
 function shop(){if(game.state==='shop')game.closeShop();else if(!game.openShop())toast(['reward','draft'].includes(game.state)?'Resolve your rewards before continuing.':'Begin your journey to visit the shop.');keys.clear();}
 const stage=document.querySelector('.canvas-wrap');
 function fullscreenLabel(){const active=document.fullscreenElement===stage||stage.classList.contains('expanded');$('fullscreen-button').textContent=active?'⤢ Exit fullscreen':'⛶ Fullscreen';$('fullscreen-button').setAttribute('aria-pressed',String(active));}
@@ -34,7 +42,7 @@ async function toggleFullscreen(){
  fullscreenLabel();if(game.state==='playing')canvas.focus();
 }
 $('fullscreen-button').onclick=toggleFullscreen;document.addEventListener('fullscreenchange',()=>{keys.clear();fullscreenLabel();});
-$('shop-button').onclick=shop;$('pause-button').onclick=pause;
+$('shop-button').onclick=shop;$('pause-button').onclick=pause;$('run-menu').onclick=pause;
 $('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'SOUND ON':'SOUND OFF';$('sound').setAttribute('aria-label',sound?'Disable sound':'Enable sound');beep(660);};
 window.addEventListener('keydown',e=>{
  if(e.target.closest?.('button')&&['Space','Enter'].includes(e.code))return;
@@ -47,8 +55,8 @@ window.addEventListener('keydown',e=>{
  if(e.code==='Space')game.dash();if(e.code==='KeyE')game.nova();if(e.code==='KeyB')shop();if(e.code==='Escape'){if(stage.classList.contains('expanded')){stage.classList.remove('expanded');document.body.classList.remove('game-expanded');fullscreenLabel();return;}if(game.state==='shop')game.closeShop();else pause();}
 });
 window.addEventListener('keyup',e=>keys.delete(e.code));
-window.addEventListener('blur',()=>{keys.clear();if(game.state==='playing')game.state='paused';});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();if(game.state==='playing')game.state='paused';}});
+window.addEventListener('blur',()=>{keys.clear();if(game.state==='playing')game.pause();saveRun();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();if(game.state==='playing')game.pause();saveRun();}});
 for(const b of document.querySelectorAll('[data-move]')){const key={left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'}[b.dataset.move];b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(key);};b.onpointerup=b.onpointercancel=()=>keys.delete(key);}
 $('touch-interact').onclick=()=>game.interact();
 function updateCameraLabel(){
@@ -72,21 +80,21 @@ for(const button of document.querySelectorAll('[data-element]'))button.onclick=(
 $('touch-dash').onpointerdown=e=>{e.preventDefault();game.dash();};$('touch-ability').onpointerdown=e=>{e.preventDefault();game.nova();};
 function modal(html,cls=''){ $('overlay').hidden=false;$('overlay').innerHTML=`<div class="modal ${cls}">${html}</div>`; }
 function showState(){
- const state=game.state,entering=shown!==state;if(!entering&&!(['shop','draft','loadout','reward'].includes(state)&&shownShopRevision!==game.shopRevision))return;shown=state;$('toast').hidden=['shop','draft','reward'].includes(state);
- $('pause-button').textContent=state==='paused'?'Resume · Esc':'Pause · Esc';
+ const state=game.state,entering=shown!==state;if(!entering&&!(['shop','draft','loadout','reward'].includes(state)&&shownShopRevision!==game.shopRevision))return;shown=state;$('toast').hidden=['shop','draft','reward','paused'].includes(state);
+ $('pause-button').textContent=state==='paused'?'Resume · Esc':'Run menu · Esc';$('run-menu').hidden=['title','loadout','dead'].includes(state);$('run-menu').textContent=state==='paused'?'Resume run':'Run menu · Esc';
  if(state==='playing'){$('overlay').hidden=true;canvas.focus();return;}
  if(state==='title'){
- modal(`<div class="crest">✧</div><div class="eyebrow">THE RANGER’S JOURNEY</div><h2>Beyond the clearing</h2><p>Roam the woods, frozen ruins, ember hills, and venom marsh. Choose your archer, collect enemy-dropped chests, tame companions, and commit to an elemental build. Earn a stat choice each level. After each wave, pick your rewards and browse four rotating shop offers.</p><button class="button" id="begin">Begin your journey &nbsp; →</button><p class="subtext">WASD to move · C for free mouse look · Red areas warn attacks<br>Your bow automatically targets nearby enemies. Bosses arrive on waves 5, 10, 15, and 20. Clear the campaign to unlock endless play.${best?`<br>Personal best: ${best} enemies defeated`:''}</p>`);
- $('begin').onclick=start;
+ modal(`<div class="crest">✧</div><div class="eyebrow">THE RANGER’S JOURNEY</div><h2>Beyond the clearing</h2><p>Roam the woods, frozen ruins, ember hills, and venom marsh. Choose your archer, collect enemy-dropped chests, tame companions, and commit to an elemental build. Earn a stat choice each level. After each wave, pick your rewards and browse four rotating shop offers.</p>${savedRun?`<button class="button" id="continue-run">Continue saved run · Wave ${savedRun.data.wave} →</button>`:''}<button class="button ${savedRun?'secondary':''}" id="begin">${savedRun?'Start a new run':'Begin your journey'} &nbsp; →</button>${savedRun?'<p class="save-note">Starting a new run replaces this save when you enter the wild.</p>':''}<p class="subtext">WASD to move · C for free mouse look · Red areas warn attacks<br>Your bow automatically targets nearby enemies. Bosses arrive on waves 5, 10, 15, and 20. Clear the campaign to unlock endless play.${best?`<br>Personal best: ${best} enemies defeated`:''}</p>`);
+ $('begin').onclick=start;if(savedRun)$('continue-run').onclick=resumeSaved;
  }else if(state==='loadout'){renderLoadout();}
  else if(state==='paused'){
- modal('<div class="crest">☾</div><div class="eyebrow">TAKE A BREATH</div><h2>The forest can wait.</h2><p>Your journey is paused. Come back when your spark is ready.</p><div class="modal-actions"><button class="button" id="resume">Keep wandering</button><button class="button secondary" id="paused-shop">Visit shop</button></div>');$('resume').onclick=pause;$('paused-shop').onclick=shop;
+ modal(`<div class="crest">☾</div><div class="eyebrow">RUN MENU · WAVE ${game.wave}</div><h2>The forest can wait.</h2><p>Your run is paused. Save & quit lets you return to this exact fight or reward screen on this browser. Leave run discards your current run.</p><p id="save-status" role="status" hidden></p><div class="run-menu-actions"><button class="button" id="resume">Resume run</button><button class="button secondary" id="paused-shop" ${game.pausedFrom!=='playing'?'disabled':''}>Visit shop</button><button class="button" id="save-quit">Save & quit</button><button class="button secondary" id="quit-run">Leave run</button></div>`);$('resume').onclick=pause;$('paused-shop').onclick=shop;$('save-quit').onclick=saveAndQuit;$('quit-run').onclick=quitRun;
  }else if(state==='draft'){renderDraft();}
  else if(state==='shop'){renderShop();}
  else if(state==='reward'){renderChest();}
  else if(state==='dead'||state==='won'){
  best=Math.max(best,game.player.kills);try{localStorage.setItem('wildfall-best',String(best));}catch{}
- const won=state==='won';modal(`<div class="crest">${won?'✧':'☾'}</div><div class="eyebrow">${won?'THE HOLLOW IS FREE':'EVERY SPARK LEAVES A STORY'}</div><h2>${won?'You brought the dawn.':'The wild remembers.'}</h2><p>${won?'All four guardians have fallen. Continue into endless waves with your current build, or start a new journey.':'Rest, Wayfarer. The woods will be waiting for your next journey.'}</p><p>Wave ${game.wave} &nbsp; · &nbsp; Level ${game.player.level} &nbsp; · &nbsp; ${game.player.kills} defeated<br>${game.bossesDefeated} guardians defeated &nbsp; · &nbsp; Best: ${best} defeated</p>${won?'<button id="endless" class="button">Continue endless →</button>':''}<button id="restart" class="button secondary">${won?'Wander again':'Try again'} &nbsp; →</button><p class="subtext">Coins and upgrades reset each run. Your best score is saved.</p>`);$('restart').onclick=start;if(won)$('endless').onclick=()=>{keys.clear();game.continueEndless();shown='';};
+ const won=state==='won';if(!won)clearSavedRun();modal(`<div class="crest">${won?'✧':'☾'}</div><div class="eyebrow">${won?'THE HOLLOW IS FREE':'EVERY SPARK LEAVES A STORY'}</div><h2>${won?'You brought the dawn.':'The wild remembers.'}</h2><p>${won?'All four guardians have fallen. Continue into endless waves with your current build, or start a new journey.':game.defeatReason||'Rest, Wayfarer. The woods will be waiting for your next journey.'}</p><p>Wave ${game.wave} &nbsp; · &nbsp; Level ${game.player.level} &nbsp; · &nbsp; ${game.player.kills} defeated<br>${game.bossesDefeated} guardians defeated &nbsp; · &nbsp; Best: ${best} defeated</p>${won?'<button id="endless" class="button">Continue endless →</button>':''}<button id="restart" class="button secondary">${won?'Wander again':'Try again'} &nbsp; →</button><p class="subtext">Coins and upgrades reset each run. Your best score is saved.</p>`);$('restart').onclick=start;if(won)$('endless').onclick=()=>{keys.clear();game.continueEndless();shown='';};
  }
 }
 function renderLoadout(){
@@ -114,7 +122,7 @@ function buildModal(content){
 function renderIntermission(){if(game.state==='draft')renderDraft();else if(game.state==='reward')renderChest();else renderShop();}
 function renderChest(){
  shownShopRevision=game.shopRevision;const chest=game.chestQueue[0],item=chest.reward,myth=chest.tier==='mythical',cost=game.chestRerollCost(),alternatives=game.chestPool(chest.tier).some(i=>i.id!==item?.id);
- buildModal(`<div class="eyebrow">${myth?'GUARDIAN MYTHICAL CHEST':'ENEMY-DROPPED ABILITY CHEST'} · ${game.chestQueue.length} LEFT</div><h2>${myth?'A legend in the lock':'A little stolen luck'}</h2>${statLine()}<div class="chest-reward rarity-${item?.rarity||'common'} ${myth?'mythical':'normal'}"><div class="reward-chest-icon">${item?upgradeArt(item):'▣'}</div><span class="rarity-label">${item?RARITIES[item.rarity].label.toUpperCase():'ABILITY'} REWARD</span><h3>${item?.name||'A well-stocked ranger'}</h3><p>${item?.text||'You already own every eligible power. Sell this chest for gold.'}</p><small>Take this power for free, reroll it, or sell it for gold. Chest rolls have their own cost.</small></div><div class="reward-actions"><button class="button" id="take-chest" ${!item||!game.offer(item,{reward:true}).available?'disabled':''}>Take power</button><button class="button secondary" id="reroll-chest" ${game.player.coins<cost||!alternatives?'disabled':''}>↻ Reroll · ◈ ${cost}</button><button class="button secondary" id="sell-chest">Sell · ◈ ${game.chestSellValue()}</button></div><div class="shop-footnote">${myth?'Mythical powers come only from guardians. ':'Only this chest is rerolled. '}Reroll costs rise for this chest and start fresh on the next one.</div>`);
+ buildModal(`<div class="eyebrow">${myth?'GUARDIAN MYTHICAL CHEST':'ENEMY-DROPPED ABILITY CHEST'} · ${game.chestQueue.length} LEFT</div><h2>${myth?'A legend in the lock':'A little stolen luck'}</h2>${statLine()}<div class="chest-reward rarity-${item?.rarity||'common'} ${myth?'mythical':'normal'}"><div class="reward-chest-icon">${item?upgradeArt(item):'▣'}</div><span class="rarity-label">${item?RARITIES[item.rarity].label.toUpperCase():'ABILITY'} REWARD</span><h3>${item?.name||'A well-stocked ranger'}</h3><p>${item?.text||'You already own every eligible power. Sell this chest for gold.'}</p><small>Take this power for free, reroll it, or sell it for gold. Chest rolls have their own cost.</small></div><div class="reward-actions"><button class="button" id="take-chest" ${!item||!game.offer(item,{reward:true}).available?'disabled':''}>Take power</button><button class="button secondary" id="reroll-chest" ${game.player.coins<cost||!alternatives?'disabled':''}>↻ Reroll · ◈ ${cost}</button><button class="button secondary" id="sell-chest">Sell · ◈ ${game.chestSellValue()}</button></div><div class="shop-footnote">${myth?'Guardians guarantee a Mythic chest; Mythics can also appear very rarely in the shop. ':'Only this chest is rerolled. '}Reroll costs rise for this chest and start fresh on the next one.</div>`);
  $('take-chest').onclick=()=>{if(game.resolveChest('take')){beep(990);showState();hud();}};
  $('sell-chest').onclick=()=>{if(game.resolveChest('sell')){beep(660);showState();hud();}};
  $('reroll-chest').onclick=()=>{if(game.rerollChest()){beep(550);renderChest();hud();}};
@@ -132,7 +140,7 @@ function renderShop(){
    const item=SHOP.find(i=>i.id===slot.id),offer=game.offer(item),disabled=slot.sold||!offer.available||p.coins<offer.price;
    return `<button class="shop-card rarity-${item.rarity||'common'} ${slot.sold?'sold-card':''}" data-buy="${item.id}" ${disabled?'disabled':''}>${upgradeArt(item)}<span class="item-rarity">${RARITIES[item.rarity].label}${slot.sold?' · ✓':''}</span><strong>${item.name}${item.max?` · ${offer.rank}/${item.max}`:''}</strong><small>${slot.sold?'Purchased · reroll for new offers':item.text}</small><span class="price">${slot.sold?'SOLD':!offer.available?offer.reason:`${offer.price<offer.basePrice?'<s>'+offer.basePrice+'</s> ':''}◈ ${offer.price} GOLD`}</span></button>`;
  }).join('');
- const abilities=[...SHOP,...MYTHICAL_UPGRADES].filter(i=>['ability','rare','mythical','economy'].includes(i.category)&&(i.id==='economy'?p.ranks.economy>0:p[i.id])).map(i=>i.name);
+ const abilities=SHOP.filter(i=>['ability','rare','mythical','economy'].includes(i.category)&&(i.id==='economy'?p.ranks.economy>0:p[i.id])).map(i=>i.name);
  buildModal(`<div class="eyebrow">FOUR FINDS · YOUR BUILD</div><h2>${game.pendingWave?`Wave ${game.wave} cleared`:"Wanderer's shop"}</h2>${statLine()}<div class="shop-build"><strong>${element?element.icon+' '+element.name:'➶ Physical'} build</strong><span>Ranks: ${rank.power} power · ${rank.duration} duration · ${rank.special} ability</span><small>${abilities.length?abilities.join(' · '):'Find unique abilities, companions and attunements in the rotating offers.'}</small></div><div class="shop-catalog"><div class="shop-grid">${cards}</div></div><div class="shop-bottom"><button class="button secondary" id="reroll-shop" ${p.coins<game.rerollCost()?'disabled':''}>↻ Reroll · ◈ ${game.rerollCost()}</button><button class="button" id="leave-shop">${game.pendingWave?'Begin wave '+game.pendingWave:'Continue journey'} →</button></div><div class="shop-footnote">Buy any or all. Reroll anytime; the price rises each roll and resets after the next wave. Swapping elements clears the previous element’s ranks.</div>`);
  for(const b of document.querySelectorAll('[data-buy]'))b.onclick=()=>{if(game.buy(b.dataset.buy)){beep(880);renderShop();hud();}};
  $('reroll-shop').onclick=()=>{if(game.reroll()){beep(660);renderShop();hud();}};
@@ -157,16 +165,17 @@ function hud(){
  const attackTime=Math.max(p.rapidTime,p.furyTime,p.gearTime);$('hud-burst').textContent=attackTime>0?'ACTIVE '+attackTime.toFixed(1)+'s':p.novaCooldown>0?p.novaCooldown.toFixed(1)+'s':'READY';$('hud-burst-fill').style.width=(1-p.novaCooldown/game.attackCooldown())*100+'%';
  $('defense-name').textContent=(defensive?.name||'Defense')+' · Space';$('active-name').textContent=(offensive?.name||'Offense')+' · E';$('touch-dash').textContent='SPACE';$('touch-dash').title=defensive?.name||'Defense';$('touch-ability').title=offensive?.name||'Offense';
 $('hp-text').textContent=`${Math.ceil(p.hp)} / ${p.maxHp}`;$('hp-fill').style.width=(p.hp/p.maxHp*100)+'%';$('xp-text').textContent=`${p.xp} / ${p.xpNext}`;$('xp-fill').style.width=(p.xp/p.xpNext*100)+'%';$('level-badge').textContent='LV. '+p.level;$('coins').textContent=p.coins;$('kills').textContent=p.kills;
- $('wave').textContent=`WAVE ${String(game.wave).padStart(2,'0')} / ${game.endless?'∞ ENDLESS':'20'}`;$('timer').textContent=String(Math.floor(game.time/60)).padStart(2,'0')+':'+String(Math.floor(game.time%60)).padStart(2,'0');
- $('phase').textContent=isBossWave(game.wave)?'GUARDIAN ENCOUNTER':regionAt(p).name.toUpperCase();
+ $('wave').textContent=`WAVE ${String(game.wave).padStart(2,'0')} / ${game.endless?'∞ ENDLESS':'20'}`;const remaining=Math.max(0,Math.ceil(waveDuration(game.wave)-game.waveTime));$('timer').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0')+' LEFT';
+ $('phase').textContent=isBossWave(game.wave)?(game.bossSpawned&&!game.enemies.some(e=>e.kind==='boss')?'GUARDIAN DOWN · SURVIVE':'GUARDIAN · 55s DEADLINE'):regionAt(p).name.toUpperCase();
  $('location').textContent=`${Math.round(p.x)}, ${Math.round(p.y)} · ${game.chestQueue.length+game.chests.length} chests secured / dropped`;
  const nearby=game.chests.some(c=>Math.hypot(c.x-p.x,c.y-p.y)<90);$('interact-hint').hidden=!nearby||game.state!=='playing';
  $('weapon-description').textContent=`${Math.round(game.attackDamage())} hit · ${p.element}${p.multi?' · triple shot':''}${p.piercing?' · pierces 3':p.ricochet?' · ricochet':' · first hit stops'}`;
  $('dash-status').textContent=p.spaceTime>0?`Active · ${p.spaceTime.toFixed(1)}s`:p.dashCooldown>0?`Recovering · ${p.dashCooldown.toFixed(1)}s`:defensive?.text||'Choose before starting';
  $('pet-status').textContent=game.pets.length?game.pets.map(p=>p.kind==='fox'?'Fox · fan darts':p.kind==='wolf'?'Wolf · bite + howl':'Beetle · coin/XP collector').join(' + '):'Unlock companions in the shop';
- $('armor-stat').textContent=p.armor+' · '+Math.round(100-10000/(100+p.armor*6))+'% reduction';$('speed-stat').textContent=Math.round(game.moveSpeed())+' / sec';$('passive-status').textContent=[...SHOP,...MYTHICAL_UPGRADES].filter(i=>['ability','rare','mythical','economy'].includes(i.category)&&(i.id==='economy'?p.ranks.economy>0:p[i.id])).map(i=>i.name+(i.id==='phoenix'&&p.phoenixUsed?' (spent)':'')).join(' · ')||'Find unique abilities in the shop';
+ $('armor-stat').textContent=p.armor+' · '+Math.round(100-10000/(100+p.armor*6))+'% reduction';$('speed-stat').textContent=Math.round(game.moveSpeed())+' / sec';$('passive-status').textContent=SHOP.filter(i=>['ability','rare','mythical','economy'].includes(i.category)&&(i.id==='economy'?p.ranks.economy>0:p[i.id])).map(i=>i.name+(i.id==='phoenix'&&p.phoenixUsed?' (spent)':'')).join(' · ')||'Find unique abilities in the shop';
  $('element-base-stat').textContent=p.elementalDamage.toFixed(1);$('element-rank-stat').textContent=`Power ${p.elementUpgrades.power} · Duration ${p.elementUpgrades.duration} · Ability ${p.elementUpgrades.special}`;
  for(const button of document.querySelectorAll('[data-element]')){const el=button.dataset.element,equipped=p.element===el;button.classList.toggle('equipped',equipped);button.classList.toggle('locked',!equipped);button.setAttribute('aria-pressed',String(equipped));button.title=equipped?'Currently equipped':el==='physical'?'Attunement replaces physical arrows':'Open shop to swap elements (clears old elemental ranks)';}
+ $('pickup-radius').textContent=p.magnet+' pickup radius';
  minimap();
  $('active-status').textContent=attackTime>0?`Active · ${attackTime.toFixed(1)}s`:p.novaCooldown>0?`Recharging · ${p.novaCooldown.toFixed(1)}s`:offensive?.text||'Choose before starting';
  const boss=game.enemies.find(e=>e.kind==='boss');$('boss-hud').hidden=!boss;
@@ -190,6 +199,7 @@ function frame(now){
  if(game.state==='playing')view.orbit?.(((keys.has('KeyR')?1:0)-(keys.has('KeyQ')?1:0))*Math.min(.25,dt)*1.8);
  const x=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),y=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0);
  advanceGame(game,dt,view.movement?view.movement(x,y):{moveX:x,moveY:y});
+ if(now-lastAutosave>10000){if(game.state==='dead')clearSavedRun();else saveRun();lastAutosave=now;}
  if(game.message){toast(game.message);game.message='';}if(game.event){beep(game.event==='hurt'?130:game.event==='boss'?880:440,.15);game.event=null;}
  view.render(now/1000);if(now-lastHud>=100 || shown!==game.state){hud();lastHud=now;}showState();requestAnimationFrame(frame);
 }

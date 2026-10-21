@@ -16,7 +16,7 @@ export const RARITIES=Object.freeze({
  uncommon:{label:'Uncommon',weight:.65,color:'#78dca4'},
  rare:{label:'Rare',weight:.25,color:'#75bce2'},
  epic:{label:'Epic',weight:.12,color:'#ce9aff'},
- mythical:{label:'Mythic',weight:1,color:'#ff405a'}
+ mythical:{label:'Mythic',weight:.012,color:'#ff405a'}
 });
 const EPIC_IDS=new Set(['multi','regen']);
 const RARE_IDS=new Set(['wolf','piercing','ricochet','reaper','interest']);

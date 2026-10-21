@@ -208,6 +208,7 @@ export function create3DRenderer(canvas, game) {
     }else for(let i=0;i<7;i++)mesh(g,e.element==='ice'?crystal:sphere,material,Math.cos(i)*.65,.3+(i%3)*.15,Math.sin(i)*.65,.08,.08,.08,false);
     return g;
   }
+  const pickupHalo=flatRing(scene,effectMaterial('#b4d994',{transparent:true,opacity:.25,depthWrite:false}),.75,.08);
   const playerHalo = flatRing(scene, mat('#d2e89b', { transparent: true, opacity: .55 }), .24, .025);
   function makeEnemy(e) {
     const group = new THREE.Group(), body = new THREE.Group(); group.add(body); group.userData.body = body;
@@ -321,6 +322,7 @@ export function create3DRenderer(canvas, game) {
     player.userData.bowArm.rotation.x=p.shotTime>0?-.08:0;
     player.userData.string.position.x=p.shotTime>0?-.08*p.shotTime/.3:0;
     player.userData.readyArrow.visible=p.shotTime<=0;
+    pickupHalo.position.set(px,.08,pz);pickupHalo.scale.setScalar(p.magnet/100);pickupHalo.visible=['playing','paused'].includes(game.state);
     playerHalo.position.set(px,.035,pz);playerHalo.scale.setScalar(p.dashTime>0?.32:.24);
     const focusTarget=new THREE.Vector3(px,.65,pz);
     // Snap only across a restart/teleport; ordinary movement follows smoothly.

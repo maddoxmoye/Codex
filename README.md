@@ -36,7 +36,7 @@ The build produces `dist/index.html` and `wildfall.html`, with all game code, Th
 | F | Secure a nearby enemy-dropped chest (also collected by walking close) |
 | 1 / 2 / 3 or element icons | Open the shop; attunements appear among rotating offers |
 | B | Shop; time pauses while shopping |
-| Escape | Pause / resume |
+| Escape / Run menu | Pause, resume, Save & quit, or Leave run |
 
 The bow automatically aims at and shoots nearby enemies. The character turns to shoot, draws its bow, walks with animated legs, and carries a quiver. Arrows have shafts, arrowheads, fletching, and colored elemental tips. Camera-turn buttons, element buttons, and touch movement/ability controls support smaller screens.
 
@@ -138,7 +138,7 @@ Nest Egg pays once per completed wave, before chest sales and reward choices. Op
 
 ## Enemy-dropped chests and mythical powers
 
-Ordinary enemies have a 4.5% chance to drop an ability chest. Each guardian guarantees a mythical chest. Walk within 40 units or press F within 90 units to secure a drop. Any remaining dropped chests are automatically secured when the wave ends, including the final guardian’s chest. Nothing is applied during combat.
+Ordinary enemies have a 3% chance to drop an ability chest. Each guardian guarantees a mythical chest. Walk within 40 units or press F within 90 units to secure a drop. Any remaining dropped chests are automatically secured when the wave ends, including the final guardian’s chest. Nothing is applied during combat.
 
 Intermission order is **level stat drafts → queued chests → four-offer shop**. For each chest, take the offered power for free, reroll only that chest, or sell it. Normal rewards draw from eligible abilities, pets, rare items, multishot, regeneration and offensive amplification. Chest rewards can grant an ability before its shop level gate, while ownership, rank caps and piercing/ricochet exclusivity still apply.
 
@@ -149,7 +149,7 @@ Intermission order is **level stat drafts → queued chests → four-offer shop*
 
 The table lists base costs before Economy and Loaded Dice discounts. Each chest has its own reroll counter. Chest rerolls do not change shop offers or the shop reroll counter; mythical rerolls always remain in the mythical pool. A reroll selects a different eligible power. When no alternatives remain, reroll is disabled; when all powers are owned, the chest can still be sold. Taking a power records it in the build sheet.
 
-Mythical powers appear only in guardian chests:
+Mythical powers appear in guardian chests and very rare shop offers:
 
 - **Phoenix IOU:** one fatal-hit revival per run at 50% health, two seconds of protection and a nearby fiery blast.
 - **Stormglass Crown:** every fifth automatic bow volley strikes its target with lightning, damaging enemies within 115 units.
@@ -187,14 +187,14 @@ All ten active skills have distinct art, including Pip’s ticking turquoise fie
 
 ## Boss progression
 
-Survive **20 campaign waves**, then choose **Continue endless** at the victory checkpoint to retain the same character, stats, pets and inventory. Regular waves last 25 seconds; guardian waves last until the boss falls. Resolve level-up choices, then chests, then the shop after each wave. Continue to begin the next wave and heal 15 health.
+Survive **20 campaign waves**, then choose **Continue endless** at the victory checkpoint to retain the same character, stats, pets and inventory. Regular waves last 25 seconds; guardian waves last 55 seconds. Kill the guardian before that deadline and survive until time runs out; an early kill does not end the wave. A living guardian at the deadline fails the run. Resolve level-up choices, then chests, then the shop after each wave. Continue to begin the next wave and heal 8 health.
 
 - **Wave 5 — Briar King:** charging attacks.
 - **Wave 10 — Frost Oracle:** radial barrages.
 - **Wave 15 — Hollow Monarch:** barrages and summoned minions.
 - **Wave 20 — Gilded Colossus:** overlapping targeted explosions and radial barrages.
 
-Bosses recur every five waves in endless, cycling all four designs with increasing health and damage. Population and spawn frequency rise with waves, with a 110-enemy cap. Shamans and bombers enter the random pool at wave 6, stalkers at 11, and juggernauts at 16. Juggernauts resist arrow impacts by 25% and warn a heavy close-range slam. Gold-armored elite variants begin at wave 11. Enemy health and damage continue scaling.
+Bosses recur every five waves in endless, cycling all four designs with increasing health and damage. Population and spawn frequency rise with waves, with a 140-enemy cap. Shamans and bombers enter the random pool at wave 6, stalkers at 11, and juggernauts at 16. Juggernauts resist arrow impacts by 25% and warn a heavy close-range slam. Gold-armored elite variants begin at wave 11. Enemy health and damage continue scaling.
 
 At every wave clear, all remaining XP is absorbed **in full**, including XP from the final boss. **50% of remaining ground gold** is recovered, with combat-gold bonuses applied and fractional gold carried forward. Already-collected drops cannot pay twice. Recovery happens before level-up choices and interest, and its receipt appears in intermission screens. Pick up gold during combat to receive its full value. Leftover healing drops are discarded.
 
@@ -250,6 +250,18 @@ Element colors are fire red, ice blue and poison purple across arrows, effects, 
 
 Every shop offer has an inline vector illustration matched to its effect, a written rarity label, and a matching border. The same illustrations appear on chest rewards and acquired-upgrade history. Examples include a coin-carrying beetle, fox and wolf faces, reroll dice, piercing and ricochet paths, a thorn mantle, and a phoenix. Element upgrades use red fire, blue ice or purple poison art with distinct power, duration or special-effect marks. Icons remain visible on mobile and work offline in the standalone build.
 
-Shop rarity weights, per eligible item: Common 1.0, Uncommon 0.65, Rare 0.25, Epic 0.12. These are relative weights, not fixed percentages; the current eligible pool determines the odds. Examples: tonic and ordinary stat boosts are Common; fox, beetle and utility upgrades are Uncommon; piercing, ricochet and wolf are Rare; Triple Shot and Living Roots are Epic. Existing prices, rank caps and level requirements still apply.
+Shop rarity weights, per eligible item: Common 1.0, Uncommon 0.65, Rare 0.25, Epic 0.12, Mythic 0.012. These are relative weights, not fixed percentages; the current eligible pool determines the odds. Examples: tonic and ordinary stat boosts are Common; fox, beetle and utility upgrades are Uncommon; piercing, ricochet and wolf are Rare; Triple Shot and Living Roots are Epic. Existing prices, rank caps and level requirements still apply.
 
-Mythic powers stay exclusive to guardian chests and have equal selection weight within that pool. Their reward cards, history icons and dropped chests glow crimson red. Phoenix, Stormglass lightning, Worldroot effects and Orbit suns also use a red signature while retaining their distinct shapes. Enemy warning markers continue to indicate danger through their outlines and filling ground areas.
+Mythic powers can appear very rarely in the four-offer shop (180 base gold) and have equal selection weight within guardian chests. Owned Mythics are removed from both shop and chest pools for the rest of that run, including a spent Phoenix IOU. Their reward cards, history icons and dropped chests glow crimson red. Phoenix, Stormglass lightning, Worldroot effects and Orbit suns also use a red signature while retaining their distinct shapes. Enemy warning markers continue to indicate danger through their outlines and filling ground areas.
+
+### Save, resume and leave a run
+
+Open **Run menu** inside the stage (also available in fullscreen), or press Escape during combat. **Save & quit** stores the current run in this browser and returns to the title screen; **Continue saved run** restores it safely paused. **Leave run** discards the active run and its save while keeping character unlock progress. Starting a new run replaces the save only when you launch that run.
+
+Saves preserve the current wave and timer, health/currency/stats, cooldowns, enemies and pending attacks, projectiles and their previously hit targets, pets, ground loot, chests, shop offers and sold slots, reroll prices, pending level choices, history, and endless state. The run menu also works from shop and reward screens and returns to the same screen. Autosaves run every 10 seconds and when the page is hidden or closed; manual Save & quit reports storage failures without leaving the run. Saves live in local browser storage (`wildfall-run`), so use the same browser/site/device. Corrupt or incompatible saves are rejected without changing a live run.
+
+### Pickup radius and harder survival
+
+Gold and XP credit immediately when they enter the player's visible 75-unit pickup ring; touching each drop is unnecessary. **Gathering Compass** is an Uncommon level-1 shop item (35 base gold) granting +30 pickup radius per rank, up to five ranks / 225 radius. The HUD and stat sheet show the radius. Healing still requires approaching the drop. Every dropped chest is collected automatically at wave clear; walking nearby or pressing F can secure it earlier. Previous end-of-wave recovery remains 100% XP and 50% ground gold.
+
+Ordinary enemy health is now `1.25 × (base health + 7 × wave)`, with base health 22 or 40 before type/elite modifiers; contact damage is `12 + 1.4 × wave`. Boss health starts at `580 × guardian number`, with further endless scaling. Regular spawn intervals decrease from `0.78 − 0.022 × wave` to a floor of 0.12 seconds; spawn groups rise by one every seven waves, capped at four. Active enemy limits rise from `55 + 4 × wave` to 140, including summoned minions. Ordinary kills drop 2 gold; guardians drop 10 plus a 35-gold bounty. New-wave healing is 8 health and ordinary chest drop chance is 3%. Countdown HUDs distinguish a live guardian from the post-kill survival period. Bosses remain on waves 5/10/15/20 and every fifth endless wave.
