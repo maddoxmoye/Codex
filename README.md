@@ -4,6 +4,8 @@ A browser survival adventure in a continuous 4,800 × 4,000-unit world. A low pe
 
 Play the deployed game at **https://maddoxmoye.github.io/Codex/**.
 
+The link opens directly into a viewport-filling game, without a website header, footer or surrounding panels. Choosing an archer or continuing a save requests browser fullscreen from that click; browsers require a user gesture. Exiting fullscreen keeps the game filling the window. If fullscreen is unsupported or declined, play continues in the full window. The in-game **Options** menu contains sound, graphics, stats/inventory and progress/reset controls, and opening it during combat pauses the run.
+
 ## The Emberwild — Babylon.js edition
 
 The main game has a new **Babylon.js** renderer and original art built for this edition. The previous Three.js renderer is no longer used by the main game. Gameplay remains the existing, tested JavaScript simulation: all unlocks, saved runs, items, exclusive elements, rewards and 45/75-second waves carry over.

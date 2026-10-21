@@ -18,7 +18,7 @@ function saveRun(){const snapshot=game.snapshot();if(!snapshot)return false;try{
 function clearSavedRun(){savedRun=null;try{localStorage.removeItem('wildfall-run');}catch{}}
 function saveAndQuit(){if(!saveRun()){$('save-status').hidden=false;$('save-status').textContent='Could not save in this browser. Your run is still paused; retry Save & quit.';return;}saveProgress();keys.clear();game.reset();shown='';toast('Run saved · continue from the main menu on this browser.');showState();hud();}
 function quitRun(){clearSavedRun();saveProgress();keys.clear();game.reset();shown='';showState();hud();}
-function resumeSaved(){if(!savedRun||!game.restoreSnapshot(savedRun)){clearSavedRun();shown='';toast('This saved run could not be loaded. Start a new journey.');return;}keys.clear();shown='';lastBoss=0;showState();hud();}
+function resumeSaved(){options.open=false;void enterFullscreen();if(!savedRun||!game.restoreSnapshot(savedRun)){clearSavedRun();shown='';toast('This saved run could not be loaded. Start a new journey.');return;}keys.clear();shown='';lastBoss=0;showState();hud();}
 
 let graphics='3d';
 // Start every visit in 3D, including browsers with an older saved 2D preference.
@@ -29,8 +29,8 @@ const keys=new Set(); let previous=performance.now(),shown='',sound=false,audio,
 let best=0;try{best=Number(localStorage.getItem('wildfall-best'))||0;}catch{}
 function beep(freq=440,duration=.1,type='sine',volume=.025){if(!sound)return;try{audio ||= new AudioContext();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);}catch{}}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3200);}
-function start(){progressNotice='';keys.clear();game.prepareLoadout();shown='';lastBoss=0;showState();hud();}
-function launch(){if(game.startLoadout()){clearSavedRun();keys.clear();shown='';canvas.focus();beep(550,.2);showState();hud();}}
+function start(){options.open=false;void enterFullscreen();progressNotice='';keys.clear();game.prepareLoadout();shown='';lastBoss=0;showState();hud();}
+function launch(){options.open=false;if(game.startLoadout()){clearSavedRun();keys.clear();shown='';canvas.focus();beep(550,.2);showState();hud();}}
 function pause(){if(progressScreen){closeProgressPanel();return;}if(game.state==='paused')game.resume();else{pauseStatsOpen=false;game.pause();}keys.clear();showState();hud();}
 function shop(){
  if(progressScreen){closeProgressPanel();return;}
@@ -40,20 +40,30 @@ function shop(){
  else toast('Start a run to inspect your equipment.');keys.clear();
 }
 const stage=document.querySelector('.canvas-wrap');
-function fullscreenLabel(){const active=document.fullscreenElement===stage||stage.classList.contains('expanded');$('fullscreen-button').textContent=active?'⤢ Exit fullscreen':'⛶ Fullscreen';$('fullscreen-button').setAttribute('aria-pressed',String(active));}
+function fullscreenLabel(){const active=document.fullscreenElement===stage;$('fullscreen-button').textContent=active?'⤢ Exit fullscreen':'⛶ Fullscreen';$('fullscreen-button').setAttribute('aria-pressed',String(active));const loadout=$('loadout-fullscreen');if(loadout)loadout.textContent=active?'⤢ Exit fullscreen':'⛶ Fullscreen';}
+async function enterFullscreen(){
+ // Browser fullscreen requires a user gesture. The game always fills the viewport,
+ // including browsers that do not support or decline this optional request.
+ if(document.fullscreenElement===stage)return;
+ try{if(stage.requestFullscreen)await stage.requestFullscreen();}catch{}
+ fullscreenLabel();
+}
 async function toggleFullscreen(){
- try{
-  if(document.fullscreenElement===stage)await document.exitFullscreen();
-  else if(stage.classList.contains('expanded')){stage.classList.remove('expanded');document.body.classList.remove('game-expanded');}
-  else if(stage.requestFullscreen)await stage.requestFullscreen();
-  else{stage.classList.add('expanded');document.body.classList.add('game-expanded');}
- }catch{stage.classList.toggle('expanded');document.body.classList.toggle('game-expanded',stage.classList.contains('expanded'));}
+ if(document.fullscreenElement===stage){try{await document.exitFullscreen();}catch{}}
+ else await enterFullscreen();
  fullscreenLabel();if(game.state==='playing')canvas.focus();
 }
-$('fullscreen-button').onclick=toggleFullscreen;document.addEventListener('fullscreenchange',()=>{keys.clear();fullscreenLabel();});
-$('shop-button').onclick=shop;$('pause-button').onclick=pause;$('run-menu').onclick=pause;
+$('fullscreen-button').onclick=toggleFullscreen;
+document.addEventListener('fullscreenchange',()=>{keys.clear();fullscreenLabel();});
+const options=$('game-options');
+options.addEventListener('toggle',()=>{if(options.open&&game.state==='playing'){game.pause();keys.clear();showState();hud();}});
+for(const [id,action] of [['shop-button',shop],['pause-button',pause],['progress-button',()=>openProgressPanel()]]){
+ $(id).onclick=()=>{options.open=false;action();showState();hud();};
+}
+$('run-menu').onclick=pause;
 $('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'SOUND ON':'SOUND OFF';$('sound').setAttribute('aria-label',sound?'Disable sound':'Enable sound');beep(660);};
 window.addEventListener('keydown',e=>{
+ if(options.open&&e.code==='Escape'){e.preventDefault();options.open=false;return;}
  if(progressScreen){if(e.code==='Escape'){e.preventDefault();closeProgressPanel();}return;}
  if(e.target.closest?.('button')&&['Space','Enter'].includes(e.code))return;
  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
@@ -62,7 +72,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='Digit0')requestElement('physical');
  if(e.code==='KeyF')game.interact();
  if(e.code==='Digit1')requestElement('fire');if(e.code==='Digit2')requestElement('ice');if(e.code==='Digit3')requestElement('poison');
- if(e.code==='Space')game.dash();if(e.code==='KeyE')game.nova();if(e.code==='KeyB')shop();if(e.code==='Escape'){if(stage.classList.contains('expanded')){stage.classList.remove('expanded');document.body.classList.remove('game-expanded');fullscreenLabel();return;}if(game.state==='shop')game.closeShop();else pause();}
+ if(e.code==='Space')game.dash();if(e.code==='KeyE')game.nova();if(e.code==='KeyB')shop();if(e.code==='Escape'){if(game.state==='shop')game.closeShop();else pause();}
 });
 window.addEventListener('keyup',e=>keys.delete(e.code));
 window.addEventListener('blur',()=>{keys.clear();if(game.state==='playing')game.pause();saveRun();});
@@ -84,7 +94,7 @@ function requestElement(element){
 }
 for(const button of document.querySelectorAll('[data-element]'))button.onclick=()=>requestElement(button.dataset.element);
 $('touch-dash').onpointerdown=e=>{e.preventDefault();game.dash();};$('touch-ability').onpointerdown=e=>{e.preventDefault();game.nova();};
-$('progress-button').onclick=openProgressPanel;
+
 function openProgressPanel(){
  if(game.state==='playing')game.pause();keys.clear();progressScreen='menu';renderProgressPanel();
 }
@@ -119,7 +129,7 @@ function showState(){
  $('pause-button').textContent=state==='paused'?'Resume · Esc':'Run menu · Esc';$('run-menu').hidden=['title','loadout','dead'].includes(state);$('run-menu').textContent=state==='paused'?'Resume run':'Run menu · Esc';
  if(state==='playing'){$('overlay').hidden=true;canvas.focus();return;}
  if(state==='title'){
- modal(`<div class="landing-rule"><span>WILDFALL</span><span>THE EMBERWILD</span></div><div class="eyebrow">AN ARCHER. A WILDERNESS. A LITTLE HOPE.</div><h2>Into the<br><em>Emberwild.</em></h2><p>An ancient wood. Four restless guardians.<br>Take up your bow and make a little light.</p><div class="landing-actions">${savedRun?`<button class="button" id="continue-run">Continue your story <span>Wave ${savedRun.data.wave} →</span></button>`:''}<button class="button ${savedRun?'secondary':''}" id="begin">${savedRun?'Begin a new story':'Choose your archer'} <span>→</span></button></div><div class="landing-details"><span>20 WAVES + ENDLESS</span><span>5 ARCHERS</span><span>ONE WILD WORLD</span></div><p class="subtext">WASD to wander · Your bow finds its own target.<br>Space to evade · E to unleash your signature ability.${best?`<br>Personal best · ${best} enemies defeated`:''}</p>${progressNotice?`<p class="save-note" id="progress-notice">${progressNotice}</p>`:''}`,'landing-modal');
+ modal(`<div class="landing-rule"><span>WILDFALL</span><span>THE EMBERWILD</span></div><div class="eyebrow">AN ARCHER. A WILDERNESS. A LITTLE HOPE.</div><h2>Into the<br><em>Emberwild.</em></h2><p>An ancient wood. Four restless guardians.<br>Take up your bow and make a little light.</p><div class="landing-actions">${savedRun?`<button class="button" id="continue-run">Continue your story <span>Wave ${savedRun.data.wave} →</span></button>`:''}<button class="button ${savedRun?'secondary':''}" id="begin">${savedRun?'Begin a new story':'Choose your archer'} <span>→</span></button></div><p class="fullscreen-note">Start or continue to enter fullscreen. Esc returns to window view.</p><div class="landing-details"><span>20 WAVES + ENDLESS</span><span>5 ARCHERS</span><span>ONE WILD WORLD</span></div><p class="subtext">WASD to wander · Your bow finds its own target.<br>Space to evade · E to unleash your signature ability.${best?`<br>Personal best · ${best} enemies defeated`:''}</p>${progressNotice?`<p class="save-note" id="progress-notice">${progressNotice}</p>`:''}`,'landing-modal');
  $('begin').onclick=start;if(savedRun)$('continue-run').onclick=resumeSaved;
  }else if(state==='loadout'){renderLoadout();}
  else if(state==='paused'){
@@ -142,7 +152,7 @@ function renderLoadout(){
  const section=(slot,label)=>{const skill=game.skill(slot);return `<section class="preset-card"><div class="loadout-label">${label}</div><h3>${skill.icon} ${skill.name}</h3><p>${skill.text}</p><span class="price">${skill.cooldown}s cooldown</span></section>`;};
  modal(`<button class="text-button loadout-fullscreen" id="loadout-fullscreen">⛶ Fullscreen</button><div class="eyebrow">FIVE ARCHERS · FIVE SIGNATURE PRESETS</div><h2>Choose your archer</h2><p class="loadout-intro">Each archer has their own design and fixed Space / E abilities. Scroll below the roster to review your preset.</p><div class="loadout-scroll"><div class="loadout-label">ARCHER ROSTER · UNLOCKS SAVED IN THIS BROWSER</div><div class="character-grid">${CHARACTERS.map(c=>{const unlocked=isUnlocked(c,game.progress);return `<button class="character-card ${game.character===c.id?'selected':''}" data-character="${c.id}" aria-pressed="${game.character===c.id}" ${unlocked?'':'disabled'}>${archerPortrait(c)}<strong style="color:${c.hood}">${c.name}</strong><small>${unlocked?c.text:c.goal+' · '+Math.min(c.target,game.progress[c.metric]||0)+'/'+c.target}</small></button>`;}).join('')}</div><h3 class="preset-name">${c.name} · signature abilities</h3><div class="preset-grid">${section('space','SPACE · DEFENSE & MOVEMENT')}${section('attack','E · OFFENSE')}</div></div><button class="button" id="launch-run">Enter the wild →</button>`,'loadout-modal');
  for(const b of document.querySelectorAll('[data-character]'))b.onclick=()=>{if(game.chooseCharacter(b.dataset.character))renderLoadout();};
- $('launch-run').onclick=launch;$('loadout-fullscreen').onclick=toggleFullscreen;
+ $('launch-run').onclick=launch;$('loadout-fullscreen').onclick=toggleFullscreen;fullscreenLabel();
 }
 let statsOpen=false,pauseStatsOpen=false;
 function buildSheet(){

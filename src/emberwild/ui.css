@@ -655,3 +655,42 @@ main{
 .startup{text-align:center;color:#d8bd89;font:22px Georgia,serif}.startup>span{display:block;font-size:48px;margin-bottom:15px}.startup p{font-size:13px;letter-spacing:2px;color:#b5c3b6}
 /* Canvas buffer resizing must never change the stage's CSS dimensions. */
 .canvas-wrap > #arena{position:absolute;inset:0;width:100%;height:100%}
+
+/* The published link is the game: no surrounding page or scrolling shell. */
+html:has(body.game-only),body.game-only{width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+.game-only main,.game-only .game-layout,.game-only .arena-panel{display:contents}
+.game-only .arena-toolbar{display:none}
+.game-only .canvas-wrap{
+  position:fixed;inset:0;width:100%;height:100vh;height:100dvh;
+  min-height:0;aspect-ratio:auto;border:0;border-radius:0;overflow:hidden}
+.game-options{position:absolute;z-index:40;right:max(22px,env(safe-area-inset-right));top:274px;font:11px system-ui}
+.game-options summary{list-style:none;cursor:pointer;padding:10px 13px;color:#eee9dc;background:#12262be8;border:1px solid #a2b7b24d;border-radius:4px}
+.game-options summary::-webkit-details-marker{display:none}
+.game-options summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.game-options nav{position:absolute;right:0;top:42px;display:grid;gap:5px;width:210px;padding:10px;background:#101b20fa;border:1px solid #516367;border-radius:5px;box-shadow:0 12px 35px #0008;max-height:calc(100dvh - 330px);overflow:auto}
+.game-options button{padding:12px;text-align:left;background:#1d2c31;color:#eee9dc;border:1px solid #3b4c51;border-radius:3px;font:11px system-ui}
+.game-options button:hover{background:#314347;border-color:#d8b77a}
+.canvas-wrap:has(.landing-modal) .game-options{top:max(20px,env(safe-area-inset-top))}
+.canvas-wrap:has(.landing-modal) .game-options nav{max-height:calc(100dvh - 90px)}
+.canvas-wrap:has(.overlay:not([hidden])):not(:has(.landing-modal)) .game-options{top:2px;right:115px;bottom:auto}
+.canvas-wrap:has(.overlay:not([hidden])):not(:has(.landing-modal)) .game-options summary{padding:3px 8px;font-size:8px;height:18px}
+.canvas-wrap:has(.overlay:not([hidden])):not(:has(.landing-modal)) .game-options nav{top:25px;bottom:auto;max-height:calc(100dvh - 50px)}
+.canvas-wrap:has(.landing-modal) .fullscreen-button{top:max(69px,calc(env(safe-area-inset-top) + 49px));z-index:21}
+.landing-modal .fullscreen-note{font:10px/1.5 system-ui;color:#a9b8b9;margin:12px 0 20px}
+.game-only .landing-modal{max-height:calc(100dvh - 70px);overflow:auto;scrollbar-width:thin}
+@media(max-width:700px){
+  .game-options{right:max(9px,env(safe-area-inset-right));top:212px;font-size:9px}
+  .game-options summary{padding:8px}
+  .game-options nav{top:36px;max-height:calc(100dvh - 265px)}
+}
+@media(max-height:550px){
+  .game-only .overlay:has(.landing-modal){padding:18px 5%}
+  .game-only .landing-rule{margin-bottom:12px}
+  .game-only .landing-modal h2{font-size:43px;line-height:1;margin:10px 0}
+  .game-only .landing-modal p{margin-bottom:10px}
+  .game-only .landing-details{margin-top:10px}
+  .game-options{top:auto;bottom:12px}
+  .game-options nav{top:auto;bottom:42px;max-height:calc(100dvh - 75px)}
+  .canvas-wrap:has(.landing-modal) .game-options{bottom:auto}
+  .canvas-wrap:has(.landing-modal) .game-options nav{top:42px;bottom:auto}
+}
