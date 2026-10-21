@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {NullEngine,Scene} from '@babylonjs/core';
-import {createArt} from '../src/emberwild/art.js';
+import {createArt,mergeStaticMeshes} from '../src/emberwild/art.js';
 import {createActors} from '../src/emberwild/actors.js';
 import {createTerrain,groundHeight} from '../src/emberwild/world.js';
 import {CHARACTERS} from '../src/content.js';
@@ -18,4 +18,8 @@ test('Babylon bestiary covers every enemy, all four guardians and independent pe
 
 test('rolling terrain keeps upward lighting normals in Babylon right-handed camera space',()=>{
  const engine=new NullEngine(),scene=new Scene(engine);scene.useRightHandedSystem=true;try{const ground=createTerrain(scene,null),normals=ground.getVerticesData('normal'),positions=ground.getVerticesData('position');for(let i=0;i<normals.length;i+=3)assert.ok(normals[i+1]>.9);for(let i=0;i<positions.length;i+=3)assert.ok(Math.abs(positions[i+1]-groundHeight(positions[i],positions[i+2]))<1e-6);}finally{scene.dispose();engine.dispose();}
+});
+
+test('static batching never corrupts primitive indices shared by later characters',()=>{
+ const engine=new NullEngine(),scene=new Scene(engine),art=createArt(scene);try{const rock=art.part('ico',null,art.palette.stone,30,0,0,4,8,4),block=art.part('box',null,art.palette.stone,-20,3,0,4,4,4),originalIndices=Array.from(rock.getIndices()),originalPositions=Array.from(rock.getVerticesData('position'));const merged=mergeStaticMeshes([rock,block]);assert.ok(merged);assert.ok(rock.isDisposed());const actorPart=art.part('ico',null,art.palette.bone);assert.deepEqual(Array.from(actorPart.getIndices()),originalIndices);assert.deepEqual(Array.from(actorPart.getVerticesData('position')),originalPositions);assert.ok(Array.from(actorPart.getIndices()).every(i=>i<actorPart.getTotalVertices()));}finally{scene.dispose();engine.dispose();}
 });

@@ -1,6 +1,6 @@
 import {Color3,Mesh,MeshBuilder,ParticleSystem,StandardMaterial,Texture,Vector3,VertexBuffer,VertexData} from '@babylonjs/core';
 import {SCENERY,STRUCTURES,WORLD,REGIONS,regionAt} from '../world.js';
-import {C} from './art.js';
+import {C,mergeStaticMeshes} from './art.js';
 export const groundHeight=(x,z)=>.1*Math.sin(x*.23)*Math.cos(z*.27)+.045*Math.sin(z*.8+x*.24);
 export function createTerrain(scene,groundMat){
  const ground=MeshBuilder.CreateGround('rolling painted earth',{width:64,height:56,subdivisions:140,updatable:true},scene),positions=ground.getVerticesData(VertexBuffer.PositionKind);
@@ -72,7 +72,7 @@ export function createEmberwild(art,shadows){
  // Bake opaque scenery by material. This is visual geometry; gameplay colliders
  // still come from SOLIDS, preserving every tree/landmark's physical footprint.
  const groups=new Map();for(const mesh of staticRoot.getChildMeshes()){if(mesh.isDisposed()||animated.some(a=>mesh.isDescendantOf(a.root)))continue;mesh.computeWorldMatrix(true);if(!groups.has(mesh.material))groups.set(mesh.material,[]);groups.get(mesh.material).push(mesh);}
- for(const [mat,list] of groups){const merged=Mesh.MergeMeshes(list,true,true,undefined,false,false);if(merged){merged.name='landscape / '+mat.name;merged.material=mat;merged.receiveShadows=true;merged.isPickable=false;shadows.addShadowCaster(merged);}}
+ for(const [mat,list] of groups){const merged=mergeStaticMeshes(list);if(merged){merged.name='landscape / '+mat.name;merged.material=mat;merged.receiveShadows=true;merged.isPickable=false;shadows.addShadowCaster(merged);}}
  const sparkle=texture('mote',64,(ctx,s)=>{const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,'#fff9eaff');g.addColorStop(.2,'#ffe9b5aa');g.addColorStop(1,'#ffe9b500');ctx.fillStyle=g;ctx.fillRect(0,0,s,s);});sparkle.hasAlpha=true;
  const motes=new ParticleSystem('floating pollen',220,scene);motes.particleTexture=sparkle;motes.emitter=new Vector3(0,0,0);motes.minEmitBox=new Vector3(-8,.2,-7);motes.maxEmitBox=new Vector3(8,3,7);motes.color1.set(1,.8,.5,.45);motes.color2.set(.5,.9,.9,.2);motes.colorDead.set(.5,.5,.5,0);motes.minSize=.025;motes.maxSize=.065;motes.minLifeTime=4;motes.maxLifeTime=7;motes.emitRate=22;motes.direction1=new Vector3(-.1,.03,-.03);motes.direction2=new Vector3(.04,.12,.02);motes.minEmitPower=.15;motes.maxEmitPower=.3;motes.updateSpeed=.015;motes.start();
  return {height:groundHeight,update(time,x,z){for(const {root,type} of animated){if(type==='flame'){root.scaling.y=.92+Math.sin(time*7)*.12;root.rotation.y=time*.3;}else root.rotation.x=Math.sin(time*2.5)*.09;}motes.emitter.set(x,0,z);},dispose(){motes.dispose();}};

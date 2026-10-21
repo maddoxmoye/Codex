@@ -22,3 +22,12 @@ export function createArt(scene){
  const palette={stone:material('limestone','#c0b59e'),darkStone:material('basalt','#4a6165'),wood:material('bark','#6b4c38'),cloth:material('linen','#e6dbc2'),gold:material('antique-gold','#c89951',{metal:.72,rough:.29}),black:material('ink','#182e35'),bone:material('ivory','#eadfc3'),moss:material('moss','#6c977d'),skin:material('skin','#deb197',{rough:.64}),eye:material('eyes','#142832',{rough:.25}),white:material('white','#e4e6d5'),fire:material('fire','#ff3556',{glow:2}),ice:material('ice','#4d9cff',{glow:1.5,metal:.2,rough:.2}),poison:material('poison','#b64dff',{glow:1.5}),magic:material('aether','#6fe4d2',{glow:1.4}),red:material('mythic','#ff3657',{glow:2}),amber:material('amber','#ffd88c',{glow:1.3}),leather:material('leather','#59423b',{rough:.9})};
  return {scene,material,node,part,tube,ring,texture,palette,materials};
 }
+
+export function mergeStaticMeshes(meshes){
+ // Disposing within Babylon's merge permits in-place index edits. Our source
+ // geometries are shared with later scenery/actors, so force copied indices
+ // and release the original meshes only after their data has been merged.
+ const merged=Mesh.MergeMeshes(meshes,false,true,undefined,false,false);
+ if(merged)for(const mesh of meshes)mesh.dispose();
+ return merged;
+}
