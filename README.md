@@ -4,6 +4,14 @@ A browser survival adventure in a continuous 4,800 × 4,000-unit world. A low pe
 
 Play the deployed game at **https://maddoxmoye.github.io/Codex/**.
 
+## Playable visual trial
+
+Try **https://maddoxmoye.github.io/Codex/visual-trial.html** for a separate Sunlit Hollow art study. It includes a detailed, articulated Rowan, a moving cloak and bow draw, three redesigned woodland enemies, painted terrain, instanced grass and flowers, waystones, warm lighting, shadows, atmospheric fog and subtle bloom. Fire, ice and poison arrows use the real combat and damage-feedback systems. This is a small, gentler practice encounter, without the campaign shop, wave progression, or persistence. It never reads or writes the main game's saved runs, unlocks, best score, or settings.
+
+Choose **Enter the clearing**, then use WASD/arrows to move, Space to dash, and E for a volley. Drag the scene to orbit; scroll to zoom. **Camera: Free** enables mouse look without dragging. Element buttons (or 0–3) swap trial arrows freely. Pause/restart, touch controls, fullscreen, and a Low detail option are included; small screens start on Low. The preview uses procedural geometry and textures, with no external asset downloads. It demonstrates one possible art direction rather than replacing the full game's visuals.
+
+Locally, open `/visual-trial.html` after `npm run dev`. The build also emits `dist/visual-trial.html` as a standalone page beside the full game; serve `dist/` normally to access both.
+
 ## Run locally
 
 Requires Node.js 20 or newer (validated with Node.js 24).

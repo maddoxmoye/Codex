@@ -8,11 +8,11 @@ export function enemyLabelHeight(e){
  if(e.kind==='boss')return [1.9,1.65,1.9,1.85][e.tier-1]||1.9;
  return ({archer:.85,shaman:1.02,bomber:.75,boar:.65,wisp:.55,brute:.5,stalker:.78,juggernaut:.95}[e.kind]||.4)*(e.elite?2.15:1.8)+.16;
 }
-export function drawCombatFeedback(ctx,game,project,width,height){
+export function drawCombatFeedback(ctx,game,project,width,height,heightForEnemy=enemyLabelHeight){
  ctx.save();ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineJoin='round';
  for(const e of game.enemies){
   if(e.hp<=0)continue;
-  const point=project(e.x,e.y,enemyLabelHeight(e),e.r);if(!point||point.x< -60||point.x>width+60||point.y< -30||point.y>height+20)continue;
+  const point=project(e.x,e.y,heightForEnemy(e),e.r);if(!point||point.x< -60||point.x>width+60||point.y< -30||point.y>height+20)continue;
   const max=e.maxHp||e.hp,ratio=Math.max(0,Math.min(1,e.hp/max)),w=e.kind==='boss'?74:e.elite?44:36,x=point.x-w/2,y=point.y;
   ctx.fillStyle='#101710e8';ctx.fillRect(x-2,y-2,w+4,9);ctx.fillStyle=e.kind==='boss'?'#f48b87':e.elite?'#f3cb81':'#a4d887';ctx.fillRect(x,y,w*ratio,5);
   ctx.strokeStyle=e.hitFlash>0?'#fff8df':'#223425';ctx.lineWidth=1;ctx.strokeRect(x-1,y-1,w+2,7);

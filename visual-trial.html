@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#11251e"><link rel="icon" href="data:,"><title>Wildfall — The Sunlit Hollow · Visual Trial</title><link rel="stylesheet" href="/src/trial.css"></head>
+<body>
+<main id="trial-stage">
+ <canvas id="trial-canvas" tabindex="0" aria-label="Playable forest clearing. WASD to move, Space to dash, E for an arrow volley. Drag to orbit the camera."></canvas>
+ <canvas id="trial-feedback" aria-hidden="true"></canvas>
+ <div class="vignette" aria-hidden="true"></div>
+ <header><a class="brand" href="./index.html"><span>✧</span> WILDFALL<small>THE SUNLIT HOLLOW</small></a><div class="top-actions"><span class="trial-label"><i></i> VISUAL TRIAL</span><a href="./index.html" class="pill">Full game ↗</a></div></header>
+ <section id="trial-vitals" class="vitals" hidden aria-label="Player status"><div><span>ROWAN <small>WAYFARER</small></span><strong id="trial-health">100 / 100</strong></div><div class="health-track" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="trial-health-fill"></i></div><p><span id="trial-kills">0 defeated</span><span>Practice clearing · no saved progress</span></p></section>
+ <div class="scene-label"><span>WHISPERING WOODS</span><small>Golden hour / Forest study 01</small></div>
+ <section id="intro" class="intro"><span class="eyebrow">A NEW LOOK FOR THE WILD</span><h1>A brighter<br>kind of wild.</h1><p>A sunlit clearing. A bow in hand.<br>Step inside a small taste of what comes next.</p><button id="enter-trial" class="primary">Enter the clearing <span>↗</span></button><small>Playable graphics study · Your saved game stays safe</small></section>
+ <div class="right-tools"><button id="trial-camera" class="pill" aria-pressed="false">Camera: Drag</button><button id="trial-detail" class="pill" aria-pressed="true">Detail: High</button><button id="trial-fullscreen" class="pill">⛶ Fullscreen</button><button id="trial-pause" class="pill" hidden>Pause</button></div>
+ <section class="element-dock" aria-label="Choose trial arrow element"><div class="dock-title"><span id="trial-element-name">FIRE</span><small>TRY AN ELEMENT</small></div><button data-trial-element="physical" aria-label="Physical arrows" aria-pressed="false"><span>➶</span><small>Bow</small></button><button data-trial-element="fire" aria-label="Fire arrows" aria-pressed="true"><span>♨</span><small>Fire</small></button><button data-trial-element="ice" aria-label="Ice arrows" aria-pressed="false"><span>❄</span><small>Ice</small></button><button data-trial-element="poison" aria-label="Poison arrows" aria-pressed="false"><span>◈</span><small>Poison</small></button></section>
+ <div id="trial-skills" class="skills" hidden><button id="trial-dash"><kbd>SPACE</kbd><span>Windskip</span><small id="dash-ready">READY</small></button><button id="trial-volley"><kbd>E</kbd><span>Flock & Awe</span><small id="volley-ready">READY</small></button></div>
+ <div id="trial-touch" hidden aria-label="Touch movement"><button data-trial-move="left" aria-label="Move left">←</button><button data-trial-move="up" aria-label="Move forward">↑</button><button data-trial-move="down" aria-label="Move backward">↓</button><button data-trial-move="right" aria-label="Move right">→</button></div>
+ <div id="trial-message" class="message" role="status" hidden><h2 id="trial-message-title"></h2><p id="trial-message-copy"></p><button id="trial-resume" class="primary">Return to the clearing ↗</button><button id="trial-restart" class="pill">Restart trial</button></div>
+ <p id="trial-error" class="error" role="alert" hidden>3D could not start in this browser. Enable hardware acceleration and refresh, or <a href="./index.html">return to the full game</a>.</p>
+ <footer><span><kbd>WASD</kbd> Move <b>·</b> <kbd>SPACE</kbd> Dash <b>·</b> <kbd>E</kbd> Volley <b>·</b> Drag to orbit <b>·</b> Scroll to zoom</span><span>REAL-TIME 3D <i>✧</i> THREE.JS</span></footer>
+</main><script type="module" src="/dist/trial.js"></script>
+</body></html>

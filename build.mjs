@@ -18,3 +18,16 @@ await writeFile(new URL('wildfall.html', root), standalone);
 await writeFile(new URL('dist/index.html', root), standalone);
 await writeFile(new URL('dist/.nojekyll', root), '');
 console.log('Built 3D + 2D game: wildfall.html and dist/index.html.');
+
+// An isolated, playable art-direction study, published beside the full game.
+const [trialHtml,trialCss,trialBundle]=await Promise.all([
+  read('visual-trial.html'),read('src/trial.css'),
+  build({entryPoints:[new URL('src/trial-main.js',root).pathname],bundle:true,write:false,format:'iife',target:['es2022'],minify:true,legalComments:'inline'})
+]);
+const trialScript=trialBundle.outputFiles[0].text;
+const trialStandalone=trialHtml
+  .replace('<link rel="stylesheet" href="/src/trial.css">',()=>'<style>'+trialCss+'</style>')
+  .replace('<script type="module" src="/dist/trial.js"></script>',()=>'<script>\n'+trialScript.replace(/<\/script/gi,'<\\/script')+'\n</script>');
+await writeFile(new URL('dist/trial.js',root),trialScript);
+await writeFile(new URL('dist/visual-trial.html',root),trialStandalone);
+console.log('Built isolated graphics study: dist/visual-trial.html.');
