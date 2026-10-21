@@ -15,3 +15,6 @@ art/blender/*.blend2
 godot-animation/.godot/
 godot-animation/.templates/
 art/blender/__pycache__/
+
+godot-monsters/.godot/
+godot-monsters/.templates/

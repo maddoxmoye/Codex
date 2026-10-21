@@ -44,3 +44,7 @@ All designs and meshes in this folder are original to this project; no stock mod
 `rowan-motion.blend` and `animate_rowan.py` are a separate animation study derived from this geometry. They add a bow/string rig and baked Idle, Run, Shoot, RunShoot and Dodge clips for Rowan only. See `../../godot-animation/README.md` from the repository root (`godot-animation/README.md`) for timing and integration details. The base library, roster exports and original clips are unchanged. The study has its own download archive and preview; it is not bundled into the base model archive.
 
 `fox-motion.blend` and `animate_fox.py` add a dedicated Forest Fox study (Idle, Trot, Attack) with four paw bones, leg IK, ear/tail movement and a muzzle socket. Rowan’s study also includes Windskip and Salvo clips. Both studies are included in the animation-preview download, leaving the base roster files unchanged.
+
+## Woodland monster study
+
+`wildfall-monsters.blend`, `monster-palette.png` and `build_monsters.py` deliver four separately rigged static monster designs and a small woodland clearing. The base roster is unchanged. The separate `/monster-preview/` Godot viewer and source ZIP contain Briarling, Sporecaller, Thornback and Hollowhart. Attack/hit animations are intentionally deferred. See `godot-monsters/README.md` at the repository root.

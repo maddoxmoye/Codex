@@ -12,6 +12,10 @@ The link opens directly into a viewport-filling game, without a website header, 
 
 Inspect the first **[archer and pet model collection](https://maddoxmoye.github.io/Codex/models/)** rendered in Godot. It contains five distinct archers and three companions, editable Blender source, individual GLBs, basic idle/movement clips and downloadable source. See [the art notes](art/blender/README.md) and [viewer/build instructions](godot-models/README.md). This is a separate design-review stage; the current game is not migrated by this asset pass.
 
+## Woodland monster lineup
+
+Inspect four original **[Blender monster designs in Godot](https://maddoxmoye.github.io/Codex/monster-preview/)**: Briarling, Sporecaller, Thornback and the antlered Hollowhart guardian. Compare them in a small woodland clearing or a plain studio, orbit each model and download the editable source. This is a static model review; attacks, damage reactions and combat integration come after design feedback. See [the monster study notes](godot-monsters/README.md).
+
 ## Rowan animation preview
 
 Try the **[Rowan motion preview](https://maddoxmoye.github.io/Codex/animation-preview/)**: a moving run cycle, bow draw/string flex, synchronized arrow release and target hits, an in-place running shot, a sidestep, Rowan’s Windskip dash and eight-arrow Flock & Awe, plus an animated Forest Fox that trots, catches up and fires three-dart fans. Pause and slow motion let you inspect the body and bow. This is a focused Blender-to-Godot study before retargeting the roster. See [the study notes](godot-animation/README.md).
