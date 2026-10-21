@@ -28,7 +28,7 @@ root=pathlib.Path(${JSON.stringify(root)})
 with zipfile.ZipFile(root/'dist/models/wildfall-models.zip','w',zipfile.ZIP_DEFLATED) as z:
  for folder in ['art/blender','godot-models']:
   for p in (root/folder).rglob('*'):
-   if p.is_file() and not any(s.startswith('.') or s=='__pycache__' for s in p.relative_to(root).parts) and p.name not in ['animate_monsters.py','sporecaller-motion.blend','thornback-motion.blend','hollowhart-motion.blend','animate_briarling.py','briarling-motion.blend','build_monsters.py','wildfall-monsters.blend','monster-palette.png','monster-lineup.png','animate_fox.py','fox-motion.blend','animate_rowan.py','rowan-motion.blend','rowan-draw.png'] and not p.name.endswith(('.blend1','.blend2','.import')):
+   if p.is_file() and not any(s.startswith('.') or s=='__pycache__' for s in p.relative_to(root).parts) and not p.name.endswith('-combat.blend') and p.name not in ['animate_combat_roster.py','animate_companions.py','animate_monsters.py','sporecaller-motion.blend','thornback-motion.blend','hollowhart-motion.blend','animate_briarling.py','briarling-motion.blend','build_monsters.py','wildfall-monsters.blend','monster-palette.png','monster-lineup.png','animate_fox.py','fox-motion.blend','animate_rowan.py','rowan-motion.blend','rowan-draw.png'] and not p.name.endswith(('.blend1','.blend2','.import')):
     z.write(p,p.relative_to(root))
 `],{cwd:root,encoding:'utf8'});
 if(zip.status!==0)throw Error(zip.stderr);

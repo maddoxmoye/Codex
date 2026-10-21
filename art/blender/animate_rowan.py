@@ -114,7 +114,7 @@ def pose(t,clip):
     bpy.context.view_layer.update()
 
 
-def capture(d,kind):
+def prepare(d,kind):
     global rig,mesh
     rig=b.RIG
     bpy.context.view_layer.objects.active=rig;rig.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
@@ -143,6 +143,11 @@ def capture(d,kind):
     indices=[mapping[p.material_index] for p in mesh.data.polygons];mesh.data.materials.clear()
     for m in unique:mesh.data.materials.append(m)
     for p,i in zip(mesh.data.polygons,indices):p.material_index=i
+    return rig,mesh
+
+def capture(d,kind):
+    global rig,mesh
+    rig,mesh=prepare(d,kind)
     actions={};clips={'Idle':3.2,'Run':.8,'Shoot':3.2,'RunShoot':3.2,'Dodge':.9,'Windskip':.65,'Salvo':1.1};rig.animation_data_create()
     for clip,duration in clips.items():
         action=bpy.data.actions.new('Rowan / '+clip);rig.animation_data.action=action
@@ -179,7 +184,8 @@ def capture(d,kind):
     bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'art/blender/rowan-motion.blend'),compress=True)
     if '--no-render' not in sys.argv:bpy.ops.render.render(write_still=True)
 
-bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-image=bpy.data.images.load(str(ROOT/'art/blender/wildfall-palette.png'));image.name='Wildfall Palette';image.pack()
-b.finalize=capture
-b.make_archer(b.ARCHERS[0])
+if __name__ == '__main__':
+    bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
+    image=bpy.data.images.load(str(ROOT/'art/blender/wildfall-palette.png'));image.name='Wildfall Palette';image.pack()
+    b.finalize=capture
+    b.make_archer(b.ARCHERS[0])

@@ -55,6 +55,10 @@ jobs:
         run: npm run build:monsters
         env:
           GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
+      - name: Validate and export character combat studies
+        run: npm run build:combat
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website

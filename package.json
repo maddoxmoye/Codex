@@ -11,7 +11,8 @@
     "build:godot": "node scripts/build-godot-demo.mjs",
     "build:models": "node scripts/build-model-atelier.mjs",
     "build:animation": "node scripts/build-animation-preview.mjs",
-    "build:monsters": "node scripts/build-monster-preview.mjs"
+    "build:monsters": "node scripts/build-monster-preview.mjs",
+    "build:combat": "node scripts/build-combat-preview.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -50,14 +50,14 @@ def pose(t,clip):
                     v=(u-.55)/.45;shift=.115-.23*smooth(v);z+=math.sin(v*math.pi)*.09
             limb(prefix,side,(s*.14,y-.04+shift,.06 if not trot else z))
 
-def capture(d,kind):
+def prepare(d,kind):
     global rig
     rig=b.RIG;bpy.context.view_layer.objects.active=rig;rig.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
     for side,s in [('L',1),('R',-1)]:
-        for prefix,y in [('front',-.18),('back',.22)]:b.bone(prefix+'_paw.'+side,(s*.14,y-.04,.06),(s*.14,y-.17,.06),prefix+'_lower.'+side)
+        for prefix,y in [('front',-.28 if d['id']=='wolf' else -.18),('back',.30 if d['id']=='wolf' else .22)]:b.bone(prefix+'_paw.'+side,(s*.14,y-.04,.06),(s*.14,y-.17,.06),prefix+'_lower.'+side)
     bpy.ops.object.mode_set(mode='OBJECT');rig.select_set(False)
     for part in b.PARTS:
-        if part.name.startswith('Rounded paw'):
+        if part.name.startswith(('Rounded paw','Ivory claw')):
             old=part.vertex_groups[0].name;part.vertex_groups.clear();vg=part.vertex_groups.new(name=old.replace('_lower','_paw'));vg.add(list(range(len(part.data.vertices))),1,'REPLACE')
     bpy.ops.object.select_all(action='DESELECT')
     for part in b.PARTS:part.select_set(True)
@@ -70,6 +70,11 @@ def capture(d,kind):
     indices=[mapping[p.material_index] for p in mesh.data.polygons];mesh.data.materials.clear()
     for m in unique:mesh.data.materials.append(m)
     for p,i in zip(mesh.data.polygons,indices):p.material_index=i
+    return mesh
+
+def capture(d,kind):
+    global rig
+    mesh=prepare(d,kind)
     actions={};clips={'Idle':3.2,'Trot':.64,'Attack':.85};rig.animation_data_create()
     for clip,length in clips.items():
         action=bpy.data.actions.new('Forest Fox / '+clip);rig.animation_data.action=action
@@ -90,5 +95,6 @@ def capture(d,kind):
     bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'art/blender/fox-motion.blend'),compress=True)
     print('FOX_MOTION_EXPORTED',json.dumps(metadata),flush=True)
 
-bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-image=bpy.data.images.load(str(ROOT/'art/blender/wildfall-palette.png'));image.name='Wildfall Palette';image.pack();b.finalize=capture;b.make_animal(False)
+if __name__ == '__main__':
+    bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
+    image=bpy.data.images.load(str(ROOT/'art/blender/wildfall-palette.png'));image.name='Wildfall Palette';image.pack();b.finalize=capture;b.make_animal(False)

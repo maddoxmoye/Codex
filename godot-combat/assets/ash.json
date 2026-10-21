@@ -1,0 +1,33 @@
+{
+  "space": "HareTrigger",
+  "attack": "Arrowpalooza",
+  "spaceName": "Hare Trigger",
+  "attackName": "Arrowpalooza",
+  "spaceDuration": 4.0,
+  "attackDuration": 5.0,
+  "spaceCooldown": 10.0,
+  "attackCooldown": 14.0,
+  "color": "f09559",
+  "damage": 22.0,
+  "description": "A low, scarf-led sprint and a fast alternating bow rhythm.",
+  "spaceDetail": "+70% speed for 4s; first 0.8s avoids damage.",
+  "attackDetail": "Double bow attack speed for 5s.",
+  "id": "ash",
+  "name": "Ash",
+  "role": "Cinder Scout",
+  "file": "ash-motion.glb",
+  "clips": {
+    "Idle": 3.2,
+    "Run": 0.8,
+    "Shoot": 3.2,
+    "HareTrigger": 4.0,
+    "Arrowpalooza": 5.4
+  },
+  "bones": 22,
+  "triangles": 5854,
+  "anchorTime": 1.75,
+  "releaseTime": 1.82,
+  "attackCycle": 0.8,
+  "burstReleaseTime": 0.35,
+  "notes": "Review choreography uses readable windups and slower base archery. Existing gameplay values are unchanged."
+}

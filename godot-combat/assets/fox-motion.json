@@ -1,0 +1,28 @@
+{
+  "name": "Forest Fox",
+  "file": "fox-motion.glb",
+  "bones": 21,
+  "triangles": 2798,
+  "clips": {
+    "Idle": 3.2,
+    "Trot": 0.64,
+    "Attack": 0.85
+  },
+  "releaseTime": 0.32,
+  "attackInterval": 1.1,
+  "darts": 3,
+  "spread": [
+    -0.12,
+    0,
+    0.12
+  ],
+  "damageMultiplier": 0.45,
+  "element": "physical",
+  "muzzleBone": "head",
+  "muzzleLocal": [
+    -2.262331299096446e-16,
+    0.32109788060188293,
+    0.014005288481712341
+  ],
+  "trotStrideSpeed": 0.6534090909090908
+}
