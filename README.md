@@ -1,6 +1,6 @@
 # Wildfall — The Ranger's Journey
 
-A browser survival adventure in a continuous 4,800 × 4,000-unit world. A low perspective camera follows your animated 3D archer through the Whispering Woods, Frostveil Ruins, Ember Highlands, and Venom Marsh. Choose an unlockable archer, collect enemy-dropped ability chests, build elemental arrows and companion pets, and defeat three guardians.
+A browser survival adventure in a continuous 4,800 × 4,000-unit world. A low perspective camera follows your animated 3D archer through the Whispering Woods, Frostveil Ruins, Ember Highlands, and Venom Marsh. Choose an unlockable archer, collect enemy-dropped ability chests, build elemental arrows and companion pets, and defeat four guardians.
 
 Play the deployed game at **https://maddoxmoye.github.io/Codex/**.
 
@@ -44,7 +44,7 @@ The minimap shows your position, biome colors, dropped chests, and bosses. There
 
 ## Pre-game skills and fullscreen
 
-Each new run (including retries) opens a loadout screen before combat. Each slot offers three distinct random choices drawn from a four-skill pool. Choose one **Space** skill and one **E** skill, then enter the wild. Both are available immediately and remain fixed for that run; no gold or level gate is required. Cooldowns and active durations freeze while paused or shopping.
+Each new run (including retries) opens a loadout screen before combat. Each character has a fixed, unique **Space** defense/movement skill and **E** offensive skill. Their selection card previews both skills and cooldowns. Choose an unlocked character and enter the wild; the preset is available immediately. Cooldowns and active durations freeze while paused or shopping.
 
 | Slot | Skill | Effect | Base cooldown |
 | --- | --- | --- | --- |
@@ -56,6 +56,8 @@ Each new run (including retries) opens a loadout screen before combat. Each slot
 | E | Quiverquake | Close-range elemental blast and 12 radial arrows | 8s |
 | E | Flock & Awe | Eight empowered arrows aimed at nearby visible targets; an aimed fan if none are present | 11s |
 | E | Hunter’s Moon | Double player arrow impact damage for 4s | 14s |
+| Space | Borrowed Time | 4s clock field: +25% speed, slow nearby enemies/projectiles 65%, first second invulnerable | 12s |
+| E | Gear Expectations | 4s empowered three-arrow fans every 0.6s | 13s |
 
 **Wild amplification** replaces the former burst unlock in the shop. Each rank (maximum 5) adds 25% offensive skill power and 10% duration to timed offensive skills. Arrowpalooza’s rate multiplier and Hunter’s Moon’s impact multiplier increase by 0.25 per rank. Quiverquake and Flock & Awe scale their skill damage by 25% per rank. It never replaces your chosen skill. Offensive buffs do not empower pet attacks. HUD, sidebar, and touch controls reflect the selected skills.
 
@@ -108,22 +110,25 @@ Armor reduces incoming damage using `100 / (100 + 6 × armor)`. Armor starts at 
 
 ## Level rewards and four-offer shop
 
-Each level requires `floor(20 × 1.35^(level - 1))` XP. Overflow carries forward. Leveling during combat queues a reward without interrupting the wave. After the wave, each earned level presents **four distinct stat choices**; pick one before proceeding. Each draft draws four of five categories: +15 maximum health (and heal 15), +15% physical damage, +20% shared elemental damage, +2 armor, or +7% movement speed. Multiple levels mean multiple sequential drafts. These rewards cost no gold and are separate from item purchases.
+Each level requires `floor(20 × 1.35^(level - 1))` XP. Overflow carries forward. Leveling during combat queues a reward without interrupting the wave. After the wave, each earned level presents **four distinct stat choices**; pick one before proceeding. Each draft draws four of six categories: +5 Economy, +15 maximum health (and heal 15), +15% physical damage, +20% shared elemental damage, +2 armor, or +7% movement speed. Multiple levels mean multiple sequential drafts. These rewards cost no gold and are separate from item purchases.
 
 After stat drafts and chest rewards, the shop draws and displays **four eligible offers** for the updated build. Powers just taken from a chest are filtered before shop inventory is generated. Buy any subset or all four. A purchased slot stays marked SOLD until you reroll; buying cannot silently refill it. Only items in the current four slots can be purchased. Existing level gates, ownership checks, elemental exclusivity, and rank caps apply. Coins, XP, stat rewards, and acquired items reset each run.
 
-Rerolling replaces all four slots and is available with a partial or empty shop. Before Loaded Dice discounts, the first roll costs 5 gold early on, then 10, 15, and so on (+5 per roll). After a newly completed wave, the reroll counter resets. The base price rises by 2 gold every two completed waves, starting after wave 3. Closing/reopening with B, or entering the next wave and immediately opening the shop, preserves the current offers and reroll price. Purchases never consume queued level rewards.
+Rerolling replaces all four slots and is available with a partial or empty shop. Before Economy and Loaded Dice discounts, the first roll costs 5 gold early on, then 10, 15, and so on (+5 per roll). After a newly completed wave, the reroll counter resets. The base price rises by 2 gold every two completed waves, starting after wave 3. Closing/reopening with B, or entering the next wave and immediately opening the shop, preserves the current offers and reroll price. Purchases never consume queued level rewards.
 
 ## Economy shop items
 
-Four economy items join the normal four-offer shop pool. They do not appear in ability or mythical chests. Purchases are listed in build history, and the stat sheet compares combat gold bonus, shop discount, reroll discount and wave interest against their starting values.
+Five economy items join the normal four-offer shop pool. They do not appear in ability or mythical chests. Purchases are listed in build history, and the stat sheet compares combat gold bonus, shop discount, reroll discount and wave interest against their starting values.
 
 | Item | Shop level / base price | Effect |
 | --- | --- | --- |
 | Pocket Mint | 1 / 35 gold per rank | +20% combat gold per rank, maximum 3 ranks |
-| Silver Tongue | 1 / 45 gold | 15% off shop item prices |
+| Silver Tongue | 1 / 45 gold | +15 Economy: discounts purchases and rerolls |
+| Merchant’s Instinct | 1 / 30 gold per rank | +5 Economy |
 | Loaded Dice | 2 / 40 gold | 30% off both shop and chest rerolls |
 | Nest Egg | 2 / 55 gold | After each completed wave, earn 10% of saved gold, rounded down and capped at 20 gold |
+
+**Economy** is a dedicated stat: each point saves 1% on purchases and all rerolls, capped at 50%. Merchant’s Instinct grants +5 Economy per rank (30 base gold); level rewards can offer +5 Economy too. Silver Tongue grants +15 Economy. Loaded Dice multiplies reroll prices by 0.7 after Economy savings. Prices round up to a minimum of one gold; displayed prices are the charged prices.
 
 Pocket Mint and Heavy Pockets add their bonuses: three Mint ranks plus Heavy Pockets give +110% combat gold. The bonus applies to coin pickups and guardian bounties. Fractional bonuses carry between combat payouts while the wallet remains an integer, avoiding per-drop rounding inflation or loss. Chest sale proceeds and interest are not multiplied.
 
@@ -142,7 +147,7 @@ Intermission order is **level stat drafts → queued chests → four-offer shop*
 | Ability | 20 gold | 5 gold | +5 gold |
 | Mythical | 90 gold | 15 gold | +10 gold |
 
-The table lists base costs before Loaded Dice discounts. Each chest has its own reroll counter. Chest rerolls do not change shop offers or the shop reroll counter; mythical rerolls always remain in the mythical pool. A reroll selects a different eligible power. When no alternatives remain, reroll is disabled; when all powers are owned, the chest can still be sold. Taking a power records it in the build sheet.
+The table lists base costs before Economy and Loaded Dice discounts. Each chest has its own reroll counter. Chest rerolls do not change shop offers or the shop reroll counter; mythical rerolls always remain in the mythical pool. A reroll selects a different eligible power. When no alternatives remain, reroll is disabled; when all powers are owned, the chest can still be sold. Taking a power records it in the build sheet.
 
 Mythical powers appear only in guardian chests:
 
@@ -167,7 +172,8 @@ Choose an archer in the pre-run roster before picking your skills. All use a bow
 | Rowan · Wayfarer | Always available | Original balanced stats |
 | Ash · Cinder Scout | 50 total kills | 85 health, 22 physical damage, 235 speed |
 | Briar · Ironwarden | First guardian kill | 140 health, 4 armor, 16 physical damage, 190 speed |
-| Nyx · Moonstring | Win a nine-wave run | 90 health, 15 physical damage, 24 shared elemental damage, starts with ice |
+| Pip · Gearwing | Defeat 250 enemies across runs | 95 health, 20 damage, 10 starting Economy |
+| Nyx · Moonstring | Complete the 20-wave campaign | 90 health, 15 physical damage, 24 shared elemental damage, starts with ice |
 
 Kills, guardian kills and wins persist in `wildfall-unlocks` in this browser’s local storage; unlocks earned in a failed run remain available. Runs reset gold, abilities and build history. There is no account or cross-device synchronization, and clearing site storage clears unlock progress.
 
@@ -177,17 +183,22 @@ Crawlers, wisps and brutes are joined by **archers** (aimed arrows after a 0.7s 
 
 Ordinary player and pet arrows stop at their **first** target. Swept segment/circle collision resolves targets and terrain in travel order, so fast arrows cannot skip a nearer enemy. Only the piercing or ricochet upgrades change player-arrow travel. Elemental splash, skill blasts and mythical area attacks are separate unlocked effects.
 
-All eight active skills have distinct art: cyan Windskip feathers, golden Shell Yeah panels, green Hare Trigger ribbons, a Bramble Bouncer thorn crown, Arrowpalooza’s orbiting arrows, Quiverquake’s crystal shock rings, Flock & Awe’s winged projectiles, and Hunter’s Moon’s overhead crescent. Pets have claw/howl effects, ricochets leave echo sparks, piercing arrows have cyan trails, and mythical effects include phoenix wings, lightning, roots and orbiting suns. Shared geometry and materials are reused for these procedural effects; there are no downloaded art assets. The 2D fallback uses matching colors, telegraphs and distinct skill marks, and resizes with fullscreen.
+All ten active skills have distinct art, including Pip’s ticking turquoise field and clockwork arrows: cyan Windskip feathers, golden Shell Yeah panels, green Hare Trigger ribbons, a Bramble Bouncer thorn crown, Arrowpalooza’s orbiting arrows, Quiverquake’s crystal shock rings, Flock & Awe’s winged projectiles, and Hunter’s Moon’s overhead crescent. Pets have claw/howl effects, ricochets leave echo sparks, piercing arrows have cyan trails, and mythical effects include phoenix wings, lightning, roots and orbiting suns. Shared geometry and materials are reused for these procedural effects; there are no downloaded art assets. The 2D fallback uses matching colors, telegraphs and distinct skill marks, and resizes with fullscreen.
 
 ## Boss progression
 
-Survive nine waves as you explore. Regular waves last 25 seconds; boss waves last until their guardian falls. New enemy groups spawn near the player as they travel. After each non-final wave, the shop opens and gameplay pauses. Resolve queued stat drafts and chest rewards, then spend gold or skip purchases with **Begin wave N**. The next wave starts only when you continue; then you heal 15 health. A level-up on the final tick is included in that wave’s reward drafts. The final guardian ends the run in victory after stat drafts and the final mythical chest are resolved.
+Survive **20 campaign waves**, then choose **Continue endless** at the victory checkpoint to retain the same character, stats, pets and inventory. Regular waves last 25 seconds; guardian waves last until the boss falls. Resolve level-up choices, then chests, then the shop after each wave. Continue to begin the next wave and heal 15 health.
 
-- **Wave 3 — Briar King:** telegraphed charging attacks.
-- **Wave 6 — Frost Oracle:** radial frozen barrages.
-- **Wave 9 — Hollow Monarch:** spiraling projectiles and summoned minions.
+- **Wave 5 — Briar King:** charging attacks.
+- **Wave 10 — Frost Oracle:** radial barrages.
+- **Wave 15 — Hollow Monarch:** barrages and summoned minions.
+- **Wave 20 — Gilded Colossus:** overlapping targeted explosions and radial barrages.
 
-Each boss has an entrance banner, health bar, distinct 3D model, and minimap marker. Defeat all three to win. Coins, abilities, and chest state reset each run; best defeat count and character unlock milestones persist in browser local storage.
+Bosses recur every five waves in endless, cycling all four designs with increasing health and damage. Population and spawn frequency rise with waves, with a 110-enemy cap. Shamans and bombers enter the random pool at wave 6, stalkers at 11, and juggernauts at 16. Juggernauts resist arrow impacts by 25% and warn a heavy close-range slam. Gold-armored elite variants begin at wave 11. Enemy health and damage continue scaling.
+
+At every wave clear, all remaining XP is absorbed **in full**, including XP from the final boss. **50% of remaining ground gold** is recovered, with combat-gold bonuses applied and fractional gold carried forward. Already-collected drops cannot pay twice. Recovery happens before level-up choices and interest, and its receipt appears in intermission screens. Pick up gold during combat to receive its full value. Leftover healing drops are discarded.
+
+Each boss has an entrance banner, health bar, distinct 3D model and minimap marker. Campaign completion records one win and unlocks Nyx; endless continuation cannot duplicate the win. Coins and upgrades reset on a new run; best defeat count and character unlock milestones persist in browser storage.
 
 3D is attempted on every page load and never restores an old saved 2D preference. The header allows switching views during a run. Browsers without WebGL2 fall back to a following 2D world view; browser blur also pauses gameplay.
 
@@ -220,3 +231,17 @@ The in-game HUD shows health and XP progress bars with numeric values, player le
 Elapsed simulation time is consumed in steps no larger than 1/60 second, capped at 0.25 seconds of catch-up after a stall. This fixes the previous slow-motion behavior below 20 rendering FPS. Walking speed is now 210 units/second (previously 165), and the base bow fires every 0.42 seconds (previously 0.52).
 
 The rendering library is **Three.js** (MIT); gameplay uses custom JavaScript. Free engine alternatives include **Babylon.js** (Apache-2.0, browser-oriented engine with more built-in systems) and **Godot** (MIT, full editor, animation, physics, and web export). Moving to either requires porting the renderer and/or gameplay and validating its web deployment; an engine change alone does not establish a performance improvement.
+
+### Character presets and designs
+
+| Archer | Space | E | Distinct model |
+| --- | --- | --- | --- |
+| Rowan | Windskip | Flock & Awe | Leaf hood and forest cloak |
+| Ash | Hare Trigger | Arrowpalooza | Red trailing scarf and feather |
+| Briar | Shell Yeah! | Quiverquake | Broad shoulders, helmet and back shield |
+| Nyx | Bramble Bouncer | Hunter’s Moon | Long robe, crystal shoulders and crescent |
+| Pip | Borrowed Time | Gear Expectations | Teal top hat, goggles and golden gear pack |
+
+Borrowed Time grants 25% speed for 4 seconds, slows enemies and their shots within 240 units by 65%, and blocks damage for its first second (12s cooldown). Gear Expectations adds an empowered three-arrow fan every 0.6s for 4s (13s cooldown); amplification extends and strengthens it. Clockwork arrows obey the same first-hit, piercing and ricochet rules as normal player arrows.
+
+Element colors are fire red, ice blue and poison purple across arrows, effects, status rings and HUD. Affected enemies receive a matching body tint that disappears when the effect expires or the element is swapped. Each enemy owns its tint materials; removing enemies disposes those materials without affecting other enemies or scenery.

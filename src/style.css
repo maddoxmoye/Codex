@@ -34,3 +34,5 @@
 .canvas-wrap:has(.overlay:not([hidden]))>.fullscreen-button{top:2px;right:4px;font-size:8px;padding:3px 6px;height:18px}
 
 .price s{color:#8c9b84;font-size:9px;margin-right:3px}.history-entry strong{overflow-wrap:anywhere}
+
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left}.preset-card{padding:16px;border:1px solid #667b58;border-radius:8px;background:#13231d}.preset-card h3{font-size:17px;margin:12px 0}.preset-card p{margin:0;font-size:12px}.preset-name{font-size:17px;margin:18px 0}.salvage-receipt{color:#c6ddb5;font-size:11px;margin:10px 0}.equipped-element[data-equipped="fire"], [data-element="fire"]{color:#ff334d!important}.equipped-element[data-equipped="ice"], [data-element="ice"]{color:#397dff!important}.equipped-element[data-equipped="poison"], [data-element="poison"]{color:#b34dff!important}@media(max-width:700px){.preset-grid{grid-template-columns:1fr}.preset-card{padding:10px}.preset-card h3{font-size:14px}.preset-card p{font-size:10px}}

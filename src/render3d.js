@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WORLD, REGIONS, CHARACTERS } from './game.js';
+import { WORLD, REGIONS, CHARACTERS, ELEMENT_COLORS, isBossWave } from './game.js';
 import { SCENERY, SOLIDS } from './world.js';
 
 // A perspective camera follows the ranger through a continuous, explorable world.
@@ -25,7 +25,7 @@ export function create3DRenderer(canvas, game) {
   sun.shadow.normalBias = .04; sun.shadow.bias = -.0002;
   scene.add(sun);
   const rim = new THREE.DirectionalLight('#9ccdc8', 1.1); rim.position.set(4, 5, 5); scene.add(rim);
-  const geometries = [], materials = [];
+  const geometries = [], materials = [], dynamicMaterials=new Set();
   const geometry = g => { geometries.push(g); return g; };
   const mat = (color, extra = {}) => { const m = new THREE.MeshStandardMaterial({ color, roughness: .86, flatShading: true, ...extra }); materials.push(m); return m; };
   const glowing = color => mat(color, { emissive: color, emissiveIntensity: 1.4 });
@@ -45,7 +45,7 @@ export function create3DRenderer(canvas, game) {
     gold: glowing('#ffcb69'), xp: glowing('#b4a0f2'), heal: glowing('#9be39a'), bolt: glowing('#ffdd94'),
     hostile: glowing('#bd9eeb'), wood: mat('#675639'), leaf: mat('#a0b26d'), frost: mat('#96d9e7'),
     void: mat('#6b427c'), eyes: glowing('#ffe6a1'), edge: mat('#6b7047'),
-    fire: glowing('#ff8e42'), poison: glowing('#8ce454'), ice: glowing('#79e5ff'), leather: mat('#775039'), feather: mat('#e8dfb9'), mushroom: mat('#ca9869'), water: mat('#507f72', { metalness: .3, roughness: .25 })
+    fire: mat(ELEMENT_COLORS.fire,{emissive:ELEMENT_COLORS.fire,emissiveIntensity:.35}), poison: mat(ELEMENT_COLORS.poison,{emissive:ELEMENT_COLORS.poison,emissiveIntensity:.35}), ice: mat(ELEMENT_COLORS.ice,{emissive:ELEMENT_COLORS.ice,emissiveIntensity:.35}), leather: mat('#775039'), feather: mat('#e8dfb9'), mushroom: mat('#ca9869'), water: mat('#507f72', { metalness: .3, roughness: .25 })
   };
   const mesh = (parent, geo, material, x, y, z, sx = 1, sy = sx, sz = sx, shadow = true) => {
     const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = shadow; m.receiveShadow = true; parent.add(m); return m;
@@ -118,8 +118,8 @@ export function create3DRenderer(canvas, game) {
     scene.add(instances);
   }
   const chargeMaterial = mat('#f5ae68', { emissive: '#d47838', transparent: true, opacity: .4, depthWrite: false });
-  function makeWayfarer() {
-    const g=new THREE.Group();
+  function makeWayfarer(character) {
+    const g=new THREE.Group(),cape=mat(character.color),hood=mat(character.hood);
     const hips=new THREE.Group();g.add(hips);
     const legs=[];
     for(const x of [-.09,.09]) {
@@ -127,11 +127,11 @@ export function create3DRenderer(canvas, game) {
       mesh(leg,box,colors.leather,0,-.13,0,.105,.27,.12);
       mesh(leg,box,colors.dark,0,-.3,.04,.13,.12,.22);legs.push(leg);
     }
-    mesh(hips,box,colors.cape,0,.55,0,.35,.4,.22);
-    mesh(hips,cone,colors.cape,0,.4,-.08,.27,.45,.22);
+    mesh(hips,box,cape,0,.55,0,.35,.4,.22);
+    mesh(hips,cone,cape,0,.4,-.08,.27,.45,.22);
     mesh(hips,box,colors.leather,0,.39,0,.37,.07,.25);
     mesh(hips,sphere,colors.skin,0,.9,0,.145,.17,.14);
-    mesh(hips,sphere,colors.hood,0,.98,-.035,.18,.16,.17);
+    mesh(hips,sphere,hood,0,.98,-.035,.18,.16,.17);
     mesh(hips,box,colors.dark,0,.89,.115,.17,.04,.04);
     // Quiver and spare arrows on the back.
     mesh(hips,cylinder,colors.leather,.14,.58,-.19,.07,.4,.07).rotation.z=-.2;
@@ -140,14 +140,20 @@ export function create3DRenderer(canvas, game) {
       mesh(hips,box,colors.feather,.1+i*.035,1.08,-.2,.04,.07,.015);
     }
     const bowArm=new THREE.Group();bowArm.position.set(-.21,.7,0);hips.add(bowArm);
-    mesh(bowArm,box,colors.cape,0,-.09,.12,.11,.12,.3);
+    mesh(bowArm,box,cape,0,-.09,.12,.11,.12,.3);
     mesh(bowArm,sphere,colors.skin,0,-.09,.28,.065);
     const bow=new THREE.Group();bow.position.set(0,-.09,.35);bow.rotation.y=Math.PI/2;bowArm.add(bow);
     const bowMesh=mesh(bow,bowGeo,colors.wood,0,0,0);bowMesh.rotation.z=-Math.PI/2;
     const string=mesh(bow,box,colors.feather,0,0,0,.009,.54,.009);
     const drawArm=new THREE.Group();drawArm.position.set(.2,.7,0);hips.add(drawArm);
-    mesh(drawArm,box,colors.cape,0,-.06,.12,.1,.13,.29);mesh(drawArm,sphere,colors.skin,0,-.06,.28,.06);
+    mesh(drawArm,box,cape,0,-.06,.12,.1,.13,.29);mesh(drawArm,sphere,colors.skin,0,-.06,.28,.06);
     const readyArrow=makeArrow('physical');readyArrow.position.set(-.2,.61,.28);readyArrow.rotation.y=0;hips.add(readyArrow);
+    // Each archer has a different silhouette as well as their own materials.
+    if(character.id==='ranger'){for(const x of [-.15,.15])mesh(hips,cone,cape,x,.84,-.16,.11,.38,.06).rotation.z=x*3;mesh(hips,cone,hood,-.1,1.13,-.1,.09,.3,.08).rotation.z=.7;}
+    if(character.id==='scout'){mesh(hips,box,hood,0,.79,0,.42,.09,.3);for(const x of [-.13,.13]){const scarf=mesh(hips,box,cape,x,.65,-.3,.1,.5,.04);scarf.rotation.x=-.5;}mesh(hips,cone,hood,.12,1.12,-.08,.035,.36,.035).rotation.z=-.5;}
+    if(character.id==='warden'){for(const x of [-.26,.26]){mesh(hips,box,hood,x,.74,0,.23,.2,.33);mesh(hips,cone,colors.gold,x,1.13,0,.045,.32,.045).rotation.z=-x*2;}mesh(hips,box,hood,0,.56,.13,.3,.29,.07);mesh(hips,cylinder,cape,0,.61,-.28,.29,.08,.29).rotation.x=Math.PI/2;mesh(hips,box,hood,0,1.02,.1,.33,.12,.12);}
+    if(character.id==='hex'){mesh(hips,cone,cape,0,.32,-.04,.35,.63,.27);mesh(hips,crescent,colors.xp,0,1.35,0,.55,.55,.55);for(const x of [-.2,.2])mesh(hips,crystal,hood,x,.8,-.13,.055,.3,.055);mesh(bow,crystal,colors.xp,0,.28,0,.06,.16,.06);}
+    if(character.id==='tinker'){mesh(hips,cylinder,cape,0,1.15,-.025,.18,.27,.18);mesh(hips,cylinder,hood,0,1.04,-.025,.25,.045,.25);for(const x of [-.08,.08])mesh(hips,sphere,colors.gold,x,.96,.14,.06,.055,.035);mesh(hips,box,hood,0,.62,-.26,.31,.36,.17);const gear=flatRing(hips,colors.gold,.21,.62);gear.rotation.x=0;gear.position.z=-.37;for(let i=0;i<8;i++){const a=i*Math.PI/4;mesh(hips,box,hood,Math.cos(a)*.23,.62+Math.sin(a)*.23,-.37,.07,.07,.06);}for(const z of [-.18,.18])mesh(bow,crystal,cape,0,z,0,.06,.1,.06);}
     g.userData={hips,legs,bowArm,drawArm,string,readyArrow};return g;
   }
   function makeArrow(element='physical',pet=false) {
@@ -161,8 +167,9 @@ export function create3DRenderer(canvas, game) {
     return g;
   }
   const effectMaterial=(color,extra={})=>{const m=new THREE.MeshBasicMaterial({color,toneMapped:false,...extra});materials.push(m);return m;};
-  const fxColors=Object.fromEntries(Object.entries({wind:'#70dcff',hare:'#9aeb84',shell:'#ffd06e',bramble:'#85da59',worldroot:'#81c953',rapid:'#ffca55',moon:'#c79aff',flock:'#8fdefa',thunder:'#72cfff',lightning:'#99e7ff',phoenix:'#ff9852',harvest:'#85e38b',howl:'#a7dcff',claw:'#fff0cd',echo:'#d19cff',embers:'#ff8f44','enemy-blast':'#ff526b','hex-blast':'#de5fff'}).map(([key,color])=>[key,effectMaterial(color)]));
-  const player = makeWayfarer(); scene.add(player);
+  const fxColors=Object.fromEntries(Object.entries({wind:'#70dcff',hare:'#9aeb84',shell:'#ffd06e',bramble:'#85da59',worldroot:'#81c953',rapid:'#ffca55',moon:'#c79aff',flock:'#8fdefa',thunder:'#72cfff',lightning:'#99e7ff',phoenix:'#ff9852',harvest:'#85e38b',howl:'#a7dcff',claw:'#fff0cd',echo:'#d19cff',clock:'#52ddd2',gears:'#f4c65b',embers: ELEMENT_COLORS.fire,'enemy-blast':'#ff526b','hex-blast':'#de5fff'}).map(([key,color])=>[key,effectMaterial(color)]));
+  const heroes=new Map(CHARACTERS.map(c=>{const model=makeWayfarer(c);model.visible=false;scene.add(model);return [c.id,model];}));let player=heroes.get('ranger');
+  const clockAura=new THREE.Group();scene.add(clockAura);for(const r of [2.25,2.4])flatRing(clockAura,fxColors.clock,r,.11);for(let i=0;i<12;i++){const a=i*Math.PI/6;mesh(clockAura,box,fxColors.shell,Math.cos(a)*2.3,.12,Math.sin(a)*2.3,.045,.02,.15,false).rotation.y=-a;}
   const skillShell=mesh(scene,sphere,effectMaterial('#ffd06e',{transparent:true,opacity:.4,wireframe:true,depthWrite:false}),0,0,0,.6,.75,.6,false);
   const thornAura=new THREE.Group();scene.add(thornAura);
   for(let i=0;i<12;i++){const a=i*Math.PI/6;const thorn=mesh(thornAura,cone,fxColors.bramble,Math.cos(a)*.53,.15,Math.sin(a)*.53,.055,.35,.055,false);thorn.rotation.z=Math.cos(a)*.4;}
@@ -177,7 +184,7 @@ export function create3DRenderer(canvas, game) {
   const dangerFill=effectMaterial('#ff3d51',{transparent:true,opacity:.3,depthWrite:false});
   function makeEffect(e){
     const g=new THREE.Group(),material=fxColors[e.type]||(e.element==='fire'?colors.fire:e.element==='ice'?colors.ice:e.element==='poison'?colors.poison:colors.gold);
-    if(['lightning','thunder'].includes(e.type)){
+    if(['clock','gears'].includes(e.type)){for(const r of [.5,1])flatRing(g,material,r,.1);for(let i=0;i<12;i++){const a=i*Math.PI/6;mesh(g,box,material,Math.cos(a),.14,Math.sin(a),.15,.06,.15,false);}}else if(['lightning','thunder'].includes(e.type)){
       flatRing(g,material,1,.035);
       for(let i=0;i<6;i++){const bolt=mesh(g,box,material,(i%2?.12:-.12),i*.55,0,.08,.75,.07,false);bolt.rotation.z=i%2?.4:-.4;}
     }else if(['bramble','worldroot'].includes(e.type)){
@@ -205,7 +212,7 @@ export function create3DRenderer(canvas, game) {
   function makeEnemy(e) {
     const group = new THREE.Group(), body = new THREE.Group(); group.add(body); group.userData.body = body;
     const boss = e.kind === 'boss';
-    const material = boss ? [colors.wood, colors.frost, colors.void][e.tier - 1] : e.kind === 'brute' ? colors.wood : e.kind === 'wisp' ? colors.frost : colors.leaf;
+    const material = boss ? [colors.wood, colors.frost, colors.void, colors.leather][e.tier - 1] : e.kind === 'brute' ? colors.wood : e.kind === 'wisp' ? colors.frost : colors.leaf;
     if (boss && e.tier === 1) {
       mesh(body, sphere, material, 0, .53, 0, .5, .63, .36);
       mesh(body, sphere, colors.leaf, 0, .96, .07, .3, .3, .25);
@@ -222,6 +229,7 @@ export function create3DRenderer(canvas, game) {
         mesh(body, crystal, colors.frost, Math.cos(a) * .52, .9, Math.sin(a) * .52, .1, .27, .1);
       }
       flatRing(body, colors.xp, .5, .55);
+    } else if(boss&&e.tier===4){mesh(body,box,colors.leather,0,.65,0,.85,1.05,.55);mesh(body,box,colors.gold,0,1.28,0,.4,.35,.4);for(const x of [-.62,.62]){mesh(body,sphere,colors.gold,x,.95,0,.3);mesh(body,box,colors.wood,x,.5,0,.25,.65,.3);}flatRing(body,colors.gold,.7,.1);for(const x of [-.25,.25])mesh(body,box,colors.wood,x,.13,0,.3,.3,.38);
     } else if (boss) {
       mesh(body, cone, colors.void, 0, .5, 0, .6, .95, .48);
       mesh(body, sphere, colors.dark, 0, 1.05, .04, .29, .31, .25);
@@ -230,6 +238,8 @@ export function create3DRenderer(canvas, game) {
         mesh(body, cone, colors.gold, Math.cos(a) * .25, 1.47, Math.sin(a) * .25, .075, .4, .075);
       }
       for (const x of [-.5, .5]) mesh(body, crystal, colors.xp, x, .75, 0, .12, .23, .12);
+    } else if(e.kind==='juggernaut'){mesh(body,box,colors.stone,0,.4,0,.55,.7,.45);for(const x of [-.35,.35])mesh(body,box,colors.wood,x,.6,0,.22,.22,.32);mesh(body,box,colors.gold,0,.8,.1,.28,.14,.14);
+    } else if(e.kind==='stalker'){mesh(body,cone,colors.void,0,.35,0,.22,.65,.2);for(const x of [-.22,.22])mesh(body,cone,colors.feather,x,.2,.2,.035,.45,.035).rotation.x=.7;
     } else if(e.kind==='boar'){
       mesh(body,sphere,colors.wood,0,.24,0,.3,.23,.4);mesh(body,box,colors.mushroom,0,.24,.37,.24,.17,.2);
       for(const x of [-.14,.14]){mesh(body,cone,colors.feather,x,.23,.46,.045,.22,.045);mesh(body,cone,colors.wood,x,.5,.15,.08,.16,.08);}
@@ -257,10 +267,13 @@ export function create3DRenderer(canvas, game) {
     const eyeY = boss ? (e.tier === 1 ? 1.02 : e.tier === 2 ? .9 : 1.1) : ['archer','shaman'].includes(e.kind)?.58:e.kind==='boar'?.29:e.kind==='bomber'?.36:e.kind === 'wisp' ? .35 : e.kind === 'brute' ? .28 : .19;
     for (const x of [-1, 1]) mesh(body, sphere, colors.eyes, x * (boss ? .09 : .04), eyeY, boss ? .26 : e.kind === 'brute' ? .18 : .12, boss ? .035 : .018);
     if (boss) {
-      const ground = flatRing(group, [colors.gold, colors.xp, colors.hostile][e.tier - 1], .62, .035); group.userData.halo = ground;
+      const ground = flatRing(group, [colors.gold, colors.xp, colors.hostile,colors.gold][e.tier - 1], .62, .035); group.userData.halo = ground;
       // Charge lane is visible during the Briar King's wind-up.
       const lane = mesh(group, box, chargeMaterial, 0, .035, 0, .48, .02, 2.3, false); lane.visible = false; group.userData.lane = lane;
     }
+    if(e.elite){for(const x of [-.24,.24])mesh(body,cone,colors.gold,x,.5,-.1,.05,.32,.05);}
+    const clones=new Map();body.traverse(o=>{if(!o.isMesh)return;const original=o.material;if(!clones.has(original)){const clone=original.clone();dynamicMaterials.add(clone);clones.set(original,{material:clone,color:original.color.clone(),emissive:original.emissive.clone()});}o.material=clones.get(original).material;});
+    group.userData.tints=[...clones.values()];group.userData.release=()=>{for(const {material} of clones.values()){dynamicMaterials.delete(material);material.dispose();}};
     const status=new THREE.Group();group.add(status);group.userData.status=status;
     for(const material of [colors.fire,colors.ice,colors.poison,colors.gold])flatRing(status,material,boss?.48:.17,.04);
     return group;
@@ -269,7 +282,7 @@ export function create3DRenderer(canvas, game) {
   const enemyMeshes = new Map(), pickupMeshes = new Map(), boltMeshes = new Map(), effectMeshes = new Map(), petMeshes=new Map(), chestMeshes=new Map(),hazardMeshes=new Map();
   function sync(map, objects, create, update) {
     const alive = new Set(objects);
-    for (const [object, m] of map) if (!alive.has(object)) { scene.remove(m); map.delete(object); }
+    for (const [object, m] of map) if (!alive.has(object)) { scene.remove(m);m.userData.release?.(); map.delete(object); }
     for (const object of objects) {
       let m = map.get(object);
       if (!m) { m = create(object); scene.add(m); map.set(object, m); }
@@ -289,11 +302,12 @@ export function create3DRenderer(canvas, game) {
     }
     const p=game.player, dt=Math.min(.25,lastTime?time-lastTime:.016);lastTime=time;
     const px=(p.x-WORLD.width/2)/100,pz=(p.y-WORLD.height/2)/100;
-    if(characterId!==game.character){characterId=game.character;const c=CHARACTERS.find(c=>c.id===characterId);colors.cape.color.set(c.color);colors.hood.color.set(c.hood);}
+    if(characterId!==game.character){player.visible=false;characterId=game.character;player=heroes.get(characterId)||heroes.get('ranger');}
     player.position.set(px,.02,pz);
     const targetAngle=p.shotTime>0?Math.atan2(p.aimX,p.aimY):Math.atan2(p.dx,p.dy);
     facing+=Math.atan2(Math.sin(targetAngle-facing),Math.cos(targetAngle-facing))*(1-Math.exp(-dt*14));
     player.rotation.y=facing;player.visible=!(p.invincible>0&&p.spaceTime<=0&&Math.floor(time*16)%2);
+    clockAura.visible=p.spaceTime>0&&game.loadout.space==='clock';clockAura.position.set(px,0,pz);clockAura.rotation.y=-time*.4;
     skillShell.visible=p.spaceTime>0&&game.loadout.space==='shield';skillShell.position.set(px,.6,pz);skillShell.rotation.y=time*.9;skillShell.scale.setScalar(.65+Math.sin(time*6)*.025);
     thornAura.visible=p.spaceTime>0&&game.loadout.space==='repel';thornAura.position.set(px,0,pz);thornAura.rotation.y=time;
     sprintAura.visible=p.spaceTime>0&&game.loadout.space==='sprint';sprintAura.position.set(px,0,pz);sprintAura.rotation.y=facing;
@@ -330,7 +344,8 @@ export function create3DRenderer(canvas, game) {
     sun.position.set(px-4,10,pz-5);sun.target.position.set(px,0,pz);sun.target.updateMatrixWorld();
     campFlame.scale.y=.4+Math.sin(time*7)*.05;
     sync(enemyMeshes, game.enemies, makeEnemy, (m, e) => {
-      m.scale.setScalar(e.kind==='boss'?1:1.8);
+      m.scale.setScalar(e.kind==='boss'?1:e.elite?2.15:1.8);
+      const tint=e.poison>0?ELEMENT_COLORS.poison:e.burn>0?ELEMENT_COLORS.fire:e.slow>0?ELEMENT_COLORS.ice:null;for(const entry of m.userData.tints){entry.material.color.copy(entry.color);entry.material.emissive.copy(entry.emissive);if(tint){entry.material.color.lerp(new THREE.Color(tint),.8);entry.material.emissive.set(tint);}}
       m.rotation.y = e.charge>0?Math.atan2(e.cx,e.cy):Math.atan2(p.x - e.x, p.y - e.y);
       m.userData.body.position.y = Math.sin(time * (e.kind === 'wisp' ? 4 : 7) + e.x) * (e.kind === 'wisp' ? .08 : .015);
       m.userData.status.children.forEach((a,i)=>{a.visible=i===0?e.burn>0:i===1?e.slow>0:i===2?e.poison>0:e.guard>0;});
@@ -355,11 +370,11 @@ export function create3DRenderer(canvas, game) {
         const g=new THREE.Group();mesh(g,crystal,colors.hostile,0,0,0,.09);for(let i=1;i<4;i++)mesh(g,sphere,colors.hostile,0,0,-i*.07,.055/i);return g;
       }
       if(b.style==='flock'){
-        const g=new THREE.Group();mesh(g,cone,colors.ice,0,0,.12,.035,.2,.035,false).rotation.x=Math.PI/2;
+        const g=new THREE.Group();mesh(g,cone,colors[b.element]||fxColors.flock,0,0,.12,.035,.2,.035,false).rotation.x=Math.PI/2;
         for(const side of [-1,1]){const wing=mesh(g,box,colors.feather,side*.12,0,0,.25,.025,.09,false);wing.rotation.z=side*.5;}
         return g;
       }
-      const g=makeArrow(b.element,b.kind==='pet');
+      const g=makeArrow(b.element,b.kind==='pet');if(b.style==='gear'){flatRing(g,fxColors.gears,.14,0).rotation.x=0;mesh(g,crystal,fxColors.clock,0,0,.22,.05,.05,.12,false);}
       if(b.style==='moon'||b.style==='rapid'||b.pierceLeft){const trail=mesh(g,box,b.pierceLeft?fxColors.wind:b.style==='moon'?fxColors.moon:fxColors.rapid,0,0,-.35,.025,.025,.5,false);g.userData.trail=trail;}
       return g;
     },(m,b)=>{m.position.y=b.kind==='pet'?.4:.57;m.rotation.y=Math.atan2(b.vx,b.vy);if(b.style==='flock')for(const [i,wing] of m.children.entries())if(i)wing.rotation.z=(i===1?-1:1)*Math.sin(time*24)*.7;});
@@ -402,8 +417,8 @@ export function create3DRenderer(canvas, game) {
       transform.scale.setScalar(.01 + (Math.sin(time * 2 + i) + 1) * .005); transform.updateMatrix(); flies.setMatrixAt(i, transform.matrix);
     }
     flies.instanceMatrix.needsUpdate = true;
-    sun.color.set(game.wave % 3 === 0 ? '#e3c4ff' : '#ffe2ae');
+    sun.color.set(isBossWave(game.wave) ? '#e3c4ff' : '#ffe2ae');
     renderer.render(scene, camera);
   }
-  return { render, setQuality(quality) { renderer.shadowMap.enabled=quality==='high';renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==='high'?1.25:1)); }, look(dx,dy) { cameraYaw+=dx*.006;cameraLift=THREE.MathUtils.clamp(cameraLift+dy*.012,.85,5.5); }, orbit(delta) { cameraYaw+=delta; }, movement(x,y) { return {moveX:x*Math.cos(cameraYaw)+y*Math.sin(cameraYaw),moveY:y*Math.cos(cameraYaw)-x*Math.sin(cameraYaw)}; }, dispose() { scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); renderer.dispose(); } };
+  return { render, setQuality(quality) { renderer.shadowMap.enabled=quality==='high';renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==='high'?1.25:1)); }, look(dx,dy) { cameraYaw+=dx*.006;cameraLift=THREE.MathUtils.clamp(cameraLift+dy*.012,.85,5.5); }, orbit(delta) { cameraYaw+=delta; }, movement(x,y) { return {moveX:x*Math.cos(cameraYaw)+y*Math.sin(cameraYaw),moveY:y*Math.cos(cameraYaw)-x*Math.sin(cameraYaw)}; }, dispose() { scene.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); sun.shadow.map?.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());dynamicMaterials.forEach(m=>m.dispose());dynamicMaterials.clear(); renderer.dispose(); } };
 }
