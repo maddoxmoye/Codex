@@ -59,6 +59,10 @@ jobs:
         run: npm run build:combat
         env:
           GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
+      - name: Validate and export first boss animation study
+        run: npm run build:boss
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website
