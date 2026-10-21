@@ -33,6 +33,9 @@ var hp_bar: Node3D
 var hp_fill: MeshInstance3D
 var warning: MeshInstance3D
 var base_aim := 0.0
+var blend_from: Array[Transform3D] = []
+var blend_elapsed := .08
+const BLEND_DURATION := .08
 static var shader: Shader
 
 func configure(id: String) -> void:
@@ -70,19 +73,34 @@ func configure(id: String) -> void:
 		var direction := socket("bow")+Vector3.UP*.08-socket("bowstring")
 		base_aim = atan2(direction.x,direction.z)
 	play("Idle")
+	blend_from.clear()
+	blend_elapsed = BLEND_DURATION
+	animation.seek(0,true)
 
 func play(name: String, restart := false) -> void:
 	if clip==name and not restart and animation.current_animation==name:return
 	if not animation.has_animation(name):name="Idle"
+	# AnimationPlayer's own crossfade clock does not progress through seek().
+	# Sample unblended authored poses, then blend local bones on our simulation clock.
+	blend_from.clear()
+	for i in skeleton.get_bone_count():blend_from.append(skeleton.get_bone_pose(i))
+	blend_elapsed = 0
 	clip = name
 	anim_time = 0
-	animation.play(name,.08)
+	animation.stop()
+	animation.play(name,0)
 	animation.advance(0)
+	for i in blend_from.size():skeleton.set_bone_pose(i,blend_from[i])
 
 func pose(dt: float, rate := 1.0) -> void:
 	anim_time += dt*rate
 	var length := animation.get_animation(clip).length
 	animation.seek(fmod(anim_time,length) if clip in ["Idle","Run","RunShoot","Trot"] else minf(anim_time,length),true)
+	blend_elapsed = minf(BLEND_DURATION,blend_elapsed+dt)
+	if blend_elapsed<BLEND_DURATION and blend_from.size()==skeleton.get_bone_count():
+		var weight := smoothstep(0,BLEND_DURATION,blend_elapsed)
+		for i in skeleton.get_bone_count():
+			skeleton.set_bone_pose(i,blend_from[i].interpolate_with(skeleton.get_bone_pose(i),weight))
 	flash = maxf(0,flash-dt)
 	var tint := Color("ef564e") if fire_time>0 else Color("61c9ee") if ice_time>0 else Color("b16de5")
 	var amount := .32 if fire_time>0 or ice_time>0 or poison_time>0 else 0.0
