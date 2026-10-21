@@ -13,6 +13,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@babylonjs/core": "^9.31.2",
     "three": "^0.186.1"
   },
   "devDependencies": {

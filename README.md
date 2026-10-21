@@ -1,22 +1,26 @@
-# Wildfall — The Ranger's Journey
+# Wildfall — The Emberwild
 
 A browser survival adventure in a continuous 4,800 × 4,000-unit world. A low perspective camera follows your animated 3D archer through the Whispering Woods, Frostveil Ruins, Ember Highlands, and Venom Marsh. Choose an unlockable archer, collect enemy-dropped ability chests, build elemental arrows and companion pets, and defeat four guardians.
 
 Play the deployed game at **https://maddoxmoye.github.io/Codex/**.
 
-## Full campaign graphics
+## The Emberwild — Babylon.js edition
 
-The main game now uses the Sunlit Hollow art direction throughout its full map. All five archers have articulated walking and bow-draw animation, a moving cloak, visible nocked arrows, and distinct outfits and accessories. All nine enemy types and four guardians have new silhouettes, while the fox, wolf and lantern beetle have detailed models and animated legs. Colored elemental trails, Mythic glow, warning areas and the existing character skill effects remain visible during combat.
+The main game has a new **Babylon.js** renderer and original art built for this edition. The previous Three.js renderer is no longer used by the main game. Gameplay remains the existing, tested JavaScript simulation: all unlocks, saved runs, items, exclusive elements, rewards and 45/75-second waves carry over.
 
-Painted terrain and soft-edged trails connect the woods, icy ruins, ember highlands and purple marsh. Leafy trees, biome-colored foliage, grass, flowers, canvas shelter and a lantern enrich the existing world. The open interior, solid scenery, campaign/shop rules, saved runs and character unlocks remain compatible. Scroll over the game to zoom; free/locked camera controls and Q/R orbit still work. Auto detail is the default: lighter foliage, 512-pixel shadows, no bloom, and adaptive render resolution. High detail adds denser foliage, 1,024-pixel shadows and bloom; Low retains the art with reduced foliage and no dynamic shadows or bloom. Existing quality preferences remain saved.
+The rebuilt world has rolling painted earth, soft trails, tapered meadow grass, wildflowers, striated tree bark, regional foliage, distant ridges, rune inlays, an ivory camp shelter and an animated fire. Frostveil has a stone arch and hanging pennants; the ember altar and marsh stones retain their solid footprints. Dense foliage stays at the perimeter and the middle remains open. Materials use physically based shading, local environment reflections, warm directional lighting, cool skylight, 2,048-pixel soft shadows, atmospheric fog, bloom, ACES tone mapping and a subtle vignette. All textures and geometry are generated locally; the main game never downloads models, HDR environments or asset-service content.
 
-Repeated scenery, enemy bodies and ground loot use instancing. Enemy silhouettes share merged geometry and materials across the horde; each enemy retains independent elemental hues and hit flashes. Offscreen enemy bodies are omitted from the submitted instances, and despawned enemies and collected drops disappear from the batches immediately. Character and enemy health bars and player damage feedback also work in the 2D fallback. All assets are generated locally; no asset services, paid engine, or external model downloads are required.
+Every archer has a new body, face, layered outfit, boots, quiver, recurve bow, animated bowstring and moving cloth cloak. Two-bone arm posing keeps the hands on the grip and string during the draw. Ash adds feathers, Briar has steel armor, Nyx wears crystal shoulders and a lunar crown, and Pip has brass goggles and a clockwork pack. Nine enemy silhouettes, all four guardians and three independent pets are rebuilt too. Elemental hues and hit flashes belong to each enemy independently. Arrows, spirit birds, poison droplets, ice shards, clockwork shots, enemy orbs, ground telegraphs and Mythic effects use the new renderer. Player/enemy health bars and actual damage numbers are preserved.
+
+A cinematic title, illustrated archer selection, full-width stage, serif typography and compact obsidian HUD replace the old dashboard. The live wave clock, health/XP, gold wallet, equipped element, cooldowns and minimap remain available. Training, treasure, merchant and inventory retain their separate layouts with a shared ivory/charcoal treatment. The former sidebar is folded into Stats & inventory.
+
+High detail is the default. Low detail remains available for devices that need it; existing High/Low preferences are respected. Former Auto preferences use High in this fidelity-focused edition. This version prioritizes visual quality rather than the old renderer's frame-rate or batching targets. Free/locked mouse look, Q/R orbit, zoom, fullscreen, mobile controls and the optional 2D fallback remain available.
 
 ## Playable visual trial
 
-Try **https://maddoxmoye.github.io/Codex/visual-trial.html** for a separate Sunlit Hollow art study. It includes a detailed, articulated Rowan, a moving cloak and bow draw, three redesigned woodland enemies, painted terrain, instanced grass and flowers, waystones, warm lighting, shadows, atmospheric fog and subtle bloom. Fire, ice and poison arrows use the real combat and damage-feedback systems. This is a small, gentler practice encounter, without the campaign shop, wave progression, or persistence. It never reads or writes the main game's saved runs, unlocks, best score, or settings.
+The older **https://maddoxmoye.github.io/Codex/visual-trial.html** remains a separate Three.js Sunlit Hollow art study. It does not show the new Emberwild graphics. It includes a detailed, articulated Rowan, a moving cloak and bow draw, three redesigned woodland enemies, painted terrain, instanced grass and flowers, waystones, warm lighting, shadows, atmospheric fog and subtle bloom. Fire, ice and poison arrows use the real combat and damage-feedback systems. This is a small, gentler practice encounter, without the campaign shop, wave progression, or persistence. It never reads or writes the main game's saved runs, unlocks, best score, or settings.
 
-Choose **Enter the clearing**, then use WASD/arrows to move, Space to dash, and E for a volley. Drag the scene to orbit; scroll to zoom. **Camera: Free** enables mouse look without dragging. Element buttons (or 0–3) swap trial arrows freely. Pause/restart, touch controls, fullscreen, and a Low detail option are included; small screens start on Low. The preview uses procedural geometry and textures, with no external asset downloads. Its art direction is now integrated into the full campaign, while this original practice clearing remains available separately.
+Choose **Enter the clearing**, then use WASD/arrows to move, Space to dash, and E for a volley. Drag the scene to orbit; scroll to zoom. **Camera: Free** enables mouse look without dragging. Element buttons (or 0–3) swap trial arrows freely. Pause/restart, touch controls, fullscreen, and a Low detail option are included; small screens start on Low. The preview uses procedural geometry and textures, with no external asset downloads. This original practice clearing remains available separately from the rebuilt Babylon.js campaign.
 
 Locally, open `/visual-trial.html` after `npm run dev`. The build also emits `dist/visual-trial.html` as a standalone page beside the full game; serve `dist/` normally to access both.
 
@@ -36,7 +40,7 @@ npm test
 npm run build
 ```
 
-The build produces `dist/index.html` and `wildfall.html`, with all game code, Three.js, styles, and both renderers embedded. Serve `dist/` with any static host, or open the standalone HTML locally. Gameplay needs no backend, accounts, API keys, or external asset requests. Three.js and esbuild are installed from the committed lockfile for development and CI.
+The build produces `dist/index.html` and `wildfall.html`, with all main-game code, Babylon.js, styles, and both main-game renderers embedded. Serve `dist/` with any static host, or open the standalone HTML locally. Gameplay needs no backend, accounts, API keys, or external asset requests. Babylon.js, the legacy trial’s Three.js dependency, and esbuild are installed from the committed lockfile for development and CI. Third-party licenses are embedded in the main standalone HTML and published as `dist/THIRD-PARTY-NOTICES.txt`.
 
 ## Controls
 
@@ -225,7 +229,9 @@ Each boss has an entrance banner, health bar, distinct 3D model and minimap mark
 - `src/content.js`: character definitions, persistent milestone validation, rare upgrades and mythical powers.
 - `src/world.js`: deterministic shared scenery, solid colliders, spatial lookup, movement, steering, clear spawning, and projectile obstruction.
 - `src/game.js`: combat, scaling progression, exclusive elemental builds, companions, chests, and wave intermissions.
-- `src/render3d.js`: perspective follow camera, procedural world and characters, animations, projectiles, and effects. Repeated scenery uses instancing and shared geometry/materials.
+- `src/babylon-renderer.js`: Babylon.js scene, perspective camera, lighting, shadows, post-processing, projectiles, warnings and effects.
+- `src/emberwild/`: new materials/geometry helpers, painted world, articulated archers, enemy and pet models.
+- `src/render3d.js`: archived prior Three.js campaign renderer, not imported by the main game.
 - `src/render2d.js`: following 2D fallback for the same world.
 - `src/main.js`: controls, camera-relative movement, minimap, shop, sound, and HUD.
 - `build.mjs`: bundled standalone website output.
@@ -240,15 +246,15 @@ Use the existing checkout; cloud tasks are isolated and need no separate worktre
 
 ## HUD, camera preferences, and performance
 
-The in-game HUD shows health and XP progress bars with numeric values, player level, gold coins, equipped element, elemental shop shortcuts and queued stat-choice count, selected skill names, active durations and recharge bars, defeat count, and companion count. The minimap and location remain available during exploration. The sidebar provides the same detailed character information.
+The in-game HUD shows health and XP progress bars with numeric values, player level, gold coins, equipped element, elemental shop shortcuts and queued stat-choice count, selected skill names, active durations and recharge bars, defeat count, and companion count. The minimap and location remain available during exploration. Stats & inventory provides the detailed character sheet without occupying stage space.
 
 **Camera: Free** lets mouse or trackpad pointer movement over the game orbit and tilt the following camera without holding a button. **Camera: Locked** requires right-drag. Looking stops over menus or outside the game. The C key toggles modes; this preference persists between visits. Q/R and on-screen arrows remain available.
 
-**Detail: Auto** is the default for new preferences. It uses 512-pixel shadows, reduced foliage and no bloom, and samples active-play frame times in two-second windows. When sustained rendering falls below 45 FPS, it reduces render resolution in steps, down to 0.65 pixels per CSS pixel; above 57 FPS, it gradually restores resolution to 1.0. It never changes game speed or combat stats. Bloom framebuffers are only allocated in **High** and are released when leaving that mode. **High** uses 1,024-pixel shadows, bloom, denser foliage and a 1.25 pixel-ratio cap. **Low** disables dynamic shadows and bloom, reduces foliage and caps pixel ratio at 1. Click the detail button to cycle Auto → High → Low; the setting is saved. Existing High/Low preferences are respected. HUD/minimap updates run at 10 Hz independently from rendering. The scene behind paused and reward menus renders at 5 Hz to leave time for the interface; active gameplay renders every animation frame.
+**Detail: High** uses 2,048-pixel soft shadows, bloom, FXAA and multisample post-processing. **Low** disables dynamic shadows and bloom, uses one sample and renders at 80% of the CSS dimensions. Both retain the complete model and world art. Click the detail button to switch High / Low; preferences are saved. Former Auto preferences map to High. The old adaptive resolution controller is not part of this renderer. HUD/minimap updates run at 10 Hz. Behind menus, the 3D scene settles and then freezes; character selection, resizing, quality changes and pending shaders request fresh frames. Menu transitions update immediately, independently of scene rendering.
 
 Elapsed simulation time is consumed in steps no larger than 1/60 second, capped at 0.25 seconds of catch-up after a stall. This fixes the previous slow-motion behavior below 20 rendering FPS. Walking speed is now 210 units/second (previously 165), and the base bow fires every 0.42 seconds (previously 0.52).
 
-The rendering library is **Three.js** (MIT); gameplay uses custom JavaScript. Free engine alternatives include **Babylon.js** (Apache-2.0, browser-oriented engine with more built-in systems) and **Godot** (MIT, full editor, animation, physics, and web export). Moving to either requires porting the renderer and/or gameplay and validating its web deployment; an engine change alone does not establish a performance improvement. Three.js remains in this update because batching reduces the measured browser rendering overhead without replacing gameplay, saves or the free static deployment. A controlled low-detail scene with the same seeded 80 enemies and 200 pickups dropped from 626 to 152 draw calls (about 76%) with identical submitted triangle counts. This measures rendering submissions in software Chromium, not an FPS guarantee on a player’s device. Godot is worth a future prototype for its scene editor, animation and asset pipeline if those authoring tools become the priority; Babylon.js can provide more built-in browser engine systems, but neither removes the need for batching and resolution budgets.
+The main game's engine is **Babylon.js 9.31.2** (Apache-2.0), using WebGL through its Engine/Scene/PBR rendering systems. Gameplay and collision remain the custom JavaScript simulation so this visual migration preserves existing saves and rules. No paid engine license, subscription, server or key is needed. Three.js (MIT) is retained only for the separate legacy trial and archived rendering code/tests. The old Three.js draw-call benchmark does not describe this new renderer.
 
 ### Character presets and designs
 

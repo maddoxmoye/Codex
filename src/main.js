@@ -3,7 +3,7 @@ import {formatDamage} from './combat-feedback.js';
 import {clearProgressStorage} from './progress-storage.js';
 import { upgradeArt } from './upgrade-art.js';
 import { Game, SHOP, WORLD, REGIONS, regionAt, advanceGame, ELEMENTS, CHARACTERS, isUnlocked, RARITIES, isBossWave, waveDuration } from './game.js';
-import { create3DRenderer } from './render3d.js';
+import { createBabylonRenderer } from './babylon-renderer.js';
 import { create2DRenderer } from './render2d.js';
 const $ = id => document.getElementById(id);
 let canvas=$('arena'), view;
@@ -16,22 +16,22 @@ let savedRun=readSavedRun(),lastAutosave=0,progressScreen=null,progressNotice=''
 function readSavedRun(){try{const value=JSON.parse(localStorage.getItem('wildfall-run'));return new Game(Math.random,readProgress()).restoreSnapshot(value)?value:null;}catch{return null;}}
 function saveRun(){const snapshot=game.snapshot();if(!snapshot)return false;try{localStorage.setItem('wildfall-run',JSON.stringify(snapshot));savedRun=snapshot;return true;}catch{return false;}}
 function clearSavedRun(){savedRun=null;try{localStorage.removeItem('wildfall-run');}catch{}}
-function saveAndQuit(){if(!saveRun()){$('save-status').hidden=false;$('save-status').textContent='Could not save in this browser. Your run is still paused; retry Save & quit.';return;}saveProgress();keys.clear();game.reset();shown='';toast('Run saved · continue from the main menu on this browser.');}
-function quitRun(){clearSavedRun();saveProgress();keys.clear();game.reset();shown='';}
-function resumeSaved(){if(!savedRun||!game.restoreSnapshot(savedRun)){clearSavedRun();shown='';toast('This saved run could not be loaded. Start a new journey.');return;}keys.clear();shown='';lastBoss=0;}
+function saveAndQuit(){if(!saveRun()){$('save-status').hidden=false;$('save-status').textContent='Could not save in this browser. Your run is still paused; retry Save & quit.';return;}saveProgress();keys.clear();game.reset();shown='';toast('Run saved · continue from the main menu on this browser.');showState();hud();}
+function quitRun(){clearSavedRun();saveProgress();keys.clear();game.reset();shown='';showState();hud();}
+function resumeSaved(){if(!savedRun||!game.restoreSnapshot(savedRun)){clearSavedRun();shown='';toast('This saved run could not be loaded. Start a new journey.');return;}keys.clear();shown='';lastBoss=0;showState();hud();}
 
 let graphics='3d';
 // Start every visit in 3D, including browsers with an older saved 2D preference.
 try { localStorage.removeItem('wildfall-graphics'); } catch {}
-let cameraFree=false, quality='auto';
-try { cameraFree=localStorage.getItem('wildfall-camera-mode')==='free';quality=localStorage.getItem('wildfall-quality')||quality;if(!['auto','high','low'].includes(quality))quality='auto'; } catch {}
+let cameraFree=false, quality='high';
+try { cameraFree=localStorage.getItem('wildfall-camera-mode')==='free';quality=localStorage.getItem('wildfall-quality')||quality;if(!['high','low'].includes(quality))quality='high'; } catch {}
 const keys=new Set(); let previous=performance.now(),shown='',sound=false,audio,toastTimer;
 let best=0;try{best=Number(localStorage.getItem('wildfall-best'))||0;}catch{}
 function beep(freq=440,duration=.1,type='sine',volume=.025){if(!sound)return;try{audio ||= new AudioContext();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);}catch{}}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3200);}
-function start(){progressNotice='';keys.clear();game.prepareLoadout();shown='';lastBoss=0;}
-function launch(){if(game.startLoadout()){clearSavedRun();keys.clear();shown='';canvas.focus();beep(550,.2);}}
-function pause(){if(progressScreen){closeProgressPanel();return;}if(game.state==='paused')game.resume();else{pauseStatsOpen=false;game.pause();}keys.clear();}
+function start(){progressNotice='';keys.clear();game.prepareLoadout();shown='';lastBoss=0;showState();hud();}
+function launch(){if(game.startLoadout()){clearSavedRun();keys.clear();shown='';canvas.focus();beep(550,.2);showState();hud();}}
+function pause(){if(progressScreen){closeProgressPanel();return;}if(game.state==='paused')game.resume();else{pauseStatsOpen=false;game.pause();}keys.clear();showState();hud();}
 function shop(){
  if(progressScreen){closeProgressPanel();return;}
  if(game.state==='playing'){game.pause();pauseStatsOpen=true;shown='';}
@@ -75,7 +75,7 @@ function updateCameraLabel(){
 }
 function toggleCamera(){cameraFree=!cameraFree;updateCameraLabel();try{localStorage.setItem('wildfall-camera-mode',cameraFree?'free':'locked');}catch{}if(game.state==='playing')canvas.focus();}
 $('camera-mode').onclick=toggleCamera;
-$('detail-button').onclick=()=>{quality=quality==='auto'?'high':quality==='high'?'low':'auto';view.setQuality?.(quality);$('detail-button').textContent='Detail: '+(quality==='auto'?'Auto':quality==='high'?'High':'Low');try{localStorage.setItem('wildfall-quality',quality);}catch{}};
+$('detail-button').onclick=()=>{quality=quality==='high'?'low':'high';view.setQuality?.(quality);lastSceneState='';$('detail-button').textContent='Detail: '+(quality==='high'?'High':'Low');try{localStorage.setItem('wildfall-quality',quality);}catch{}};
 $('orbit-left').onclick=()=>view.orbit?.(-Math.PI/6);$('orbit-right').onclick=()=>view.orbit?.(Math.PI/6);
 let shownShopRevision=-1;
 function requestElement(element){
@@ -119,7 +119,7 @@ function showState(){
  $('pause-button').textContent=state==='paused'?'Resume · Esc':'Run menu · Esc';$('run-menu').hidden=['title','loadout','dead'].includes(state);$('run-menu').textContent=state==='paused'?'Resume run':'Run menu · Esc';
  if(state==='playing'){$('overlay').hidden=true;canvas.focus();return;}
  if(state==='title'){
- modal(`<div class="crest">✧</div><div class="eyebrow">THE RANGER’S JOURNEY</div><h2>Beyond the clearing</h2><p>Roam the woods, frozen ruins, ember hills, and venom marsh. Choose your archer, collect enemy-dropped chests, tame companions, and commit to an elemental build. Earn a stat choice each level. After each wave, pick your rewards and browse four rotating shop offers.</p>${savedRun?`<button class="button" id="continue-run">Continue saved run · Wave ${savedRun.data.wave} →</button>`:''}<button class="button ${savedRun?'secondary':''}" id="begin">${savedRun?'Start a new run':'Begin your journey'} &nbsp; →</button>${savedRun?'<p class="save-note">Starting a new run replaces this save when you enter the wild.</p>':''}<p class="subtext">WASD to move · C for free mouse look · Red areas warn attacks<br>Your bow automatically targets nearby enemies. Bosses arrive on waves 5, 10, 15, and 20. Clear the campaign to unlock endless play.${best?`<br>Personal best: ${best} enemies defeated`:''}</p>${progressNotice?`<p class="save-note" id="progress-notice">${progressNotice}</p>`:''}`);
+ modal(`<div class="landing-rule"><span>WILDFALL</span><span>THE EMBERWILD</span></div><div class="eyebrow">AN ARCHER. A WILDERNESS. A LITTLE HOPE.</div><h2>Into the<br><em>Emberwild.</em></h2><p>An ancient wood. Four restless guardians.<br>Take up your bow and make a little light.</p><div class="landing-actions">${savedRun?`<button class="button" id="continue-run">Continue your story <span>Wave ${savedRun.data.wave} →</span></button>`:''}<button class="button ${savedRun?'secondary':''}" id="begin">${savedRun?'Begin a new story':'Choose your archer'} <span>→</span></button></div><div class="landing-details"><span>20 WAVES + ENDLESS</span><span>5 ARCHERS</span><span>ONE WILD WORLD</span></div><p class="subtext">WASD to wander · Your bow finds its own target.<br>Space to evade · E to unleash your signature ability.${best?`<br>Personal best · ${best} enemies defeated`:''}</p>${progressNotice?`<p class="save-note" id="progress-notice">${progressNotice}</p>`:''}`,'landing-modal');
  $('begin').onclick=start;if(savedRun)$('continue-run').onclick=resumeSaved;
  }else if(state==='loadout'){renderLoadout();}
  else if(state==='paused'){
@@ -132,11 +132,15 @@ function showState(){
  const won=state==='won';if(!won)clearSavedRun();modal(`<div class="crest">${won?'✧':'☾'}</div><div class="eyebrow">${won?'THE HOLLOW IS FREE':'EVERY SPARK LEAVES A STORY'}</div><h2>${won?'You brought the dawn.':'The wild remembers.'}</h2><p>${won?'All four guardians have fallen. Continue into endless waves with your current build, or start a new journey.':game.defeatReason||'Rest, Wayfarer. The woods will be waiting for your next journey.'}</p><p>Wave ${game.wave} &nbsp; · &nbsp; Level ${game.player.level} &nbsp; · &nbsp; ${game.player.kills} defeated<br>${game.bossesDefeated} guardians defeated &nbsp; · &nbsp; Best: ${best} defeated</p>${won?'<button id="endless" class="button">Continue endless →</button>':''}<button id="restart" class="button secondary">${won?'Wander again':'Try again'} &nbsp; →</button><p class="subtext">Coins and upgrades reset each run. Your best score is saved.</p>`);$('restart').onclick=start;if(won)$('endless').onclick=()=>{keys.clear();game.continueEndless();shown='';};
  }
 }
+function archerPortrait(c){
+ const accent={ranger:'#67a995',scout:'#c67d55',warden:'#97b9cf',hex:'#b59bd5',tinker:'#c9ad65'}[c.id];
+ return `<svg class="archer-portrait" viewBox="0 0 140 150" aria-hidden="true"><path d="M70 8 126 40V111L70 143 14 111V40Z" fill="#142629" stroke="${accent}" stroke-opacity=".35"/><circle cx="70" cy="68" r="38" fill="none" stroke="${accent}" stroke-opacity=".2"/><path d="M31 132 42 93 58 83H82L98 93 109 132" fill="${accent}"/><path d="M45 80Q31 28 70 25Q109 28 95 80L83 93H57Z" fill="#263f42" stroke="${accent}" stroke-width="2"/><path d="M54 51Q70 37 86 51V77L75 88H65L54 77Z" fill="#d6b69a"/><path d="M49 55Q50 32 70 31Q90 32 91 55L70 44Z" fill="${accent}"/><path d="m58 64 7 1m10 0 7-1" stroke="#263338" stroke-width="3"/><path d="M59 91 82 126M81 90 60 126" stroke="#dab675" stroke-width="3"/><path d="M104 48Q82 83 103 119M104 48V119" fill="none" stroke="#dab675" stroke-width="3"/>${c.id==='warden'?'<path d="M37 98 54 92 58 112 32 116M103 98 86 92 82 112 108 116" fill="#b5c8ca"/>':c.id==='hex'?'<path d="M74 12a12 12 0 1 0 11 18 10 10 0 1 1-11-18" fill="#c8b2e6"/>':c.id==='tinker'?'<path d="M51 40V20H89V40M44 41H96" fill="#94784b" stroke="#dab675" stroke-width="3"/><circle cx="61" cy="65" r="8" fill="none" stroke="#dab675" stroke-width="3"/><circle cx="80" cy="65" r="8" fill="none" stroke="#dab675" stroke-width="3"/>':c.id==='scout'?'<path d="m89 31 17-16-5 27" fill="#e8dbb4"/>':''}</svg>`;
+}
 function renderLoadout(){
  shownShopRevision=game.shopRevision;
  const c=CHARACTERS.find(c=>c.id===game.character);
  const section=(slot,label)=>{const skill=game.skill(slot);return `<section class="preset-card"><div class="loadout-label">${label}</div><h3>${skill.icon} ${skill.name}</h3><p>${skill.text}</p><span class="price">${skill.cooldown}s cooldown</span></section>`;};
- modal(`<button class="text-button loadout-fullscreen" id="loadout-fullscreen">⛶ Fullscreen</button><div class="eyebrow">FIVE ARCHERS · FIVE SIGNATURE PRESETS</div><h2>Choose your archer</h2><p class="loadout-intro">Each archer has their own design and fixed Space / E abilities. Scroll below the roster to review your preset.</p><div class="loadout-scroll"><div class="loadout-label">ARCHER ROSTER · UNLOCKS SAVED IN THIS BROWSER</div><div class="character-grid">${CHARACTERS.map(c=>{const unlocked=isUnlocked(c,game.progress);return `<button class="character-card ${game.character===c.id?'selected':''}" data-character="${c.id}" aria-pressed="${game.character===c.id}" ${unlocked?'':'disabled'}><strong style="color:${c.hood}">${c.icon} ${c.name}</strong><small>${unlocked?c.text:c.goal+' · '+Math.min(c.target,game.progress[c.metric]||0)+'/'+c.target}</small></button>`;}).join('')}</div><h3 class="preset-name">${c.name} · signature abilities</h3><div class="preset-grid">${section('space','SPACE · DEFENSE & MOVEMENT')}${section('attack','E · OFFENSE')}</div></div><button class="button" id="launch-run">Enter the wild →</button>`,'loadout-modal');
+ modal(`<button class="text-button loadout-fullscreen" id="loadout-fullscreen">⛶ Fullscreen</button><div class="eyebrow">FIVE ARCHERS · FIVE SIGNATURE PRESETS</div><h2>Choose your archer</h2><p class="loadout-intro">Each archer has their own design and fixed Space / E abilities. Scroll below the roster to review your preset.</p><div class="loadout-scroll"><div class="loadout-label">ARCHER ROSTER · UNLOCKS SAVED IN THIS BROWSER</div><div class="character-grid">${CHARACTERS.map(c=>{const unlocked=isUnlocked(c,game.progress);return `<button class="character-card ${game.character===c.id?'selected':''}" data-character="${c.id}" aria-pressed="${game.character===c.id}" ${unlocked?'':'disabled'}>${archerPortrait(c)}<strong style="color:${c.hood}">${c.name}</strong><small>${unlocked?c.text:c.goal+' · '+Math.min(c.target,game.progress[c.metric]||0)+'/'+c.target}</small></button>`;}).join('')}</div><h3 class="preset-name">${c.name} · signature abilities</h3><div class="preset-grid">${section('space','SPACE · DEFENSE & MOVEMENT')}${section('attack','E · OFFENSE')}</div></div><button class="button" id="launch-run">Enter the wild →</button>`,'loadout-modal');
  for(const b of document.querySelectorAll('[data-character]'))b.onclick=()=>{if(game.chooseCharacter(b.dataset.character))renderLoadout();};
  $('launch-run').onclick=launch;$('loadout-fullscreen').onclick=toggleFullscreen;
 }
@@ -201,7 +205,7 @@ function renderShop(){
  buildModal(`<div class="merchant-sign"><span aria-hidden="true">⚖</span><div class="eyebrow">THE TRAVELING MERCHANT</div><h2>Gear for the next wave</h2><small>Four items on the counter · Wave ${game.wave} cleared</small></div>${statLine(true)}<div class="shop-build"><strong>${element?element.icon+' '+element.name:'➶ Physical'} build</strong><span>Quiver fittings: ${rank.power} tips · ${rank.duration} coatings · ${rank.special} attachments</span><small>${equipment||'Find equipment, supplies, companion charms and elemental quivers in the four shop slots.'}</small></div><div class="shop-catalog"><div class="shop-grid">${cards}</div></div><div class="shop-bottom"><button class="button secondary" id="reroll-shop" ${p.coins<game.rerollCost()?'disabled':''}>↻ Reroll · ◈ ${game.rerollCost()}</button><button class="button" id="leave-shop">${game.pendingWave?'Begin wave '+game.pendingWave:'Continue journey'} →</button></div><div class="shop-footnote">Equipment equips on purchase; supplies are consumed. Buy any or all. Reroll anytime; the price rises each roll and resets after the next wave. Changing elemental quivers discards the old quiver’s fittings. Item copies stack up to their listed limit.</div>`);
  for(const b of document.querySelectorAll('[data-buy]'))b.onclick=()=>{if(game.buy(b.dataset.buy)){beep(880);renderShop();hud();}};
  $('reroll-shop').onclick=()=>{if(game.reroll()){beep(660);renderShop();hud();}};
- $('leave-shop').onclick=()=>game.closeShop();
+ $('leave-shop').onclick=()=>{game.closeShop();showState();hud();};
 }
 let lastBoss=0, bossBannerUntil=0;
 function updateWaveClock(){
@@ -260,7 +264,7 @@ function minimap(){
  for(const e of game.enemies)if(e.kind==='boss'){m.fillStyle='#f2a4d8';m.beginPath();m.arc(e.x*sx,e.y*sy,4,0,Math.PI*2);m.fill();}
  m.fillStyle='#fff6d2';m.beginPath();m.arc(game.player.x*sx,game.player.y*sy,3,0,Math.PI*2);m.fill();
 }
-let lastHud=-Infinity,lastMenuRender=-Infinity;
+let lastHud=-Infinity,lastSceneState='',lastSceneCharacter='',lastSceneSize='';
 function frame(now){
  const dt=(now-previous)/1000;previous=now;
  if(game.state==='playing')view.orbit?.(((keys.has('KeyR')?1:0)-(keys.has('KeyQ')?1:0))*Math.min(.25,dt)*1.8);
@@ -268,21 +272,23 @@ function frame(now){
  advanceGame(game,dt,view.movement?view.movement(x,y):{moveX:x,moveY:y});
  if(now-lastAutosave>10000){if(game.state==='dead')clearSavedRun();else saveRun();lastAutosave=now;}
  if(game.message){toast(game.message);game.message='';}if(game.event){beep(game.event==='hurt'?130:game.event==='boss'?880:440,.15);game.event=null;}
- if(game.state==='playing'||shown!==game.state||now-lastMenuRender>=200){view.render(now/1000);lastMenuRender=now;}if(now-lastHud>=100 || shown!==game.state){hud();lastHud=now;}showState();requestAnimationFrame(frame);
+ const sceneSize=canvas.clientWidth+':'+canvas.clientHeight;if(game.state==='playing'||lastSceneState!==game.state||lastSceneCharacter!==game.character||sceneSize!==lastSceneSize||view.needsRedraw?.()){view.render(now/1000);lastSceneState=game.state;lastSceneCharacter=game.character;lastSceneSize=sceneSize;}if(now-lastHud>=100 || shown!==game.state){hud();lastHud=now;}showState();requestAnimationFrame(frame);
 }
 function setGraphics(mode) {
+  lastSceneState='';
   const wasPlaying = game.state === 'playing';
   view?.dispose();
   const replacement=canvas.cloneNode(false); canvas.replaceWith(replacement); canvas=replacement;
-  try { view=mode==='3d'?create3DRenderer(canvas,game):create2DRenderer(canvas,game); graphics=mode; }
+  try { view=mode==='3d'?createBabylonRenderer(canvas,game):create2DRenderer(canvas,game); graphics=mode; }
   catch (error) {
     console.warn('3D rendering unavailable; using the illustrated view.',error.message);document.querySelectorAll('.combat-feedback').forEach(c=>c.remove());
     const fallback=canvas.cloneNode(false);canvas.replaceWith(fallback);canvas=fallback;
     view=create2DRenderer(canvas,game);graphics='2d';toast('3D needs WebGL2 · switched to the illustrated view');
   }
+  canvas.dataset.renderer=graphics==='3d'?view.engineName:'Canvas 2D';
   $('graphics-button').textContent=graphics==='3d'?'3D VIEW':'2D VIEW';
   $('graphics-button').setAttribute('aria-label',graphics==='3d'?'Switch to 2D graphics':'Switch to 3D graphics');
-  view.setQuality?.(quality);$('detail-button').textContent='Detail: '+(quality==='auto'?'Auto':quality==='high'?'High':'Low');
+  view.setQuality?.(quality);lastSceneState='';$('detail-button').textContent='Detail: '+(quality==='high'?'High':'Low');
   updateCameraLabel();
   let pointer=null,drag=false;
   canvas.addEventListener('wheel',e=>{if(view.zoom){e.preventDefault();view.zoom(e.deltaY);}},{passive:false});
