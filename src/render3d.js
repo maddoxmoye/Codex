@@ -265,7 +265,7 @@ export function create3DRenderer(canvas, game) {
     },(m,b)=>{m.position.y=b.kind==='pet'?.45:1.12;m.rotation.y=Math.atan2(b.vx,b.vy);if(b.style==='flock')for(const [i,wing] of m.children.entries())if(i)wing.rotation.z=(i===1?-1:1)*Math.sin(time*24)*.7;});
     sync(petMeshes,game.pets,p=>actors.makePet(p),(m,p)=>{m.rotation.y=Math.atan2(p.aimX||0,p.aimY||1);m.position.y=Math.sin(game.time*(p.kind==='collector'?12:9))*.025;actors.animatePet(m,p,game.time);});
     sync(chestMeshes,game.chests,c=>{
-      const g=new THREE.Group(),material=c.tier==='mythical'?fxColors.mythic:colors.gold;
+      const g=new THREE.Group(),material=c.tier==='mythical'?fxColors.mythic:colors.heal;
       mesh(g,box,colors.wood,0,.17,0,.44,.3,.32);mesh(g,box,material,0,.34,0,.46,.09,.34);mesh(g,box,material,0,.2,.18,.09,.12,.025);flatRing(g,material,.35,.025);
       if(c.tier==='mythical')for(let i=0;i<5;i++)mesh(g,crystal,material,Math.cos(i*1.26)*.19,.56,Math.sin(i*1.26)*.19,.05,.14,.05);return g;
     },(m,c)=>{m.position.y=.04+Math.sin(time*3+c.x)*.035;m.rotation.y=Math.sin(time*.5)*.15;});

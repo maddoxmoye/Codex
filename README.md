@@ -158,6 +158,8 @@ Ordinary enemies have a 3% chance to drop an ability chest. Each guardian guaran
 
 Intermission order is **level stat drafts → queued chests → four-offer shop**. For each chest, take the offered item for free, reroll only that chest, or sell it. Normal rewards draw from eligible equipment, companion charms and whistles, rare gear, quiver racks, medical wraps and focusing lenses, including the new equipment catalog. Chest rewards can grant an item before its shop level gate, while ownership, rank caps and piercing/ricochet exclusivity still apply.
 
+Each stop has a distinct presentation: gold parchment training cards for free level rewards, a treasure reveal for chest items, and a warm merchant stall for purchased gear. A step strip shows the current stop. Normal chests are green; guardian Mythic chests are red. The lid opens and the illustrated item rises out of the chest. Rerolling reveals the new item again; switching to inventory does not replay the opening. Reduced-motion preferences show the finished reveal immediately. Stats and inventory remain available at every stop.
+
 | Chest | Sell value | First reroll | Increase per reroll |
 | --- | --- | --- | --- |
 | Ability | 20 gold | 5 gold | +5 gold |
@@ -203,7 +205,7 @@ All ten active skills have distinct art, including Pip’s ticking turquoise fie
 
 ## Boss progression
 
-Survive **20 campaign waves**, then choose **Continue endless** at the victory checkpoint to retain the same character, stats, pets and inventory. Regular waves last 25 seconds; guardian waves last 55 seconds. Kill the guardian before that deadline and survive until time runs out; an early kill does not end the wave. A living guardian at the deadline fails the run. Resolve level-up choices, then chests, then the shop after each wave. Continue to begin the next wave and heal 8 health.
+Survive **20 campaign waves**, then choose **Continue endless** at the victory checkpoint to retain the same character, stats, pets and inventory. Regular waves last **45 seconds**; guardian waves last **75 seconds**. Every wave starts with a **3–2–1 countdown**, followed by GO. Combat, movement and cooldowns wait until the countdown finishes, so the entire 45 or 75 seconds remains available. Kill the guardian before that deadline and survive until time runs out; an early kill does not end the wave. A living guardian at the deadline fails the run. Resolve level-up choices, then chests, then the shop after each wave. Continue to begin the next wave and heal 8 health.
 
 - **Wave 5 — Briar King:** charging attacks.
 - **Wave 10 — Frost Oracle:** radial barrages.
@@ -275,6 +277,8 @@ Mythic powers can appear very rarely in the four-offer shop (180 base gold) and 
 Open **Run menu** inside the stage (also available in fullscreen), or press Escape during combat. **Save & quit** stores the current run in this browser and returns to the title screen; **Continue saved run** restores it safely paused. **Leave run** discards the active run and its save while keeping character unlock progress. Starting a new run replaces the save only when you launch that run.
 
 Saves preserve the current wave and timer, health/currency/stats, cooldowns, enemies and pending attacks, projectiles and their previously hit targets, pets, ground loot, chests, shop offers and sold slots, reroll prices, pending level choices, history, and endless state. The run menu also works from shop and reward screens and returns to the same screen. It includes read-only stats and inventory, with tabs on mobile. It cannot open a shop during a live wave. Autosaves run every 10 seconds and when the page is hidden or closed; manual Save & quit reports storage failures without leaving the run. Saves live in local browser storage (`wildfall-run`), so use the same browser/site/device. Corrupt or incompatible saves are rejected without changing a live run.
+
+Pausing or saving during a wave's opening countdown preserves its remaining time. Older saves remain compatible and resume without replaying a countdown.
 
 ### Enemy health and damage feedback
 

@@ -7,7 +7,7 @@ export { WORLD, REGIONS, regionAt };
 export const BOSSES=['The Briar King','The Frost Oracle','The Hollow Monarch','The Gilded Colossus'];
 export const CAMPAIGN_WAVES=20;
 export const isBossWave=wave=>wave%5===0;
-export const waveDuration=wave=>isBossWave(wave)?55:25;
+export const waveDuration=wave=>isBossWave(wave)?75:45;
 export const xpForLevel=level=>Math.floor(20*1.35**(level-1));
 export const ELEMENTS={
   fire:{name:'Fire',icon:'ϟ',power:'Searing arrows',duration:'Enduring embers',special:'Explosive embers',detail:'Impacts splash elemental damage around the target.'},
@@ -76,7 +76,7 @@ const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export class Game {
   constructor(random=Math.random,progress={}){this.random=random;this.progress=cleanProgress(progress);this.progressRevision=0;this.obstacles=SOLIDS;this.reset();}
   reset(){
-    this.damageNumbers=[];this.state='title';this.time=0;this.wave=1;this.waveTime=0;this.spawnTime=0;
+    this.damageNumbers=[];this.waveCountdown=0;this.state='title';this.time=0;this.wave=1;this.waveTime=0;this.spawnTime=0;
     this.player={x:2400,y:2000,r:13,hp:100,maxHp:100,speed:210,economy:0,gearTime:0,gearTimer:0,armor:0,momentumTime:0,damage:18,elementalDamage:12,fireRate:.42,fireTimer:0,level:1,xp:0,xpNext:xpForLevel(1),coins:0,kills:0,magnet:75,dashCooldown:0,dashTime:0,spaceTime:0,rapidTime:0,furyTime:0,dx:1,dy:0,invincible:0,nova:0,novaCooldown:0,multi:false,regen:false,pet:false,wolf:false,collector:false,element:'physical',elementUpgrades:{power:0,duration:0,special:0},ranks:{},aimX:0,aimY:-1,shotTime:0,moving:false};
     this.pausedFrom='playing';this.defeatReason='';this.endless=false;this.waveSalvage=null;this.settledWaves=new Set();Object.assign(this.player,BASE_STATS,{secondWindTime:0,secondWindWave:0,bucklerWave:0,empoweredShots:0});this.character='ranger';this.startStats={...BASE_STATS};this.chestQueue=[];this.chestSerial=0;this.hazards=[];this.shots=0;this.orbitTimer=0;this.victoryRecorded=false;this.goldRemainder=0;this.interestWaves=new Set();
     this.loadout={space:'dash',attack:'salvo'};this.loadoutChoices={space:[],attack:[]};this.upgradeHistory=[];this.freePicks=0;this.levelRewards=[];this.draftChoices=[];this.shopOffers=[];this.rerolls=0;this.shopRound=null;this.shopBaseCost=5;this.shopReason='manual';this.shopReturn='playing';this.shopRevision=0;this.pendingWave=null;this.pendingVictory=false;
@@ -117,7 +117,7 @@ export class Game {
       if(snapshot?.version!==1||!snapshot.data)return false;
       const d=JSON.parse(JSON.stringify(snapshot.data)),allowed=['playing','paused','shop','draft','reward','won'];
       if(!allowed.includes(d.state)||!CHARACTERS.some(c=>c.id===d.character)||!Number.isInteger(d.wave)||d.wave<1||!Number.isFinite(d.waveTime)||d.waveTime<0||!d.player||!Number.isFinite(d.player.hp)||d.player.hp<=0||!Number.isFinite(d.player.coins)||d.player.coins<0)return false;
-      const template=new Game(this.random,this.progress);
+      const template=new Game(this.random,this.progress);d.waveCountdown??=0;if(!Number.isFinite(d.waveCountdown)||d.waveCountdown<0||d.waveCountdown>3)return false;
       d.player={...template.player,...d.player};d.startStats={...BASE_STATS,...d.startStats};
       for(const [key,value] of Object.entries(template))if(typeof value==='number'&&key!=='progressRevision'&&!Number.isFinite(d[key]))return false;
       for(const [key,value] of Object.entries(template.player))if(typeof value==='number'&&!Number.isFinite(d.player[key]))return false;
@@ -151,7 +151,7 @@ export class Game {
   start(loadout={}){
     const character=CHARACTERS.find(c=>c.id===(loadout.character||'ranger'));if(!character||!isUnlocked(character,this.progress))return false;
     this.reset();this.character=character.id;this.startStats={...BASE_STATS,...character.stats};Object.assign(this.player,this.startStats,{hp:this.startStats.maxHp});if(character.element)this.player.element=character.element;
-    this.loadout={...character.skills};this.state='playing';this.message='Red markers warn attacks · dropped chests open after the wave';return true;
+    this.loadout={...character.skills};this.state='playing';this.waveCountdown=loadout.countdown===false?0:3;this.message='Red markers warn attacks · dropped chests open after the wave';return true;
   }
   chooseCharacter(id){const c=CHARACTERS.find(c=>c.id===id);if(this.state!=='loadout'||!c||!isUnlocked(c,this.progress))return false;this.character=id;this.loadout={...c.skills};this.shopRevision++;return true;}
   skill(slot){return SKILLS[slot].find(s=>s.id===this.loadout[slot]);}
@@ -222,7 +222,7 @@ export class Game {
   openShop(){return false;}
   closeShop(){
     if(this.state!=='shop')return false;
-    if(this.pendingWave!==null){this.wave=this.pendingWave;this.pendingWave=null;this.waveTime=0;this.spawnTime=1;this.bossSpawned=false;this.player.hp=Math.min(this.player.maxHp,this.player.hp+8);this.state='playing';this.message='Wave '+this.wave+' · +8 health';}
+    if(this.pendingWave!==null){this.wave=this.pendingWave;this.pendingWave=null;this.waveTime=0;this.waveCountdown=3;this.spawnTime=1;this.bossSpawned=false;this.player.hp=Math.min(this.player.maxHp,this.player.hp+8);this.state='playing';this.message='Wave '+this.wave+' · +8 health';}
     else this.state=this.shopReturn||'playing';
     return true;
   }
@@ -344,7 +344,7 @@ export class Game {
   attackInterval(){return this.player.fireRate/(this.player.rapidTime>0?2+this.player.nova*.25:1);}
   moveSpeed(){return this.player.speed*(this.player.secondWindTime>0?1.35:1)*(1+(this.player.momentum?Math.min(1,this.player.momentumTime/2)*.35:0))*(this.player.spaceTime>0?(this.loadout.space==='sprint'?1.7:this.loadout.space==='clock'?1.25:1):1);}
   dash(){
-    const p=this.player,skill=this.skill('space');if(this.state!=='playing'||p.dashCooldown>0||!skill)return false;
+    const p=this.player,skill=this.skill('space');if(this.state!=='playing'||this.waveCountdown>0||p.dashCooldown>0||!skill)return false;
     if(p['spark-spurs'])p.empoweredShots=1;
     p.dashCooldown=this.dashDuration();p.spaceTime=skill.duration;this.event='dash';
     if(skill.id==='dash'){p.dashTime=.19;p.invincible=Math.max(p.invincible,.3);}
@@ -361,7 +361,7 @@ export class Game {
     return true;
   }
   nova(){
-    const p=this.player,skill=this.skill('attack');if(this.state!=='playing'||p.novaCooldown>0||!skill)return false;
+    const p=this.player,skill=this.skill('attack');if(this.state!=='playing'||this.waveCountdown>0||p.novaCooldown>0||!skill)return false;
     p.novaCooldown=this.attackCooldown();const power=1+p.nova*.25,duration=skill.duration*(1+p.nova*.1);
     if(skill.id==='gearstorm'){p.gearTime=duration;p.gearTimer=0;this.effects.push({x:p.x,y:p.y,r:100,type:'gears',life:.8,maxLife:.8});}
     if(skill.id==='rapid'){p.rapidTime=duration;p.fireTimer=0;this.effects.push({x:p.x,y:p.y,r:85,type:'rapid',life:.65,maxLife:.65});}
@@ -389,7 +389,7 @@ export class Game {
   }
   fireHostile(e,count,speed,offset=0){for(let i=0;i<count;i++){const a=offset+i/count*Math.PI*2;this.hostile.push({x:e.x,y:e.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,r:6,life:7,damage:e.damage*.65});}}
   hurt(amount){
-    const p=this.player;if(!Number.isFinite(amount)||amount<=0||p.hp<=0||p.invincible>0||this.state!=='playing')return;
+    const p=this.player;if(!Number.isFinite(amount)||amount<=0||p.hp<=0||p.invincible>0||this.waveCountdown>0||this.state!=='playing')return;
     if(p.dodge>0&&this.random()<Math.min(.5,p.dodge)){p.invincible=.2;this.effects.push({x:p.x,y:p.y,r:45,type:'wind',life:.3,maxLife:.3});return;}
     if(p['weathered-buckler']&&p.bucklerWave!==this.wave){amount*=.5;p.bucklerWave=this.wave;}
     const before=p.hp;p.hp=Math.max(0,p.hp-amount*100/(100+Math.max(-10,p.armor)*6));const lost=before-p.hp;
@@ -494,7 +494,7 @@ export class Game {
     }
   }
   update(dt,input={}){
-    if(this.state!=='playing')return;dt=Math.min(.05,Math.max(0,dt));this.time+=dt;this.waveTime+=dt;for(const number of this.damageNumbers)number.life-=dt;this.damageNumbers=this.damageNumbers.filter(n=>n.life>0);const p=this.player;
+    if(this.state!=='playing')return;dt=Math.min(.05,Math.max(0,dt));if(this.waveCountdown>0){this.waveCountdown=Math.max(0,this.waveCountdown-dt);if(this.waveCountdown<1e-8)this.waveCountdown=0;this.player.moving=false;return;}this.time+=dt;this.waveTime+=dt;for(const number of this.damageNumbers)number.life-=dt;this.damageNumbers=this.damageNumbers.filter(n=>n.life>0);const p=this.player;
     for(const key of ['dashCooldown','novaCooldown','invincible','dashTime','shotTime','spaceTime','rapidTime','furyTime','gearTime','secondWindTime'])p[key]=Math.max(0,p[key]-dt);
     if(p.regen||p.regenRate)p.hp=Math.min(p.maxHp,p.hp+dt*((p.regen?2:0)+p.regenRate));
     let mx=input.moveX??((input.right?1:0)-(input.left?1:0)),my=input.moveY??((input.down?1:0)-(input.up?1:0));const len=Math.hypot(mx,my);
@@ -560,7 +560,7 @@ export class Game {
     for(const c of [...this.chests])if(dist(c,p)<40)this.secureChest(c);
     this.pickups=this.pickups.filter(i=>!i.collected);this.effects.forEach(e=>e.life-=dt);this.effects=this.effects.filter(e=>e.life>0);
     if(this.state==='playing'&&this.waveTime>=waveDuration(this.wave)){
-      if(isBossWave(this.wave)&&this.enemies.some(e=>e.kind==='boss')){this.defeatReason='The guardian survived the 55-second deadline.';this.state='dead';}
+      if(isBossWave(this.wave)&&this.enemies.some(e=>e.kind==='boss')){this.defeatReason='The guardian survived the 75-second deadline.';this.state='dead';}
       else this.nextWave();
     }
   }

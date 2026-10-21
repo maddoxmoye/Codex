@@ -18,7 +18,7 @@ export function create2DRenderer(canvas,game){
    if(warning.shape==='line'){line(warning.x,warning.y,warning.tx,warning.ty,'#ff695f',warning.width);ctx.globalAlpha=.7;line(warning.x,warning.y,warning.x+(warning.tx-warning.x)*progress,warning.y+(warning.ty-warning.y)*progress,'#ff796b',warning.width);}
    else{circle(warning.x,warning.y,warning.r*progress,'#ff665f');ctx.globalAlpha=.9;ring(warning.x,warning.y,warning.r,'#ff8773',3);}ctx.globalAlpha=1;
   }
-  for(const c of game.chests){ring(c.x,c.y,22,c.tier==='mythical'?'#ff405a':'#eed27a');ctx.fillStyle=c.tier==='mythical'?'#ff5369':'#dfbb69';ctx.fillRect(c.x-12,c.y-9,24,18);line(c.x,c.y-9,c.x,c.y+9,'#5c4238',3);if(c.tier==='mythical')for(let i=0;i<3;i++)circle(c.x-8+i*8,c.y-13,3,'#ffdeb4');}
+  for(const c of game.chests){ring(c.x,c.y,22,c.tier==='mythical'?'#ff405a':'#8be0a0');ctx.fillStyle=c.tier==='mythical'?'#ff5369':'#459b65';ctx.fillRect(c.x-12,c.y-9,24,18);line(c.x,c.y-9,c.x,c.y+9,'#5c4238',3);if(c.tier==='mythical')for(let i=0;i<3;i++)circle(c.x-8+i*8,c.y-13,3,'#ffdeb4');}
   for(const i of game.pickups)circle(i.x,i.y,6,i.kind==='xp'?'#bf9de4':i.kind==='heal'?'#a8da90':'#edc46b');
   for(const e of game.enemies){
    const color=e.poison>0?ELEMENT_COLORS.poison:e.burn>0?ELEMENT_COLORS.fire:e.slow>0?ELEMENT_COLORS.ice:e.kind==='boss'?'#ac83ba':{archer:'#d6bc92',boar:'#bc9063',shaman:'#b6d971',bomber:'#d58cb6',stalker:'#8764ae',juggernaut:'#9ca6a1'}[e.kind]||'#849960';
