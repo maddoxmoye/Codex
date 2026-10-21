@@ -1,0 +1,32 @@
+{
+  "name": "Briarling / enemy motion study 01",
+  "file": "assets/briarling-motion.glb",
+  "bones": 13,
+  "triangles": 2156,
+  "clips": {
+    "Idle": 2.4,
+    "Run": 0.72,
+    "Attack": 1.2,
+    "Hit": 0.55,
+    "Death": 1.4
+  },
+  "attackContact": 0.56,
+  "attackRecovery": 0.73,
+  "runStrideSpeed": 0.6448412698412699,
+  "health": 60,
+  "arrowDamage": 20,
+  "dummyDamage": 12,
+  "notes": "First enemy motion prototype. Three other designs remain static. No full-game AI or gameplay integration.",
+  "clawSocket": {
+    "L": [
+      0.011695541441440582,
+      0.14444851875305176,
+      -0.09847763925790787
+    ],
+    "R": [
+      -0.011695541441440582,
+      0.14444851875305176,
+      -0.09847763925790787
+    ]
+  }
+}

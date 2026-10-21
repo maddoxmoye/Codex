@@ -48,3 +48,5 @@ All designs and meshes in this folder are original to this project; no stock mod
 ## Woodland monster study
 
 `wildfall-monsters.blend`, `monster-palette.png` and `build_monsters.py` deliver four separately rigged static monster designs and a small woodland clearing. The base roster is unchanged. The separate `/monster-preview/` Godot viewer and source ZIP contain Briarling, Sporecaller, Thornback and Hollowhart. Attack/hit animations are intentionally deferred. See `godot-monsters/README.md` at the repository root.
+
+`animate_briarling.py` and `briarling-motion.blend` add a separate first enemy motion study: Idle, Run, Attack, Hit and Death, with four extra shin/foot bones. The static monster library is preserved. The Godot bestiary includes an arrow-impact target test; the other three monsters remain static pending their animation passes.

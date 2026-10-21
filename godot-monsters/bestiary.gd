@@ -1,5 +1,7 @@
 extends Node3D
-## Static Blender design review. No attack/hit animations or gameplay in this scene.
+## Isolated monster design review with one Blender-authored enemy motion prototype.
+const BRIAR_MOTION := preload("res://briarling_motion.gd")
+var briar: Node3D
 var manifest: Dictionary
 var models: Dictionary = {}
 var environment: Node3D
@@ -54,7 +56,12 @@ func _ready() -> void:
 	studio.position.y = -0.045
 	add_child(studio)
 	for item in manifest.assets:
-		var model: Node3D = load("res://"+item.file).instantiate()
+		var model: Node3D
+		if item.id=="briarling":
+			model = Node3D.new()
+			model.set_script(BRIAR_MOTION)
+			briar = model
+		else:model = load("res://"+item.file).instantiate()
 		add_child(model)
 		models[item.id] = model
 	camera = Camera3D.new()
@@ -70,7 +77,7 @@ func _ready() -> void:
 	set_environment(true)
 	update_camera(1.0)
 	if OS.has_feature("web"):JavaScriptBridge.eval("window.bestiaryReady=true",true)
-	print("BESTIARY_READY: four static Blender monster models and a woodland study")
+	print("BESTIARY_READY: first Briarling motion study and three static designs")
 
 func select_model(id: String) -> void:
 	if id!="lineup" and not models.has(id):return
@@ -83,6 +90,7 @@ func select_model(id: String) -> void:
 	pitch = 0.18
 	zoom = 1
 	auto_rotate = false
+	if is_instance_valid(briar):briar.set_active(id=="briarling")
 
 func set_environment(enabled: bool) -> void:
 	woodland = enabled
@@ -97,11 +105,12 @@ func update_camera(dt: float) -> void:
 	if current!="lineup":
 		var item := data(current)
 		var height := float(item.heightMeters)
-		focus.y = height*0.52
+		focus.y = height*(0.39 if current=="briarling" else 0.52)
 		var sphere_radius := sqrt(pow(float(item.radius),2)+pow(height*0.52,2))
 		var limiting_half_fov := atan(tan(deg_to_rad(camera.fov)*0.5)*minf(1.0,aspect))
 		distance = maxf(height*2.6,sphere_radius/sin(limiting_half_fov)*1.15)
 		distance = maxf(distance,2.5)
+		if current=="briarling":distance *= 1.08
 	distance *= zoom
 	var offset := Vector3(sin(turn)*cos(pitch),sin(pitch),cos(turn)*cos(pitch))*distance
 	camera.position = camera.position.lerp(focus+offset,minf(1.0,dt*9))
@@ -125,6 +134,13 @@ func _input(event: InputEvent) -> void:
 		if event.keycode in keys:select_model(["lineup","briarling","sporecaller","thornback","hollowhart"][keys.find(event.keycode)])
 
 func _process(delta: float) -> void:
+	if is_instance_valid(briar):
+		var remaining: float = minf(delta,0.10)*briar.speed
+		while remaining>0.000001:
+			var step := minf(remaining,1.0/60.0)
+			briar.advance_simulation(step)
+			remaining -= step
+		briar.update_view(camera)
 	if auto_rotate and not dragging:turn += minf(delta,0.1)*0.25
 	update_camera(delta)
 	poll += delta
@@ -134,6 +150,11 @@ func _process(delta: float) -> void:
 	if request:
 		var id := str(request.get("id",current))
 		if id!=current:select_model(id)
+		if request.has("motion"):
+			if current=="briarling":briar.command(str(request.motion))
+			JavaScriptBridge.eval("delete window.bestiaryRequest.motion",true)
+		briar.paused = bool(request.get("paused",false))
+		briar.speed = clampf(float(request.get("speed",1.0)),0.25,1.0)
 		if request.has("woodland") and bool(request.woodland)!=woodland:set_environment(bool(request.woodland))
 		if request.has("rotate"):
 			auto_rotate = bool(request.rotate)
@@ -146,5 +167,5 @@ func _process(delta: float) -> void:
 			pitch = 0.18
 			zoom = 1
 			JavaScriptBridge.eval("window.bestiaryRequest.reset=false",true)
-	var state := {"id":current,"woodland":woodland,"rotate":auto_rotate,"fps":Engine.get_frames_per_second(),"animated":false,"zoom":snappedf(zoom,0.01),"visibleModels":4 if current=="lineup" else 1}
+	var state := {"id":current,"woodland":woodland,"rotate":auto_rotate,"fps":Engine.get_frames_per_second(),"animated":current=="briarling","motion":briar.state(),"zoom":snappedf(zoom,0.01),"visibleModels":4 if current=="lineup" else 1}
 	JavaScriptBridge.eval("window.bestiaryState="+JSON.stringify(state),true)
