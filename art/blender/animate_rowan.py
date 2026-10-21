@@ -40,6 +40,8 @@ def limb(upper,lower,end,pole):
     return end
 
 def pose(t,clip):
+    wind=clip=='Windskip'
+    if clip=='Salvo':t*=3.2/1.1;clip='Shoot'
     run=clip in ['Run','RunShoot'];shoot=clip in ['Shoot','RunShoot'];dodge=clip=='Dodge'
     for p in rig.pose.bones:
         p.rotation_mode='QUATERNION';p.rotation_quaternion=(1,0,0,0);p.location=(0,0,0);p.scale=(1,1,1)
@@ -52,11 +54,14 @@ def pose(t,clip):
     hips.location.x=math.sin(phase)*.018 if run else 0
     if dodge:
         duck=ease(t,0,.18)*(1-ease(t,.55,.9));hips.location.y=-.18*duck;hips.location.x=-.08*duck;lean=.18*duck
+    if wind:
+        burst=ease(t,0,.08)*(1-ease(t,.23,.65));hips.location.y=-.16*burst;lean=.38*burst
     hips.rotation_quaternion=Euler((lean,.025*math.sin(phase) if run else .10*raised,0),'XYZ').to_quaternion()
     rig.pose.bones['spine'].rotation_quaternion=Euler((.015*breath,.04*raised,0),'XYZ').to_quaternion()
     rig.pose.bones['chest'].rotation_quaternion=Euler((.015*breath,.10*raised+(.045*math.sin(phase) if run else 0),0),'XYZ').to_quaternion()
     rig.pose.bones['head'].rotation_quaternion=Euler((-.04*raised,.42*raised,.015*breath),'XYZ').to_quaternion()
     rig.pose.bones['cape'].rotation_quaternion=Euler((-.08+math.sin(phase-.6)*.065 if run else math.sin(t*3)*.025,.035*math.sin(phase) if run else 0,0),'XYZ').to_quaternion()
+    if wind:rig.pose.bones['cape'].rotation_quaternion=Euler((-.7*burst,.1*math.sin(t*12),0),'XYZ').to_quaternion()
     bpy.context.view_layer.update()
     # Analytic leg IK keeps boots flat during the stance and gives the swing foot clearance.
     for side,s in [('L',1),('R',-1)]:
@@ -70,6 +75,7 @@ def pose(t,clip):
             x+=s*.035*raised;y=(-.08 if s==1 else .08)*raised
         elif dodge:
             x+=(-.14 if s==1 else .06)*ease(t,.05,.3);y=(.12 if s==1 else -.10)*math.sin(t/.9*math.pi)
+        if wind:y+=(-.19 if s==1 else .21)*burst;z+=.10*burst if s==-1 else 0
         foot=limb('thigh.'+side,'shin.'+side,(x,y,z),(x,-1,.50))
         world_bone('foot.'+side,foot,Quaternion())
     # Raise the left wrist into an extended bow hold. The right hand nocks, draws and follows through.
@@ -78,6 +84,7 @@ def pose(t,clip):
         baseL+=Vector((0,-math.sin(phase)*.16,.035));baseR+=Vector((0,math.sin(phase)*.22,.035))
     if dodge:
         duck=ease(t,0,.18)*(1-ease(t,.55,.9));baseL+=Vector((-.05,0,-.12))*duck;baseR+=Vector((.10,-.12,.05))*duck
+    if wind:baseL+=Vector((-.14,-.17,.12))*burst;baseR+=Vector((.14,.20,.20))*burst
     left=baseL.lerp(Vector((.19,-.51,1.48)),raised)
     hand_delta=Quaternion(Vector((1,0,0)),-math.pi/2*raised)
     left=limb('upper_arm.L','forearm.L',left,(.85,-.08,1.24))
@@ -136,7 +143,7 @@ def capture(d,kind):
     indices=[mapping[p.material_index] for p in mesh.data.polygons];mesh.data.materials.clear()
     for m in unique:mesh.data.materials.append(m)
     for p,i in zip(mesh.data.polygons,indices):p.material_index=i
-    actions={};clips={'Idle':3.2,'Run':.8,'Shoot':3.2,'RunShoot':3.2,'Dodge':.9};rig.animation_data_create()
+    actions={};clips={'Idle':3.2,'Run':.8,'Shoot':3.2,'RunShoot':3.2,'Dodge':.9,'Windskip':.65,'Salvo':1.1};rig.animation_data_create()
     for clip,duration in clips.items():
         action=bpy.data.actions.new('Rowan / '+clip);rig.animation_data.action=action
         frames=round(duration*FPS)
@@ -157,7 +164,7 @@ def capture(d,kind):
     rig.animation_data.action=actions['Shoot'];bpy.context.scene.frame_set(53)
     pose(52/FPS,'Shoot')
     mesh.data.calc_loop_triangles()
-    metadata={'name':'Rowan / motion study 01','file':'rowan-motion.glb','bones':22,'triangles':len(mesh.data.loop_triangles),'clips':clips,'releaseTime':RELEASE,'anchorTime':1.75,'bowBone':'bow','stringBone':'bowstring','runStrideSpeed':.56/(.8*.55),'loopClips':['Idle','Run','RunShoot'],'notes':'Prototype IK-baked motion. Fixed mitten hands; no finger or facial rig. Dodge is a short sidestep, not a roll.'}
+    metadata={'name':'Rowan / abilities and companion study','file':'rowan-motion.glb','bones':22,'triangles':len(mesh.data.loop_triangles),'clips':clips,'releaseTime':RELEASE,'salvoReleaseTime':RELEASE*1.1/3.2,'salvoAnchorTime':1.75*1.1/3.2,'windskipDuration':.19,'windskipInvulnerability':.30,'windskipCooldown':2.6,'salvoCooldown':11.0,'salvoArrows':8,'salvoDamageMultiplier':1.4,'anchorTime':1.75,'bowBone':'bow','stringBone':'bowstring','runStrideSpeed':.56/(.8*.55),'loopClips':['Idle','Run','RunShoot'],'notes':'Prototype IK-baked motion. Fixed mitten hands; no finger or facial rig. Dodge is a short sidestep, not a roll.'}
     (OUT/'motion.json').write_text(json.dumps(metadata,indent=2)+'\n')
     bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'art/blender/rowan-motion.blend'),compress=True)
     print('ROWAN_MOTION_EXPORTED',json.dumps(metadata),flush=True)

@@ -2,7 +2,26 @@ extends Node3D
 ## Isolated animation study. All body/bow deformation is baked in Blender;
 ## projectile flight and impact are synchronized here against the release timestamp.
 const STUDY := preload("res://assets/rowan-motion.glb")
-const SHOWCASE := [["Idle",1.6],["Run",3.2],["Shoot",3.2],["RunShoot",3.2],["Dodge",0.9],["Idle",1.2]]
+const FOX := preload("res://assets/fox-motion.glb")
+const SHOWCASE := [["Idle",1.6],["Run",3.2],["Shoot",3.2],["Windskip",2.6],["Salvo",3.0],["Fox",5.0],["RunShoot",3.2]]
+var fox: Node3D
+var fox_player: AnimationPlayer
+var fox_skeleton: Skeleton3D
+var fox_metadata: Dictionary
+var fox_clip := "Idle"
+var fox_time := 0.0
+var fox_cooldown := 0.0
+var fox_fired := false
+var pet_shots := 0
+var pet_hits := 0
+var pet_target: Node3D
+var salvo_targets: Array[Node3D] = []
+var wind_cooldown := 0.0
+var salvo_cooldown := 0.0
+var invulnerable := false
+var fan_mode := false
+var effect_clock := 0.0
+var wind_rings: Array[Dictionary] = []
 var metadata: Dictionary
 var actor: Node3D
 var player: AnimationPlayer
@@ -125,6 +144,24 @@ func _ready() -> void:
 	target_material.emission_enabled = true
 	target_material.emission = Color("e5b96d")
 	target_post = part(cylinder(0.05,0.065,1.0,8),material("post","5d4b3c"),Vector3.ZERO)
+	for i in 8:
+		var marker := Node3D.new()
+		add_child(marker)
+		part(cylinder(0.24,0.24,0.07,24),material("salvo_target","d6aa61",0.2,0.1),Vector3.ZERO,marker).rotation.x = PI/2
+		part(cylinder(0.075,0.075,0.085,16),material("salvo_bull","f5e4ba"),Vector3(0,0,0.04),marker).rotation.x = PI/2
+		salvo_targets.append(marker)
+	fox_metadata = JSON.parse_string(FileAccess.get_file_as_string("res://assets/fox-motion.json"))
+	fox = FOX.instantiate()
+	add_child(fox)
+	fox_player = fox.find_children("*","AnimationPlayer",true,false)[0]
+	fox_skeleton = fox.find_children("*","Skeleton3D",true,false)[0]
+	fox_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	for name in fox_player.get_animation_list():
+		fox_player.get_animation(name).loop_mode = Animation.LOOP_LINEAR if name in ["Idle","Trot"] else Animation.LOOP_NONE
+	pet_target = Node3D.new()
+	add_child(pet_target)
+	part(cylinder(0.48,0.48,0.06,24),material("pet_target","b77745"),Vector3.ZERO,pet_target).rotation.x = PI/2
+	part(cylinder(0.13,0.13,0.075,16),material("pet_bull","f1ca8a"),Vector3(0,0,0.04),pet_target).rotation.x = PI/2
 	nocked = make_arrow()
 	add_child(nocked)
 	nocked.visible = false
@@ -154,9 +191,19 @@ func align_target() -> void:
 	target.look_at(launch,Vector3.UP,true)
 	target_post.position = Vector3(target.position.x,target.position.y*0.5,target.position.z)
 	target_post.scale.y = target.position.y
+	var right := Vector3.UP.cross(direction).normalized()
+	for i in 8:
+		var marker := salvo_targets[i]
+		marker.position = launch+direction*4.2+right*(float(i)-3.5)*0.53
+		marker.look_at(launch,Vector3.UP,true)
+		marker.visible = clip=="Salvo" and not fan_mode
+	target.visible = clip!="Salvo"
+	target_post.visible = target.visible
+	pet_target.position = base_origin+Vector3(-1.2,0.58,0.3)+direction*3.0
+	pet_target.look_at(base_origin+Vector3(-1.2,0.58,0.3),Vector3.UP,true)
 
 func set_mode(requested: String) -> void:
-	if requested not in ["Showcase","Idle","Run","Shoot","RunShoot","Dodge"]:
+	if requested not in ["Showcase","Idle","Run","Shoot","RunShoot","Dodge","Windskip","Salvo","Fox"]:
 		return
 	mode = requested
 	segment = 0
@@ -164,6 +211,13 @@ func set_mode(requested: String) -> void:
 	actor.position = Vector3.ZERO
 	actor.rotation.y = 0
 	dodge_direction = 1
+	wind_cooldown = 0
+	salvo_cooldown = 0
+	fox.position = Vector3(-1.25,0,0.65)
+	fox_cooldown = 0
+	fox_time = 0
+	fox_clip = "Idle"
+	fox_player.play("Idle",0)
 	clear_arrows()
 	start_clip(SHOWCASE[0][0] if mode == "Showcase" else mode)
 
@@ -171,10 +225,12 @@ func start_clip(name: String) -> void:
 	clip = name
 	phase_time = 0
 	release_fired = false
-	duration = float(SHOWCASE[segment][1]) if mode == "Showcase" else 3.2 if clip == "Run" else float(metadata.clips[clip])
+	duration = float(SHOWCASE[segment][1]) if mode == "Showcase" else 3.2 if clip == "Run" else 5.0 if clip=="Fox" else maxf(float(metadata.clips[clip]),2.6 if clip=="Windskip" else 11.0 if clip=="Salvo" else 0.0)
 	actor.position = base_origin
 	actor.rotation.y = 0
-	player.play(clip,0.16)
+	player.play("Idle" if clip=="Fox" else clip,0.10)
+	if clip=="Windskip":wind_cooldown = float(metadata.windskipCooldown)
+	if clip=="Salvo":salvo_cooldown = float(metadata.salvoCooldown)
 	player.advance(0)
 	align_target()
 
@@ -188,6 +244,8 @@ func clear_arrows() -> void:
 	for item in sparks:
 		item.node.queue_free()
 	sparks.clear()
+	for item in wind_rings:item.node.queue_free()
+	wind_rings.clear()
 
 func make_arrow() -> Node3D:
 	var arrow := Node3D.new()
@@ -199,22 +257,102 @@ func make_arrow() -> Node3D:
 		part(feather,material("feather","a0d3be"),Vector3(0,0,-0.23),arrow).rotation.z = a
 	return arrow
 
+func spawn_projectile(point: Vector3, direction: Vector3, pet := false, empowered := false) -> void:
+	var arrow := make_arrow()
+	if pet:
+		arrow.scale = Vector3.ONE*0.42
+		for child in arrow.get_children():child.material_override = material("fox_dart","edb76c",0.15,0.5)
+	elif empowered:
+		for child in arrow.get_children():child.material_override = material("flock_arrow","f3d487",0.15,0.7)
+		for side in [-1,1]:
+			var wing := BoxMesh.new()
+			wing.size = Vector3(0.20,0.009,0.07)
+			part(wing,material("flock_wings","f5e4b5",0.1,0.25),Vector3(side*0.10,0,-0.11),arrow).rotation.y = side*0.5
+	add_child(arrow)
+	arrow.position = point+direction*(0.13 if pet else 0.3)
+	arrow.look_at(arrow.position+direction,Vector3.UP,true)
+	projectiles.append({"node":arrow,"direction":direction,"age":0.0,"pet":pet,"empowered":empowered})
+	if pet:pet_shots += 1
+	else:shots += 1
+
 func release_arrow() -> void:
-	# Sample just before the snap even if a slow frame crosses the release marker.
 	var restore := phase_time
-	player.seek(float(metadata.anchorTime),true)
+	player.seek(float(metadata.salvoAnchorTime if clip=="Salvo" else metadata.anchorTime),true)
 	var string := bone_point("bowstring")
 	var direction := (bone_point("bow")+Vector3.UP*0.08-string).normalized()
-	var arrow := make_arrow()
-	add_child(arrow)
-	arrow.position = string + direction*0.3
-	arrow.look_at(arrow.position+direction,Vector3.UP,true)
-	projectiles.append({"node":arrow,"direction":direction,"age":0.0})
-	shots += 1
+	if clip=="Salvo":
+		for i in 8:
+			var aim := direction.rotated(Vector3.UP,(float(i)-3.5)*0.12) if fan_mode else (salvo_targets[i].position-string).normalized()
+			spawn_projectile(string,aim,false,true)
+	else:spawn_projectile(string,direction)
 	player.seek(restore,true)
-	print("ARROW_RELEASE: ",clip," #",shots)
+
+func trigger_ability(name: String) -> bool:
+	if paused or name not in ["Windskip","Salvo"]:return false
+	if (wind_cooldown if name=="Windskip" else salvo_cooldown)>0:return false
+	# Manual casts return to idle; study tabs replay the chosen motion automatically.
+	mode = "Idle"
+	base_origin = actor.position
+	start_clip(name)
+	return true
+
+func update_fox(dt: float) -> void:
+	fox_cooldown = maxf(0,fox_cooldown-dt)
+	var goal := actor.position+Vector3(-1.25,0,0.45)
+	var distance := fox.position.distance_to(goal)
+	var next_clip := "Trot" if distance>0.12 else "Attack" if fox_cooldown<=0 or (fox_clip=="Attack" and fox_time<0.85) else "Idle"
+	if clip=="Fox" and fmod(phase_time,5.0)<1.4:
+		goal += Vector3(sin(phase_time*1.8)*0.65,0,cos(phase_time*1.8)*0.45)
+		if fox.position.distance_to(goal)>0.12:next_clip = "Trot"
+	if next_clip!=fox_clip:
+		fox_clip = next_clip
+		fox_time = 0
+		fox_fired = false
+		fox_player.play(fox_clip,0.1)
+		if fox_clip=="Attack":fox_cooldown = float(fox_metadata.attackInterval)
+	if fox_clip=="Trot":
+		var direction := goal-fox.position
+		var velocity := 3.4 if distance>1.5 else 0.85
+		fox.position = fox.position.move_toward(goal,dt*velocity)
+		if direction.length()>0.01:fox.rotation.y = lerp_angle(fox.rotation.y,atan2(direction.x,direction.z),minf(1,dt*10))
+	else:
+		var direction := pet_target.position-fox.position
+		fox.rotation.y = lerp_angle(fox.rotation.y,atan2(direction.x,direction.z),minf(1,dt*10))
+	var anim_dt := dt*(1.3 if fox_clip=="Trot" else 1.0)
+	fox_time += anim_dt
+	fox_player.advance(anim_dt)
+	if fox_clip=="Attack" and fox_time>=float(fox_metadata.releaseTime) and not fox_fired:
+		fox_fired = true
+		var local: Array = fox_metadata.muzzleLocal
+		var head := fox_skeleton.global_transform*fox_skeleton.get_bone_global_pose(fox_skeleton.find_bone("head"))
+		var point: Vector3 = head*Vector3(local[0],local[1],local[2])
+		var direction := (pet_target.position-point).normalized()
+		for spread in fox_metadata.spread:spawn_projectile(point,direction.rotated(Vector3.UP,float(spread)),true)
+
+func update_wind(dt: float) -> void:
+	invulnerable = clip=="Windskip" and phase_time<float(metadata.windskipInvulnerability)
+	effect_clock += dt
+	if invulnerable and effect_clock>=0.035:
+		effect_clock = 0
+		var mesh := TorusMesh.new()
+		mesh.inner_radius = 0.35
+		mesh.outer_radius = 0.39
+		mesh.rings = 16
+		mesh.ring_segments = 6
+		var ring := part(mesh,material("wind","b7ece1",0,0.7),actor.position+Vector3(0,0.75,0))
+		ring.rotation.x = PI/2
+		wind_rings.append({"node":ring,"life":0.38})
+	for i in range(wind_rings.size()-1,-1,-1):
+		var item := wind_rings[i]
+		item.life -= dt
+		item.node.scale = Vector3.ONE*maxf(0.01,item.life/0.38)
+		if item.life<=0:
+			item.node.queue_free()
+			wind_rings.remove_at(i)
 
 func advance_simulation(dt: float) -> void:
+	wind_cooldown = maxf(0,wind_cooldown-dt)
+	salvo_cooldown = maxf(0,salvo_cooldown-dt)
 	var old := phase_time
 	phase_time = minf(phase_time+dt,duration)
 	if clip == "Run":
@@ -223,11 +361,15 @@ func advance_simulation(dt: float) -> void:
 		actor.rotation.y = -angle
 	elif clip == "Dodge":
 		actor.position = base_origin + Vector3(dodge_direction*0.9*smoothstep(0.08,0.32,phase_time),0,0)
+	elif clip=="Windskip":
+		actor.position = base_origin+Vector3(0,0,2.5*clampf(phase_time/float(metadata.windskipDuration),0,1))
 	player.advance(phase_time-old)
-	if clip in ["Shoot","RunShoot"] and not release_fired and phase_time >= float(metadata.releaseTime):
+	if clip in ["Shoot","RunShoot","Salvo"] and not release_fired and phase_time >= float(metadata.salvoReleaseTime if clip=="Salvo" else metadata.releaseTime):
 		release_fired = true
 		release_arrow()
 	update_nocked()
+	update_fox(dt)
+	update_wind(dt)
 	update_projectiles(dt)
 	flash = maxf(0,flash-dt)
 	target_material.emission_energy_multiplier = flash*3
@@ -237,12 +379,15 @@ func advance_simulation(dt: float) -> void:
 			dodge_direction *= -1
 		if mode == "Showcase":
 			segment = (segment+1)%SHOWCASE.size()
+			if segment==0:base_origin = Vector3.ZERO
+			elif clip=="Windskip":base_origin = actor.position
 			start_clip(SHOWCASE[segment][0])
 		else:
-			start_clip(clip)
+			if clip=="Windskip":base_origin = actor.position if mode=="Idle" else Vector3.ZERO
+			start_clip(mode if mode=="Idle" else clip)
 
 func update_nocked() -> void:
-	nocked.visible = clip in ["Shoot","RunShoot"] and phase_time >= 0.70 and phase_time < float(metadata.releaseTime)
+	nocked.visible = view_mode!="Fox" and clip in ["Shoot","RunShoot","Salvo"] and phase_time >= (0.24 if clip=="Salvo" else 0.70) and phase_time < float(metadata.salvoReleaseTime if clip=="Salvo" else metadata.releaseTime)
 	if nocked.visible:
 		var point := bone_point("bowstring")
 		var dir := (bone_point("bow")+Vector3.UP*0.08-point).normalized()
@@ -258,17 +403,25 @@ func update_projectiles(dt: float) -> void:
 		arrow.position += dir*dt*11
 		item.age += dt
 		var next := arrow.position+dir*0.38
-		var normal := target.global_basis.z.normalized()
-		var plane := Plane(normal,normal.dot(target.global_position))
-		var hit = plane.intersects_segment(previous,next)
-		if hit != null and Vector3(hit).distance_to(target.global_position)<0.49:
+		var hit = null
+		var candidates: Array = [pet_target] if item.pet else salvo_targets if item.empowered else [target]
+		if item.empowered and fan_mode:candidates = []
+		for candidate in candidates:
+			var normal: Vector3 = candidate.global_basis.z.normalized()
+			var plane := Plane(normal,normal.dot(candidate.global_position))
+			var intersection = plane.intersects_segment(previous,next)
+			if intersection != null and Vector3(intersection).distance_to(candidate.global_position)<(0.25 if item.empowered else 0.49):
+				hit = intersection
+				break
+		if hit != null:
 			arrow.position = Vector3(hit)-dir*0.28
 			stuck.append(arrow)
-			if stuck.size()>6:
+			if stuck.size()>18:
 				stuck.pop_front().queue_free()
-			hits += 1
+			if item.pet:pet_hits += 1
+			else:hits += 1
 			flash = 0.35
-			for k in 10:
+			for k in (3 if item.pet else 6):
 				var spark_mesh := SphereMesh.new()
 				spark_mesh.radius = 0.018
 				spark_mesh.height = 0.036
@@ -277,7 +430,6 @@ func update_projectiles(dt: float) -> void:
 				var spark := part(spark_mesh,material("spark","e6c784",0,0.5),hit)
 				sparks.append({"node":spark,"velocity":Vector3(cos(k*2.4)*0.7,0.5+(k%3)*0.15,sin(k*2.4)*0.7),"life":0.40})
 			projectiles.remove_at(i)
-			print("TARGET_HIT: ",hits)
 		elif item.age>2:
 			arrow.queue_free()
 			projectiles.remove_at(i)
@@ -291,11 +443,17 @@ func update_projectiles(dt: float) -> void:
 			sparks.remove_at(i)
 
 func update_camera(dt: float) -> void:
+	# Isolate the small companion so Rowan cannot obscure its detail camera.
+	actor.visible = view_mode!="Fox"
+	update_nocked()
 	var focus := actor.position+Vector3(0,1.1,0)
 	var offset := Vector3(-2.8,1.0,3.3)
 	if view_mode == "Bow":
 		focus = actor.position+Vector3(0,1.46,0)
 		offset = Vector3(-1.7,0.55,1.9)
+	elif view_mode == "Fox":
+		focus = fox.position+Vector3(0,0.4,0)
+		offset = fox.global_basis*Vector3(-1.8,0.7,2.2)
 	elif view_mode == "Range":
 		focus = (base_origin+target.position)*0.5
 		focus.y = 1.0
@@ -309,6 +467,9 @@ func update_camera(dt: float) -> void:
 	camera.look_at(focus)
 
 func phase_label() -> String:
+	if clip=="Windskip":return "WINDSKIP · INVULNERABLE" if invulnerable else "WINDSKIP · RECOVER"
+	if clip=="Salvo":return "FLOCK & AWE · DRAW" if phase_time<float(metadata.salvoReleaseTime) else "EIGHT EMPOWERED ARROWS"
+	if clip=="Fox":return "FOREST FOX · "+fox_clip.to_upper()
 	if clip == "Run":return "RUN · FOOT PLACEMENT"
 	if clip == "Dodge":return "SIDESTEP · RECOVER"
 	if clip == "Idle":return "IDLE · BREATHING"
@@ -331,7 +492,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var modes := [KEY_1,KEY_2,KEY_3,KEY_4,KEY_5]
 		if event.keycode in modes:set_mode(["Showcase","Run","Shoot","RunShoot","Dodge"][modes.find(event.keycode)])
-		if event.keycode==KEY_SPACE:paused = not paused
+		if event.keycode==KEY_SPACE:trigger_ability("Windskip")
+		if event.keycode==KEY_E:trigger_ability("Salvo")
+		if event.keycode==KEY_P:paused = not paused
 		if event.keycode==KEY_TAB:view_mode = "Range" if view_mode=="Archer" else "Archer"
 
 func _process(delta: float) -> void:
@@ -344,6 +507,14 @@ func _process(delta: float) -> void:
 	if request:
 		if request.get("mode",mode)!=mode:set_mode(request.mode)
 		paused = bool(request.get("paused",false))
+		var new_fan := bool(request.get("fan",false))
+		if new_fan!=fan_mode:
+			fan_mode = new_fan
+			align_target()
+		if request.has("cast"):
+			if trigger_ability(str(request.cast)):
+				JavaScriptBridge.eval("window.motionRequest.mode='Idle'",true)
+			JavaScriptBridge.eval("delete window.motionRequest.cast",true)
 		speed = clampf(float(request.get("speed",1)),0.25,1.5)
 		view_mode = str(request.get("view","Archer"))
 		if request.has("seek"):
@@ -360,5 +531,5 @@ func _process(delta: float) -> void:
 			view_turn = 0
 			view_pitch = 0
 			JavaScriptBridge.eval("window.motionRequest.reset=false",true)
-	var state := {"mode":mode,"clip":clip,"phase":phase_label(),"time":snappedf(phase_time,0.01),"shots":shots,"hits":hits,"flying":projectiles.size(),"paused":paused,"speed":speed,"fps":Engine.get_frames_per_second(),"bones":skeleton.get_bone_count(),"nocked":nocked.visible,"view":view_mode}
+	var state := {"mode":mode,"clip":clip,"phase":phase_label(),"time":snappedf(phase_time,0.01),"shots":shots,"hits":hits,"flying":projectiles.size(),"paused":paused,"speed":speed,"fps":Engine.get_frames_per_second(),"bones":skeleton.get_bone_count(),"nocked":nocked.visible,"view":view_mode,"petClip":fox_clip,"petShots":pet_shots,"petHits":pet_hits,"windCooldown":snappedf(wind_cooldown,0.1),"salvoCooldown":snappedf(salvo_cooldown,0.1),"invulnerable":invulnerable,"petDistance":fox.position.distance_to(actor.position),"petBones":fox_skeleton.get_bone_count()}
 	JavaScriptBridge.eval("window.motionState="+JSON.stringify(state),true)

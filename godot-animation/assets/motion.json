@@ -1,5 +1,5 @@
 {
-  "name": "Rowan / motion study 01",
+  "name": "Rowan / abilities and companion study",
   "file": "rowan-motion.glb",
   "bones": 22,
   "triangles": 5958,
@@ -8,9 +8,19 @@
     "Run": 0.8,
     "Shoot": 3.2,
     "RunShoot": 3.2,
-    "Dodge": 0.9
+    "Dodge": 0.9,
+    "Windskip": 0.65,
+    "Salvo": 1.1
   },
   "releaseTime": 1.82,
+  "salvoReleaseTime": 0.625625,
+  "salvoAnchorTime": 0.6015625,
+  "windskipDuration": 0.19,
+  "windskipInvulnerability": 0.3,
+  "windskipCooldown": 2.6,
+  "salvoCooldown": 11.0,
+  "salvoArrows": 8,
+  "salvoDamageMultiplier": 1.4,
   "anchorTime": 1.75,
   "bowBone": "bow",
   "stringBone": "bowstring",

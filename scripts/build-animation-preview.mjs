@@ -24,7 +24,7 @@ await cp(path.join(root,'godot-animation/assets'),path.join(out,'assets'),{recur
 await copyFile(path.join(root,'art/blender/renders/rowan-draw.png'),path.join(out,'draw.png'));
 const zip=spawnSync('python3',['-c',`import zipfile, pathlib
 root=pathlib.Path(${JSON.stringify(root)})
-files=['art/blender/animate_rowan.py','art/blender/build_roster.py','art/blender/rowan-motion.blend','art/blender/wildfall-palette.png','art/blender/renders/rowan-draw.png']
+files=['art/blender/animate_fox.py','art/blender/fox-motion.blend','art/blender/animate_rowan.py','art/blender/build_roster.py','art/blender/rowan-motion.blend','art/blender/wildfall-palette.png','art/blender/renders/rowan-draw.png']
 with zipfile.ZipFile(root/'dist/animation-preview/rowan-motion.zip','w',zipfile.ZIP_DEFLATED) as z:
  for file in files:z.write(root/file,file)
  for p in (root/'godot-animation').rglob('*'):

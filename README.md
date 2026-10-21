@@ -14,7 +14,7 @@ Inspect the first **[archer and pet model collection](https://maddoxmoye.github.
 
 ## Rowan animation preview
 
-Try the **[Rowan motion preview](https://maddoxmoye.github.io/Codex/animation-preview/)**: a moving run cycle, bow draw/string flex, synchronized arrow release and target hits, an in-place running shot, and a sidestep. Pause and slow motion let you inspect the body and bow. This is a focused Blender-to-Godot study before retargeting the roster. See [the study notes](godot-animation/README.md).
+Try the **[Rowan motion preview](https://maddoxmoye.github.io/Codex/animation-preview/)**: a moving run cycle, bow draw/string flex, synchronized arrow release and target hits, an in-place running shot, a sidestep, Rowan’s Windskip dash and eight-arrow Flock & Awe, plus an animated Forest Fox that trots, catches up and fires three-dart fans. Pause and slow motion let you inspect the body and bow. This is a focused Blender-to-Godot study before retargeting the roster. See [the study notes](godot-animation/README.md).
 
 ## The Emberwild — Babylon.js edition
 
