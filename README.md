@@ -18,6 +18,8 @@ Inspect four original **[Blender monster designs in Godot](https://maddoxmoye.gi
 
 ## Rowan animation preview
 
+Play **[First Hunt, the playable Godot combat demo](https://maddoxmoye.github.io/Codex/arena-demo/)**: Rowan, the Forest Fox, three normal enemy types and a real Briar King fight. Test movement, aiming, Windskip, Flock & Awe and fire/ice/poison arrows. The demo has its own health/XP/currency HUD, pause/restart and touch controls, with no changes to campaign saves. See [the playable demo notes](godot-arena/README.md).
+
 Meet **[the four guardians](https://maddoxmoye.github.io/Codex/boss-preview/?boss=frost-oracle)**: the Briar King, Frost Oracle, Hollow Monarch and Gilded Colossus. Original Blender models have distinct close/ranged animations, escalating proposed damage, an ice prison and giant exploding ice heart, a lunging reaper with a returning scythe, and a charging final boss with a sweeping sunbeam and autonomous enemies emerging from its chest. Compare all four, hold windups, inspect hit/defeat motions and bring in Rowan for scale. This is a separate boss draft before campaign integration. See [the boss study notes](godot-boss/README.md).
 
 Try the **[five-character combat atelier](https://maddoxmoye.github.io/Codex/combat-preview/)**: Ash, Briar, Nyx and Pip now join Rowan with their own defensive and offensive ability choreography, synchronized arrows and target feedback. Wolf has bites and howls; Lantern Beetle crawls, opens its shells, flies, collects and delivers tokens. Select characters and pets, inspect close-ups and slow motion, or download the Blender/Godot source. This is a separate combat draft before boss integration. See [the combat study notes](godot-combat/README.md).

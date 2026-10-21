@@ -63,6 +63,10 @@ jobs:
         run: npm run build:boss
         env:
           GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
+      - name: Validate and export playable First Hunt arena
+        run: npm run build:arena
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website

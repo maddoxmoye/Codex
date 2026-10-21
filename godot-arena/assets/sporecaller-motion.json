@@ -1,0 +1,40 @@
+{
+  "id": "sporecaller",
+  "clips": {
+    "Idle": 2.8,
+    "Run": 1.0,
+    "Attack": 2.2,
+    "Hit": 0.7,
+    "Death": 1.6
+  },
+  "attackType": "spore",
+  "attackContact": 0.72,
+  "attackRecovery": 1.65,
+  "windupTime": 0.5,
+  "health": 90,
+  "arrowDamage": 30,
+  "dummyDamage": 14,
+  "hitCenter": 0.76,
+  "hitRadius": 0.31,
+  "healthBone": "cap",
+  "healthOffset": 0.74,
+  "flightTime": 1.05,
+  "damageStyle": "spores",
+  "runLabel": "Waddle",
+  "attackLabel": "Spore lob",
+  "bones": 9,
+  "name": "Sporecaller / motion study",
+  "file": "assets/sporecaller-motion.glb",
+  "triangles": 3714,
+  "sockets": {
+    "launch": {
+      "bone": "head",
+      "local": [
+        0.0,
+        0.3100000023841858,
+        0.30000001192092896
+      ]
+    }
+  },
+  "notes": "Authored Blender clips; isolated attack timing and damage study, not campaign AI or balance."
+}

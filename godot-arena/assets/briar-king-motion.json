@@ -1,0 +1,82 @@
+{
+  "id": "briar-king",
+  "name": "The Briar King",
+  "subtitle": "Sovereign of the overgrowth",
+  "file": "assets/briar-king.glb",
+  "clips": {
+    "Idle": 3.6,
+    "Run": 1.2,
+    "Melee": 3.4,
+    "Ranged": 3.8,
+    "Hit": 0.9,
+    "Death": 3.0
+  },
+  "bones": 23,
+  "triangles": 6092,
+  "materials": 3,
+  "heightMeters": 3.8213789463043213,
+  "sockets": {
+    "muzzle": {
+      "bone": "cannon",
+      "local": [
+        1.2808249039153452e-07,
+        0.7099998593330383,
+        2.64940695160476e-07
+      ]
+    },
+    "breech": {
+      "bone": "cannon",
+      "local": [
+        1.2808249039153452e-07,
+        0.09999998658895493,
+        2.64940695160476e-07
+      ]
+    },
+    "knuckle": {
+      "bone": "hand.R",
+      "local": [
+        2.093229767297089e-08,
+        0.43287304043769836,
+        -0.07085730135440826
+      ]
+    },
+    "heart": {
+      "bone": "core",
+      "local": [
+        0.0,
+        0.059999942779541016,
+        0.1600000113248825
+      ]
+    }
+  },
+  "melee": {
+    "name": "Thronebreaker",
+    "contact": 1.55,
+    "warningStart": 0.12,
+    "warningEnd": 1.55,
+    "radius": 2.3,
+    "damage": 36,
+    "waveDuration": 0.6,
+    "recovery": 2.0
+  },
+  "ranged": {
+    "name": "Briar Decree",
+    "releases": [
+      1.2,
+      1.55,
+      1.9
+    ],
+    "warningStart": 0.18,
+    "speed": 8.0,
+    "damage": 16,
+    "recovery": 2.25,
+    "shotsPerVolley": 3
+  },
+  "health": 1200,
+  "arrowDamage": 120,
+  "hitCenter": 2.06,
+  "hitRadius": 0.55,
+  "healthBone": "crown",
+  "healthOffset": 0.95,
+  "notes": "Isolated original boss animation draft; damage and HP are demonstration values, not campaign balance. Bone cloth and baked analytical IK, no paid motion capture."
+}
