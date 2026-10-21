@@ -1,5 +1,6 @@
 import {readFile,writeFile,mkdir,copyFile,cp,stat} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -15,8 +16,11 @@ for(const args of [['--headless','--path','godot-monsters','--editor','--import'
 const generated=await readFile(path.join(out,'bestiary.html'),'utf8');
 const config=JSON.parse(generated.match(/const GODOT_CONFIG\s*=\s*(\{[^\n]*\});/)[1]);
 // Share the same engine download as the Moonwell; the studio has its own project pack.
-config.executable='../godot-demo/engine';config.mainPack='bestiary.pck';
-config.fileSizes={'bestiary.pck':(await stat(path.join(out,'bestiary.pck'))).size,'../godot-demo/engine.wasm':(await stat(path.join(root,'dist/godot-demo/engine.wasm'))).size};
+const packVersion=createHash('sha256').update(await readFile(path.join(out,'bestiary.pck'))).digest('hex').slice(0,12);
+const packName='bestiary-'+packVersion+'.pck';
+await copyFile(path.join(out,'bestiary.pck'),path.join(out,packName));
+config.executable='../godot-demo/engine';config.mainPack=packName;
+config.fileSizes={[packName]:(await stat(path.join(out,'bestiary.pck'))).size,'../godot-demo/engine.wasm':(await stat(path.join(root,'dist/godot-demo/engine.wasm'))).size};
 const downloadSize=Object.values(config.fileSizes).reduce((a,b)=>a+b,0);
 const readManifest=await readFile(path.join(root,'godot-monsters/assets/manifest.json'),'utf8');
 const html=(await readFile(path.join(root,'godot-monsters/web-shell.html'),'utf8')).replace('{{GODOT_CONFIG}}',()=>JSON.stringify(config)).replace('{{MANIFEST}}',()=>readManifest.trim()).replace('{{DOWNLOAD_MB}}',String(Math.ceil(downloadSize/1024/1024)));
