@@ -124,6 +124,8 @@ func update_camera(dt: float) -> void:
 			for x in [float(boss.target_points[0].x)-.5,float(boss.target_points[-1].x)+.5]:
 				for z in [1.0,6.35]:points.append(Vector3(x,.04,z))
 			for point in boss.target_points:points.append(point+Vector3.UP*.35)
+			if boss_id=="gilded-colossus":
+				for x in [-4.1,5.5]:points.append(Vector3(x,1.6,7.6))
 		else:
 			var center: Vector3 = boss.melee_center
 			var radius: float = boss.metadata.melee.radius

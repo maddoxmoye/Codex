@@ -9,9 +9,9 @@ spec=importlib.util.spec_from_file_location('king_helpers',ROOT/'art/blender/bui
 k=importlib.util.module_from_spec(spec);spec.loader.exec_module(k);b=k.b;m=k.m
 ART=ROOT/'art/blender';OUT=ROOT/'godot-boss/assets'
 SPECS={
- 'frost-oracle':dict(name='The Frost Oracle',subtitle='Keeper of the white silence',wave=10,tier=2,scale=1.08,color='8ddbe8',health=2100,arrowDamage=175,melee=dict(name='Glacial Verdict',contact=1.40,warningStart=.10,warningEnd=1.40,radius=2.8,damage=48,waveDuration=.65,recovery=2.35,events=[1.40,2.00],multipliers=[1,.5],pattern='frost'),ranged=dict(name='Whiteout Constellation',releases=[1.12,1.52,1.92],warningStart=.16,speed=8.8,damage=22,recovery=2.40,shotsPerVolley=5,style='ice',hazardDuration=1.6,hazardDelay=.80,hazardDamage=8),description='A floating ice seer with a split crystal mantle, star halo and forked staff.',meleeDetail='48 impact + 24 aftershock. Two expanding frost rings.',rangedDetail='3 × 5 ice bolts · 22 per bolt. Frost patches deal 8 delayed damage.'),
- 'hollow-monarch':dict(name='The Hollow Monarch',subtitle='A crown with nothing beneath',wave=15,tier=3,scale=1.15,color='bf9ce5',health=3400,arrowDamage=240,melee=dict(name='Hollow Requiem',contact=1.15,warningStart=.10,warningEnd=1.15,radius=3.2,damage=64,waveDuration=.55,recovery=2.55,events=[1.15,1.95],multipliers=[1,.5],pattern='sweep'),ranged=dict(name='Grave Procession',releases=[1.00,1.60],warningStart=.12,speed=8.8,damage=32,recovery=2.35,shotsPerVolley=5,style='void',splitAt=.26,splitAngle=.065),description='A hollow armored revenant with a spectral ribcage, torn mantle and a crescent scythe.',meleeDetail='64 outward sweep + 32 return sweep. Alternating danger sectors.',rangedDetail='2 × 5 void orbs. Each forks into two 32-damage shards.'),
- 'gilded-colossus':dict(name='The Gilded Colossus',subtitle='The walking brood foundry',wave=20,tier=4,scale=1.30,color='efbb6c',health=5200,arrowDamage=325,melee=dict(name='Titan’s Toll',contact=1.45,warningStart=.08,warningEnd=1.45,radius=3.6,damage=88,waveDuration=.62,recovery=2.55,events=[1.45,2.05],multipliers=[1,.5],pattern='foundry'),ranged=dict(name='Solar Foundry',releases=[.95,1.30,1.65],warningStart=.10,speed=10.,damage=44,recovery=2.25,shotsPerVolley=7,style='solar'),summon=dict(name='Brood Furnace',releases=[1.10,1.45,1.80],perRelease=2,maxAlive=6,damage=14,health=60,contact=.56,attackInterval=1.35,warningStart=.15),description='A towering gold-and-stone engine. Its chest opens into a living enemy foundry.',meleeDetail='88 hammer impact + 44 aftershock. Largest danger area.',rangedDetail='3 × 7 solar spears · 44 per hit. Faster, denser firing lanes.')
+ 'frost-oracle':dict(name='The Frost Oracle',subtitle='Keeper of the white silence',wave=10,tier=2,scale=1.08,color='8ddbe8',health=2100,arrowDamage=175,melee=dict(name='Crystal Prison',contact=1.40,warningStart=.10,warningEnd=1.40,radius=2.8,damage=52,waveDuration=.65,recovery=2.35,events=[1.40,2.00],multipliers=[1,.5],pattern='prison'),ranged=dict(name='Avalanche Heart',releases=[1.20],warningStart=.16,speed=5.8,damage=58,recovery=2.40,targetPosts=7,shotsPerVolley=1,style='avalanche',radius=.95,blastRadius=2.2,shardDamage=18),description='A floating ice seer with a split crystal mantle, star halo and forked staff.',meleeDetail='Crystal Prison: 52 damage from rising ice, then 26 on detonation. Escape through the open wedge.',rangedDetail='One enormous 1.9m ice heart: 58 direct / 29 blast damage. Bursts into eight 18-damage shards.'),
+ 'hollow-monarch':dict(name='The Hollow Monarch',subtitle='A crown with nothing beneath',wave=15,tier=3,scale=1.15,color='bf9ce5',health=3400,arrowDamage=240,melee=dict(name='Reaper’s Crossing',contact=1.15,warningStart=.10,warningEnd=1.15,radius=3.2,damage=64,waveDuration=.55,recovery=2.55,events=[1.15,1.95],multipliers=[1,.5],pattern='lunge'),ranged=dict(name='Widow’s Orbit',releases=[1.00],warningStart=.12,speed=8.8,damage=46,recovery=2.35,targetPosts=5,shotsPerVolley=1,style='boomerang',radius=.85,flightDuration=2.4,returnDamage=23),description='A hollow armored revenant with a spectral ribcage, torn mantle and a crescent scythe.',meleeDetail='Two lunging scythe cuts: 64 + 32 damage. The revenant crosses the marked corridor.',rangedDetail='A huge spinning scythe curves outward and returns along the opposite lane. 46 out / 23 back.'),
+ 'gilded-colossus':dict(name='The Gilded Colossus',subtitle='The walking brood foundry',wave=20,tier=4,scale=1.30,color='efbb6c',health=5200,arrowDamage=325,melee=dict(name='Iron Stampede',contact=1.45,warningStart=.08,warningEnd=1.45,radius=3.6,damage=88,waveDuration=.62,recovery=2.55,events=[1.45,2.05],multipliers=[1,.5],pattern='charge'),ranged=dict(name='Daybreak Engine',releases=[1.05],warningStart=.10,speed=10.,damage=18,recovery=2.25,targetPosts=7,shotsPerVolley=0,style='beam',duration=1.9,halfWidth=.38,tickInterval=.45,sweepAngle=.65),summon=dict(name='Brood Furnace',releases=[1.10,1.45,1.80],perRelease=2,maxAlive=6,damage=14,health=60,contact=.56,attackInterval=1.35,warningStart=.15),description='A towering gold-and-stone engine. Its chest opens into a living enemy foundry.',meleeDetail='A forward bulldozer rush: 88 contact damage, then 44 from the trailing rupture. Dodge sideways.',rangedDetail='A sustained sweeping sunbeam: 18 damage per contact tick. Sweeps across the arena while brood stays active.')
 }
 ID='';F=1.;rig=None
 
@@ -152,8 +152,8 @@ def pose(t,clip):
  for p in rig.pose.bones:p.rotation_mode='QUATERNION';p.rotation_quaternion=(1,0,0,0);p.location=(0,0,0);p.scale=(1,1,1)
  spec=SPECS[ID];melee=clip=='Melee';ranged=clip=='Ranged';summon=clip=='Summon';run=clip=='Run';hit=clip=='Hit';death=clip=='Death'
  phase=t/(1.2 if run else 3.6)*math.tau;contact=spec['melee']['contact']
- raise_arm=k.ease(t,.1,contact-.32)*(1-k.ease(t,contact-.22,contact)) if melee else 0
- slam=k.ease(t,contact-.24,contact)*(1-k.ease(t,2.35,3.35)) if melee else 0
+ raise_arm=0.0
+ slam=0.0
  aim=k.ease(t,.08,.70)*(1-k.ease(t,2.25,3.65)) if ranged else 0
  stagger=math.sin(min(1,t/.9)*math.pi)*(1-k.ease(t,.55,.9)) if hit else 0
  fall=k.ease(t,.1,2.50) if death else 0
@@ -166,10 +166,14 @@ def pose(t,clip):
  for side,s in [('.L',1),('.R',-1)]:
   k.rot('cape'+side,(-.05*math.sin(phase-.6)-.13*raise_arm+.08*slam,.04*s*math.sin(phase),.03*s*aim))
   k.rot('pod'+side,(-.14*aim,(-s*1.25*opened if ID=='gilded-colossus' else s*.22*aim),.04*s*math.sin(phase)))
+ if melee:
+  if ID=='hollow-monarch':k.rot('chest',(0,-.60*k.ease(t,.1,.65)+1.3*k.ease(t,.75,1.15)-1.1*k.ease(t,1.45,1.95),0))
+  elif ID=='gilded-colossus':k.rot('chest',(.28*k.ease(t,.1,.7)*(1-k.ease(t,2.2,3.4)),0,0))
+  else:k.rot('chest',(-.12*k.ease(t,.1,.8)*(1-k.ease(t,2.2,3.4)),0,0))
  bpy.context.view_layer.update()
  for side,s in [('.L',1),('.R',-1)]:
   shift=height=0
-  if run:
+  if run or (melee and ID in ['hollow-monarch','gilded-colossus'] and .75<t<2.2):
    u=(t/1.2+(0 if s==1 else .5))%1
    if u<.6:shift=-.21+.42*u/.6
    else:v=(u-.6)/.4;shift=.21-.42*k.smooth(v);height=math.sin(v*math.pi)*.13
@@ -178,19 +182,26 @@ def pose(t,clip):
   delta=Quaternion()
   if melee:
    if ID=='frost-oracle':
-    if s==-1:hand=hand.lerp(Vector((-.85,-.20,2.15)),raise_arm).lerp(Vector((-1.0,-.65,1.01)),slam)
-    else:hand=hand.lerp(Vector((.8,-.40,1.8)),raise_arm)
+    cast=k.ease(t,.08,.85)*(1-k.ease(t,2.15,3.45))
+    hand=hand.lerp(Vector((s*1.48,-.32,2.25)),cast)
+    delta=Euler((-.35*cast,0,s*.25*cast)).to_quaternion()
    elif ID=='hollow-monarch':
-    sweep1=k.ease(t,.55,1.15);sweep2=k.ease(t,1.4,1.95);recover=k.ease(t,2.2,3.45)
+    wind=k.ease(t,.08,.65);cut=k.ease(t,.75,1.15);back=k.ease(t,1.45,1.95);recover=k.ease(t,2.2,3.45)
     if s==-1:
-     hand=Vector((-1.22,-.12,.93)).lerp(Vector((-1.12,-.45,1.85)),k.ease(t,0,.55));hand.x+=1.35*sweep1-1.50*sweep2;hand=hand.lerp(Vector((-1.22,-.12,.93)),recover)
-     delta=Euler((.10,.0,-1.05*sweep1+1.2*sweep2)).to_quaternion()
-    else:hand=hand.lerp(Vector((.8,-.3,1.40)),raise_arm)
+     hand=hand.lerp(Vector((-1.30,.05,2.15)),wind)
+     hand=hand.lerp(Vector((.35,-.85,1.80)),cut).lerp(Vector((-1.45,-.35,1.25)),back)
+     delta=Euler((.1,0,-1.4*cut+1.8*back)).to_quaternion()
+    else:hand=hand.lerp(Vector((1.35,.1,1.5)),wind)
+    hand=hand.lerp(Vector((s*1.22,-.12,.93)),recover)
    else:
-    if s==-1:hand=hand.lerp(Vector((-.62,-.08,3.60)),raise_arm).lerp(Vector((-.76,-1.05,.50)),slam)
-    else:hand=hand.lerp(Vector((.95,-.38,1.13)),slam)
+    brace=k.ease(t,.08,.7)*(1-k.ease(t,2.2,3.45))
+    hand=hand.lerp(Vector((s*1.25,-.55,1.50)),brace)
+    delta=Euler((-.35*brace,0,s*.25*brace)).to_quaternion()
   if ranged:
-   if s==1:hand=hand.lerp(Vector((.70,-.55,2.10)),aim);hand.y+=.10*recoil;delta=Quaternion(Vector((1,0,0)),.16*aim)
+   if s==1:
+    hand=hand.lerp(Vector((.70,-.55,2.10)),aim);hand.y+=.04*recoil;delta=Quaternion(Vector((1,0,0)),.16*aim)
+    if ID=='gilded-colossus':hand.x+=math.sin((t-1.05)/1.9*math.pi)*.45*aim
+   if ID=='frost-oracle':rig.pose.bones['core'].scale=(1+.28*aim,)*3
    elif ID=='frost-oracle':hand=hand.lerp(Vector((-.95,-.25,1.80)),aim)
    elif ID=='hollow-monarch':hand=hand.lerp(Vector((-1.35,.0,1.25)),aim)
   if summon:hand=hand.lerp(Vector((s*1.40,-.22,1.85)),opened)

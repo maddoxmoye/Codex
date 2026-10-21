@@ -7,7 +7,7 @@
   "health": 3400,
   "arrowDamage": 240,
   "melee": {
-    "name": "Hollow Requiem",
+    "name": "Reaper\u2019s Crossing",
     "contact": 1.15,
     "warningStart": 0.1,
     "warningEnd": 1.15,
@@ -23,26 +23,27 @@
       1,
       0.5
     ],
-    "pattern": "sweep"
+    "pattern": "lunge"
   },
   "ranged": {
-    "name": "Grave Procession",
+    "name": "Widow\u2019s Orbit",
     "releases": [
-      1.0,
-      1.6
+      1.0
     ],
     "warningStart": 0.12,
     "speed": 8.8,
-    "damage": 32,
+    "damage": 46,
     "recovery": 2.35,
-    "shotsPerVolley": 5,
-    "style": "void",
-    "splitAt": 0.26,
-    "splitAngle": 0.065
+    "shotsPerVolley": 1,
+    "style": "boomerang",
+    "radius": 0.85,
+    "flightDuration": 2.4,
+    "returnDamage": 23,
+    "targetPosts": 5
   },
   "description": "A hollow armored revenant with a spectral ribcage, torn mantle and a crescent scythe.",
-  "meleeDetail": "64 outward sweep + 32 return sweep. Alternating danger sectors.",
-  "rangedDetail": "2 \u00d7 5 void orbs. Each forks into two 32-damage shards.",
+  "meleeDetail": "Two lunging scythe cuts: 64 + 32 damage. The revenant crosses the marked corridor.",
+  "rangedDetail": "A huge spinning scythe curves outward and returns along the opposite lane. 46 out / 23 back.",
   "id": "hollow-monarch",
   "file": "assets/hollow-monarch.glb",
   "clips": {

@@ -7,7 +7,7 @@
   "health": 5200,
   "arrowDamage": 325,
   "melee": {
-    "name": "Titan\u2019s Toll",
+    "name": "Iron Stampede",
     "contact": 1.45,
     "warningStart": 0.08,
     "warningEnd": 1.45,
@@ -23,21 +23,24 @@
       1,
       0.5
     ],
-    "pattern": "foundry"
+    "pattern": "charge"
   },
   "ranged": {
-    "name": "Solar Foundry",
+    "name": "Daybreak Engine",
     "releases": [
-      0.95,
-      1.3,
-      1.65
+      1.05
     ],
     "warningStart": 0.1,
     "speed": 10.0,
-    "damage": 44,
+    "damage": 18,
     "recovery": 2.25,
-    "shotsPerVolley": 7,
-    "style": "solar"
+    "shotsPerVolley": 0,
+    "style": "beam",
+    "duration": 1.9,
+    "halfWidth": 0.38,
+    "tickInterval": 0.45,
+    "sweepAngle": 0.65,
+    "targetPosts": 7
   },
   "summon": {
     "name": "Brood Furnace",
@@ -55,8 +58,8 @@
     "warningStart": 0.15
   },
   "description": "A towering gold-and-stone engine. Its chest opens into a living enemy foundry.",
-  "meleeDetail": "88 hammer impact + 44 aftershock. Largest danger area.",
-  "rangedDetail": "3 \u00d7 7 solar spears \u00b7 44 per hit. Faster, denser firing lanes.",
+  "meleeDetail": "A forward bulldozer rush: 88 contact damage, then 44 from the trailing rupture. Dodge sideways.",
+  "rangedDetail": "A sustained sweeping sunbeam: 18 damage per contact tick. Sweeps across the arena while brood stays active.",
   "id": "gilded-colossus",
   "file": "assets/gilded-colossus.glb",
   "clips": {

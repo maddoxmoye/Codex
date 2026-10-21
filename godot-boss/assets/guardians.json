@@ -96,12 +96,12 @@
     "health": 2100,
     "arrowDamage": 175,
     "melee": {
-      "name": "Glacial Verdict",
+      "name": "Crystal Prison",
       "contact": 1.4,
       "warningStart": 0.1,
       "warningEnd": 1.4,
       "radius": 2.8,
-      "damage": 48,
+      "damage": 52,
       "waveDuration": 0.65,
       "recovery": 2.35,
       "events": [
@@ -112,28 +112,27 @@
         1,
         0.5
       ],
-      "pattern": "frost"
+      "pattern": "prison"
     },
     "ranged": {
-      "name": "Whiteout Constellation",
+      "name": "Avalanche Heart",
       "releases": [
-        1.12,
-        1.52,
-        1.92
+        1.2
       ],
       "warningStart": 0.16,
-      "speed": 8.8,
-      "damage": 22,
+      "speed": 5.8,
+      "damage": 58,
       "recovery": 2.4,
-      "shotsPerVolley": 5,
-      "style": "ice",
-      "hazardDuration": 1.6,
-      "hazardDelay": 0.8,
-      "hazardDamage": 8
+      "shotsPerVolley": 1,
+      "style": "avalanche",
+      "radius": 0.95,
+      "blastRadius": 2.2,
+      "shardDamage": 18,
+      "targetPosts": 7
     },
     "description": "A floating ice seer with a split crystal mantle, star halo and forked staff.",
-    "meleeDetail": "48 impact + 24 aftershock. Two expanding frost rings.",
-    "rangedDetail": "3 \u00d7 5 ice bolts \u00b7 22 per bolt. Frost patches deal 8 delayed damage.",
+    "meleeDetail": "Crystal Prison: 52 damage from rising ice, then 26 on detonation. Escape through the open wedge.",
+    "rangedDetail": "One enormous 1.9m ice heart: 58 direct / 29 blast damage. Bursts into eight 18-damage shards.",
     "id": "frost-oracle",
     "file": "assets/frost-oracle.glb",
     "clips": {
@@ -213,7 +212,7 @@
     "health": 3400,
     "arrowDamage": 240,
     "melee": {
-      "name": "Hollow Requiem",
+      "name": "Reaper\u2019s Crossing",
       "contact": 1.15,
       "warningStart": 0.1,
       "warningEnd": 1.15,
@@ -229,26 +228,27 @@
         1,
         0.5
       ],
-      "pattern": "sweep"
+      "pattern": "lunge"
     },
     "ranged": {
-      "name": "Grave Procession",
+      "name": "Widow\u2019s Orbit",
       "releases": [
-        1.0,
-        1.6
+        1.0
       ],
       "warningStart": 0.12,
       "speed": 8.8,
-      "damage": 32,
+      "damage": 46,
       "recovery": 2.35,
-      "shotsPerVolley": 5,
-      "style": "void",
-      "splitAt": 0.26,
-      "splitAngle": 0.065
+      "shotsPerVolley": 1,
+      "style": "boomerang",
+      "radius": 0.85,
+      "flightDuration": 2.4,
+      "returnDamage": 23,
+      "targetPosts": 5
     },
     "description": "A hollow armored revenant with a spectral ribcage, torn mantle and a crescent scythe.",
-    "meleeDetail": "64 outward sweep + 32 return sweep. Alternating danger sectors.",
-    "rangedDetail": "2 \u00d7 5 void orbs. Each forks into two 32-damage shards.",
+    "meleeDetail": "Two lunging scythe cuts: 64 + 32 damage. The revenant crosses the marked corridor.",
+    "rangedDetail": "A huge spinning scythe curves outward and returns along the opposite lane. 46 out / 23 back.",
     "id": "hollow-monarch",
     "file": "assets/hollow-monarch.glb",
     "clips": {
@@ -328,7 +328,7 @@
     "health": 5200,
     "arrowDamage": 325,
     "melee": {
-      "name": "Titan\u2019s Toll",
+      "name": "Iron Stampede",
       "contact": 1.45,
       "warningStart": 0.08,
       "warningEnd": 1.45,
@@ -344,21 +344,24 @@
         1,
         0.5
       ],
-      "pattern": "foundry"
+      "pattern": "charge"
     },
     "ranged": {
-      "name": "Solar Foundry",
+      "name": "Daybreak Engine",
       "releases": [
-        0.95,
-        1.3,
-        1.65
+        1.05
       ],
       "warningStart": 0.1,
       "speed": 10.0,
-      "damage": 44,
+      "damage": 18,
       "recovery": 2.25,
-      "shotsPerVolley": 7,
-      "style": "solar"
+      "shotsPerVolley": 0,
+      "style": "beam",
+      "duration": 1.9,
+      "halfWidth": 0.38,
+      "tickInterval": 0.45,
+      "sweepAngle": 0.65,
+      "targetPosts": 7
     },
     "summon": {
       "name": "Brood Furnace",
@@ -376,8 +379,8 @@
       "warningStart": 0.15
     },
     "description": "A towering gold-and-stone engine. Its chest opens into a living enemy foundry.",
-    "meleeDetail": "88 hammer impact + 44 aftershock. Largest danger area.",
-    "rangedDetail": "3 \u00d7 7 solar spears \u00b7 44 per hit. Faster, denser firing lanes.",
+    "meleeDetail": "A forward bulldozer rush: 88 contact damage, then 44 from the trailing rupture. Dodge sideways.",
+    "rangedDetail": "A sustained sweeping sunbeam: 18 damage per contact tick. Sweeps across the arena while brood stays active.",
     "id": "gilded-colossus",
     "file": "assets/gilded-colossus.glb",
     "clips": {

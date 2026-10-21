@@ -11,7 +11,7 @@ function rows(d,index){const a=d.g.accessors[index],v=d.g.bufferViews[a.bufferVi
 test('guardian progression matches the four campaign bosses and increases pressure',()=>{
  const all=Object.entries(registry);assert.equal(all.length,4);
  for(let i=0;i<4;i++){const [id,m]=all[i];assert.equal(m.name,BOSSES[i]);assert.equal(m.wave,(i+1)*5);assert.equal(m.tier,i+1);
- if(i){const previous=all[i-1][1];assert(m.health>previous.health);assert(m.melee.damage>previous.melee.damage);assert(m.ranged.damage>previous.ranged.damage);assert.deepEqual(m,JSON.parse(readFileSync(new URL('assets/'+id+'-motion.json',root))));}
+ if(i){const previous=all[i-1][1];assert(m.health>previous.health);assert(m.melee.damage>previous.melee.damage);assert.notEqual(m.ranged.style,previous.ranged.style);assert.deepEqual(m,JSON.parse(readFileSync(new URL('assets/'+id+'-motion.json',root))));}
  assert.equal(!!m.summon,i===3);}
  const summon=registry['gilded-colossus'].summon;assert.equal(summon.maxAlive,6);assert.equal(summon.releases.length*summon.perRelease,6);assert(summon.contact<summon.attackInterval);assert(summon.health>0&&summon.damage>0);
 });
@@ -24,4 +24,12 @@ for(const id of ['frost-oracle','hollow-monarch','gilded-colossus'])test(id+' ha
  for(const socket of Object.values(m.sockets)){assert(g.nodes.some(n=>n.name===socket.bone));assert(socket.local.every(Number.isFinite));}
  assert.equal(m.melee.events.length,2);assert(m.melee.events.every(t=>t>m.melee.warningStart&&t<m.clips.Melee));assert(m.ranged.releases.every(t=>t>m.ranged.warningStart&&t<m.clips.Ranged));
  assert(readFileSync(new URL('../art/blender/'+id+'.blend',root)).length>100000);assert(readFileSync(new URL('../art/blender/renders/'+id+'.png',root)).length>100000);
+});
+
+test('guardians use three different attack mechanics, with clear projectile sizes and timings',()=>{
+ const ice=registry['frost-oracle'],reaper=registry['hollow-monarch'],foundry=registry['gilded-colossus'];
+ assert.equal(ice.ranged.style,'avalanche');assert.equal(ice.ranged.releases.length,1);assert(ice.ranged.radius>=.9);assert(ice.ranged.blastRadius>ice.ranged.radius);
+ assert.equal(reaper.ranged.style,'boomerang');assert(reaper.ranged.flightDuration>2);assert(reaper.ranged.returnDamage<reaper.ranged.damage);
+ assert.equal(foundry.ranged.style,'beam');assert(foundry.ranged.duration>1.5);assert(foundry.ranged.tickInterval>.3);assert.equal(foundry.melee.pattern,'charge');
+ assert.equal(new Set([ice.melee.pattern,reaper.melee.pattern,foundry.melee.pattern]).size,3);
 });

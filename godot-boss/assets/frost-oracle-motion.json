@@ -7,12 +7,12 @@
   "health": 2100,
   "arrowDamage": 175,
   "melee": {
-    "name": "Glacial Verdict",
+    "name": "Crystal Prison",
     "contact": 1.4,
     "warningStart": 0.1,
     "warningEnd": 1.4,
     "radius": 2.8,
-    "damage": 48,
+    "damage": 52,
     "waveDuration": 0.65,
     "recovery": 2.35,
     "events": [
@@ -23,28 +23,27 @@
       1,
       0.5
     ],
-    "pattern": "frost"
+    "pattern": "prison"
   },
   "ranged": {
-    "name": "Whiteout Constellation",
+    "name": "Avalanche Heart",
     "releases": [
-      1.12,
-      1.52,
-      1.92
+      1.2
     ],
     "warningStart": 0.16,
-    "speed": 8.8,
-    "damage": 22,
+    "speed": 5.8,
+    "damage": 58,
     "recovery": 2.4,
-    "shotsPerVolley": 5,
-    "style": "ice",
-    "hazardDuration": 1.6,
-    "hazardDelay": 0.8,
-    "hazardDamage": 8
+    "shotsPerVolley": 1,
+    "style": "avalanche",
+    "radius": 0.95,
+    "blastRadius": 2.2,
+    "shardDamage": 18,
+    "targetPosts": 7
   },
   "description": "A floating ice seer with a split crystal mantle, star halo and forked staff.",
-  "meleeDetail": "48 impact + 24 aftershock. Two expanding frost rings.",
-  "rangedDetail": "3 \u00d7 5 ice bolts \u00b7 22 per bolt. Frost patches deal 8 delayed damage.",
+  "meleeDetail": "Crystal Prison: 52 damage from rising ice, then 26 on detonation. Escape through the open wedge.",
+  "rangedDetail": "One enormous 1.9m ice heart: 58 direct / 29 blast damage. Bursts into eight 18-damage shards.",
   "id": "frost-oracle",
   "file": "assets/frost-oracle.glb",
   "clips": {

@@ -1,8 +1,7 @@
 extends "res://boss_motion.gd"
-## Distinct second/third/final boss patterns. Summons have bounded, stable animation states.
+## Different attack geometry, movement and timing for each guardian.
 const BROOD := preload("res://assets/broodling.glb")
 var melee_index := 0
-var warning_index := -1
 var hazard_hits := 0
 var split_events := 0
 var hazards: Array[Dictionary] = []
@@ -15,16 +14,25 @@ var summon_kills := 0
 var peak_minions := 0
 var minion_serial := 0
 var melee_events := 0
-
+var giant_bursts := 0
+var return_hits := 0
+var beam_ticks := 0
+var beam_cooldowns: Array[float] = []
+var beam: Node3D
+var beam_body: MeshInstance3D
+var beam_core: MeshInstance3D
+var beam_active := false
+var prison: Node3D
+var beam_material: StandardMaterial3D
 func setup_attack_target() -> void:
 	melee_center = Vector3(-.55,.035,1.35)
 	if study_id=="hollow-monarch":melee_center = Vector3(0,.035,0)
-	dummy = make_dummy(Vector3(-.55,0,2.65),true)
+	dummy = make_dummy(Vector3(-1.95 if study_id=="frost-oracle" else -.55,0,2.65),true)
 	dummy_material = target_materials.pop_back()
 	contact_height = 1.15
 	target_flash.clear()
 	target_damage.clear()
-	var count: int = metadata.ranged.shotsPerVolley
+	var count: int = metadata.ranged.targetPosts
 	for i in count:
 		var point := Vector3(.70+(i-(count-1)*.5)*1.0,0,6.0)
 		targets.append(make_dummy(point))
@@ -32,55 +40,47 @@ func setup_attack_target() -> void:
 		target_flash.append(0)
 		target_damage.append(0)
 
-func sector(radius: float, angle: float, span := 1.7, inner := 0.45) -> ArrayMesh:
-	var points := PackedVector3Array()
-	for i in 32:
-		var a := angle-span*.5+span*i/32
-		var b := angle-span*.5+span*(i+1)/32
-		var p := Vector3(sin(a)*inner,0,cos(a)*inner)
-		var q := Vector3(sin(a)*radius,0,cos(a)*radius)
-		var r := Vector3(sin(b)*radius,0,cos(b)*radius)
-		var z := Vector3(sin(b)*inner,0,cos(b)*inner)
-		points.append_array([p,r,q,p,z,r])
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = points
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
-	return mesh
 
 func setup_extras() -> void:
 	melee_warning = Node3D.new()
 	add_child(melee_warning)
-	melee_warning.position = melee_center
-	if study_id=="hollow-monarch":
-		mesh_part(sector(float(metadata.melee.radius),-.45),transparent("bf9ce5",.18),melee_warning,Vector3(0,.02,0))
+	if study_id=="frost-oracle":
+		melee_center = Vector3(-.55,.035,2.65)
+		# The missing sector is the escape route; no complete King-style shockwave.
+		for i in 10:
+			var a := .7+i*(TAU-1.4)/9
+			mesh_part(ring(.19,.23),transparent("9ddfed",.65),melee_warning,melee_center+Vector3(sin(a)*1.45,0,cos(a)*1.45))
+		mesh_part(box(Vector3(.10,.012,2.5)),transparent("bdebf0",.5),melee_warning,melee_center+Vector3(0,0,-.25))
 	else:
-		var area := CylinderMesh.new()
-		area.top_radius = float(metadata.melee.radius)
-		area.bottom_radius = area.top_radius
-		area.height = .006
-		area.radial_segments = 48
-		mesh_part(area,transparent(str(metadata.color),.13),melee_warning,Vector3.ZERO)
-	mesh_part(ring(float(metadata.melee.radius)-.035,float(metadata.melee.radius)),transparent(str(metadata.color),.75),melee_warning,Vector3(0,.012,0))
+		mesh_part(box(Vector3(1.7 if study_id=="hollow-monarch" else 2.1,.012,4.5)),transparent(str(metadata.color),.22),melee_warning,Vector3(0,.045,2.25))
+		for x in [-1,1]:mesh_part(box(Vector3(.06,.015,4.5)),transparent(str(metadata.color),.8),melee_warning,Vector3(x*(.85 if study_id=="hollow-monarch" else 1.05),.06,2.25))
 	ranged_warning = Node3D.new()
 	add_child(ranged_warning)
-	var origin := Vector3(.76,.035,1.1)
-	for point in target_points:
-		var end := Vector3(point.x,.035,point.z)
-		var direction := (end-origin).normalized()
-		var lane := mesh_part(box(Vector3(.10,.012,origin.distance_to(end))),transparent(str(metadata.color),.35),ranged_warning,(origin+end)*.5)
-		lane.rotation.y = atan2(direction.x,direction.z)
-		mesh_part(ring(.27,.30),transparent(str(metadata.color),.7),ranged_warning,end)
-		if study_id=="hollow-monarch":
-			for side in [-1,1]:
-				var fork := mesh_part(box(Vector3(.035,.016,1.15)),transparent("c7afe6",.65),ranged_warning,end-direction*.58+Vector3(side*.10,.01,0))
-				fork.rotation.y = lane.rotation.y+side*.065
+	if study_id=="frost-oracle":
+		mesh_part(box(Vector3(1.9,.012,5.8)),transparent("9ddfed",.20),ranged_warning,Vector3(.7,.04,3.1))
+		mesh_part(ring(2.14,2.2),transparent("9ddfed",.6),ranged_warning,Vector3(.7,.05,6))
+	elif study_id=="hollow-monarch":
+		for i in 26:
+			var a := i*TAU/26
+			mesh_part(box(Vector3(.20,.012,.20)),transparent("bf9ce5",.55),ranged_warning,Vector3(.7+sin(a)*2.5,.04,3.6-cos(a)*2.7))
+	else:
+		for side in [-1,1]:
+			var lane := mesh_part(box(Vector3(.06,.012,7)),transparent("efbb6c",.7),ranged_warning,Vector3(.7+side*2.1,.04,3.8))
+			lane.rotation.y = side*.60
+		for i in 10:mesh_part(ring(.11,.15),transparent("efbb6c",.55),ranged_warning,Vector3(-2.8+i*.78,.04,6))
+	beam = Node3D.new()
+	add_child(beam)
+	beam_material = transparent("f7b75a",.65)
+	beam_material.emission_enabled = true
+	beam_material.emission = Color("ffc16c")
+	beam_material.emission_energy_multiplier = 2
+	beam_body = mesh_part(box(Vector3(.76,.76,1)),beam_material,beam,Vector3.ZERO)
+	beam_core = mesh_part(box(Vector3(.18,.18,1)),mat("fff1bf",2),beam,Vector3.ZERO)
+	beam.visible = false
+	for i in target_points.size():beam_cooldowns.append(0)
 	summon_warning = Node3D.new()
 	add_child(summon_warning)
-	for i in 6:
-		var point := Vector3((i%2*2-1)*(1.0+(i/2)*.25),.045,2.1+(i/2)*.30)
-		mesh_part(ring(.23,.27),transparent("eab773",.7),summon_warning,point)
+	for i in 6:mesh_part(ring(.23,.27),transparent("eab773",.7),summon_warning,Vector3((i%2*2-1)*(1.0+(i/2)*.25),.045,2.1+(i/2)*.30))
 	melee_warning.visible = false
 	ranged_warning.visible = false
 	summon_warning.visible = false
@@ -88,9 +88,11 @@ func setup_extras() -> void:
 func on_clip_started(name: String) -> void:
 	super.on_clip_started(name)
 	melee_index = 0
-	warning_index = -1
 	summon_index = 0
 	if is_instance_valid(summon_warning):summon_warning.visible = false
+	if is_instance_valid(beam):beam.visible = false
+	beam_active = false
+	for i in beam_cooldowns.size():beam_cooldowns[i] = 0
 	if name=="Summon":
 		for target in targets:target.visible = true
 
@@ -127,7 +129,7 @@ func take_damage(amount: int) -> bool:
 func advance_demo(dt: float) -> void:
 	demo_time += dt
 	var sequence := [["Idle",1.6],["Melee",4.5],["Ranged",5.2],["Run",2.4],["Idle",1.1]]
-	if metadata.has("summon"):sequence = [["Idle",1.6],["Melee",4.5],["Ranged",5.0],["Summon",8.5],["Idle",1.2]]
+	if metadata.has("summon"):sequence = [["Idle",1.6],["Summon",8.5],["Ranged",5.5],["Melee",4.5],["Idle",1.2]]
 	if demo_time<float(sequence[demo_step][1]):return
 	demo_time = 0
 	demo_step = (demo_step+1)%sequence.size()
@@ -142,70 +144,92 @@ func advance_simulation(dt: float) -> void:
 	if clip=="Summon" and phase>=float(metadata.clips.Summon):play_clip("Idle")
 	elif mode=="Summon" and clip=="Idle" and phase>.9:play_clip("Summon")
 
-func make_bolt(style: String) -> Node3D:
-	var node := Node3D.new()
-	var color := str(metadata.color)
-	if style=="void_orb":
-		mesh_part(sphere(.16),mat("6c548f",.5),node,Vector3.ZERO)
-		for side in [-1,1]:mesh_part(sphere(.027),mat("dfc5ff",.8),node,Vector3(side*.065,.035,.14))
-	else:
-		var shard := PrismMesh.new()
-		shard.size = Vector3(.11,.11,.67 if style!="solar" else .85)
-		mesh_part(shard,mat(color,.65),node,Vector3.ZERO)
-		var tip := CylinderMesh.new()
-		tip.top_radius = 0
-		tip.bottom_radius = .065
-		tip.height = .20
-		tip.radial_segments = 5
-		mesh_part(tip,mat("dbe9f2" if style=="ice" else color,.6),node,Vector3(0,0,.40)).rotation.x = PI/2
-		if style=="solar":
-			for side in [-1,1]:mesh_part(box(Vector3(.20,.018,.08)),mat("e3c16c",.4),node,Vector3(side*.07,0,-.2))
-	return node
-
-func emit_bolt(point: Vector3, direction: Vector3, style: String, split := false) -> void:
-	var node := make_bolt(style)
-	add_child(node)
-	node.position = point
-	node.look_at(point+direction,Vector3.UP,true)
-	outgoing.append({"node":node,"direction":direction,"age":0.0,"style":style,"split":split})
-	thorn_shots += 1
 
 func launch_volley(at: float) -> void:
-	var point := sample_socket("muzzle","Ranged",at)
 	volleys += 1
-	var style: String = metadata.ranged.style
-	for target in target_points:
-		emit_bolt(point,(target-point).normalized(),"void_orb" if style=="void" else style,style=="void")
+	if study_id=="gilded-colossus":
+		beam_active = true
+		return
+	var point := sample_socket("muzzle","Ranged",at)
+	var node := Node3D.new()
+	add_child(node)
+	node.position = point
+	if study_id=="frost-oracle":
+		var shell := mesh_part(sphere(.95),transparent("78c9e7",.68),node,Vector3.ZERO)
+		mesh_part(sphere(.48),mat("ddf6fa",1.0),node,Vector3.ZERO)
+		for i in 8:
+			var a := i*TAU/8
+			var spike := CylinderMesh.new()
+			spike.top_radius = 0
+			spike.bottom_radius = .18
+			spike.height = .65
+			mesh_part(spike,mat("b7e8f7",.3),node,Vector3(sin(a)*.8,cos(a)*.8,0)).rotation.z = -a
+		outgoing.append({"node":node,"age":0.0,"style":"avalanche","direction":(target_points[target_points.size()/2]-point).normalized(),"trail":0.0})
+	else:
+		mesh_part(ring(.66,.91),mat("b18ccf",.8),node,Vector3.ZERO).rotation.x = PI/2
+		mesh_part(box(Vector3(.09,.09,2.1)),mat("dce3ec",.6),node,Vector3.ZERO)
+		for side in [-1,1]:
+			var blade := PrismMesh.new()
+			blade.size = Vector3(.8,.13,.8)
+			mesh_part(blade,mat("e3c5f2",.8),node,Vector3(side*.37,0,side*.65)).rotation.y = side*.9
+		outgoing.append({"node":node,"age":0.0,"style":"boomerang","start":point,"outHit":[],"backHit":[]})
+	thorn_shots += 1
+
+func close_hit(amount: int, point: Vector3) -> void:
+	slam_hits += 1
+	contacts += 1
+	close_damage += amount
+	dummy_flash = .2
+	number(str(amount),point+Vector3.UP*1.55,Color(str(metadata.color)))
 
 func start_melee_event(index: int) -> void:
 	melee_events += 1
-	var pattern: String = metadata.melee.pattern
-	var point := melee_center
-	var radius: float = metadata.melee.radius
 	var damage := int(float(metadata.melee.damage)*float(metadata.melee.multipliers[index]))
-	var mesh: Mesh = ring(.94,1.0)
-	var angle := -.45 if index==0 else .45
-	if pattern=="sweep":mesh = sector(radius,angle)
-	var node := mesh_part(mesh,transparent(str(metadata.color),.8),self,point+Vector3.UP*.035)
-	waves.append({"node":node,"age":0.0,"duration":float(metadata.melee.waveDuration),"hit":false,"damage":damage,"pattern":pattern,"angle":angle})
-	if index==0:chips(point+Vector3.UP*.15,12,pattern=="frost")
-	# Crystal/metal fragments give the aftershock a distinct silhouette, without persistent collision objects.
-	for i in 8:
-		var a := i*TAU/8
-		var shard := mesh_part(sphere(.07) if pattern=="frost" else box(Vector3(.08,.14,.08)),mat(str(metadata.color),.2),self,point+Vector3(sin(a)*.5,.15,cos(a)*.5))
-		effects.append({"node":shard,"life":.65,"duration":.65,"velocity":Vector3(sin(a)*1.2,.8,cos(a)*1.2),"label":false})
+	if study_id=="frost-oracle":
+		var group := Node3D.new()
+		add_child(group)
+		group.position = melee_center
+		var crystal := CylinderMesh.new()
+		crystal.top_radius = 0
+		crystal.bottom_radius = .22 if index==0 else .45
+		crystal.height = 2.6 if index==0 else 2.4
+		crystal.radial_segments = 5
+		if index==0:
+			for i in 10:
+				var a := .7+i*(TAU-1.4)/9
+				mesh_part(crystal,mat("6aabc9"),group,Vector3(sin(a)*1.45,1.3,cos(a)*1.45))
+		else:
+			for i in 5:mesh_part(crystal,mat("9dd9ed",.1),group,Vector3((i-2)*.38,1.1,0))
+		hazards.append({"node":group,"age":0.0,"kind":"prison","duration":1.5 if index==0 else 1.0})
+		var offset := dummy.position-melee_center
+		var angle := fposmod(atan2(offset.x,offset.z),TAU)
+		if index==0 and offset.length()>1.1 and offset.length()<1.8 and angle>.7 and angle<TAU-.7:close_hit(damage,dummy.position)
+		elif index==1 and offset.length()<2.1:close_hit(damage,dummy.position)
+	elif study_id=="hollow-monarch":
+		var arc := mesh_part(ring(.95,1.15),transparent("c9a5ef",.8),self,actor.position+Vector3(0,1.4,.35))
+		arc.rotation.z = .5 if index==0 else -.5
+		effects.append({"node":arc,"life":.38,"duration":.38,"velocity":Vector3.ZERO,"label":false})
+		if Vector2(dummy.position.x-actor.position.x,dummy.position.z-actor.position.z).length()<1.8:close_hit(damage,dummy.position)
+	else:
+		if index==0:
+			if absf(dummy.position.x)<1.05 and dummy.position.z<4.5:close_hit(damage,dummy.position)
+		else:
+			for i in 8:
+				var rock := mesh_part(box(Vector3(.35,.25,.38)),mat("bc8956",.2),self,Vector3((i%2*2-1)*.65,.15,1+i*.38))
+				effects.append({"node":rock,"life":.9,"duration":.9,"velocity":Vector3(0,.65,0),"label":false})
+			if absf(dummy.position.x)<.95:close_hit(damage,dummy.position)
 
 func update_extra(dt: float) -> void:
-	melee_warning.visible = clip=="Melee" and phase>=float(metadata.melee.warningStart) and phase<float(metadata.melee.events[-1])
-	ranged_warning.visible = clip=="Ranged" and phase>=float(metadata.ranged.warningStart) and phase<float(metadata.ranged.releases[-1])+.1
+	melee_warning.visible = clip=="Melee" and phase>=.08 and phase<float(metadata.melee.events[0])
+	ranged_warning.visible = clip=="Ranged" and phase>=.1 and phase<float(metadata.ranged.releases[0])
 	summon_warning.visible = clip=="Summon" and phase>=.15 and phase<2.0
 	if clip=="Melee":
+		if study_id=="hollow-monarch":
+			actor.position = Vector3(-.55*smoothstep(.7,1.1,phase)*(1-smoothstep(2.25,3.5,phase)),0,2.5*smoothstep(.7,1.1,phase)*(1-smoothstep(2.25,3.5,phase)))
+		elif study_id=="gilded-colossus":actor.position = Vector3(0,0,3.2*smoothstep(.8,1.45,phase)*(1-smoothstep(2.3,3.55,phase)))
 		while melee_index<metadata.melee.events.size() and phase>=float(metadata.melee.events[melee_index]):
 			start_melee_event(melee_index)
 			melee_index += 1
-		if study_id=="hollow-monarch" and warning_index!=melee_index:
-			warning_index = melee_index
-			melee_warning.get_child(0).mesh = sector(float(metadata.melee.radius),-.45 if melee_index==0 else .45)
 	if clip=="Ranged":
 		while release_index<metadata.ranged.releases.size() and phase>=float(metadata.ranged.releases[release_index]):
 			launch_volley(float(metadata.ranged.releases[release_index]))
@@ -214,8 +238,8 @@ func update_extra(dt: float) -> void:
 		while summon_index<metadata.summon.releases.size() and phase>=float(metadata.summon.releases[summon_index]):
 			for i in int(metadata.summon.perRelease):spawn_minion(float(metadata.summon.releases[summon_index]))
 			summon_index += 1
-	update_waves(dt)
 	update_bolts(dt)
+	update_beam(dt)
 	update_hazards(dt)
 	update_minions(dt)
 	for i in target_flash.size():
@@ -229,80 +253,101 @@ func update_extra(dt: float) -> void:
 	if not minions.is_empty():
 		for target in targets:target.visible = true
 
-func update_waves(dt: float) -> void:
-	for i in range(waves.size()-1,-1,-1):
-		var wave := waves[i]
-		wave.age += dt
-		var u: float = clampf(wave.age/wave.duration,0,1)
-		var radius := float(metadata.melee.radius)*u
-		wave.node.scale = Vector3.ONE if wave.pattern=="sweep" else Vector3.ONE*maxf(.01,radius)
-		wave.node.material_override.albedo_color.a = .8*(1-u)
-		var delta: Vector3 = dummy.position-wave.node.position
-		var distance := Vector2(delta.x,delta.z).length()
-		var eligible := distance<=radius
-		if wave.pattern=="sweep":eligible = distance<float(metadata.melee.radius) and absf(angle_difference(atan2(delta.x,delta.z),wave.angle))<.85
-		if not wave.hit and eligible:
-			wave.hit = true
-			slam_hits += 1
-			contacts += 1
-			close_damage += int(wave.damage)
-			dummy_flash = .2
-			number(str(wave.damage),dummy.position+Vector3.UP*1.65,Color(str(metadata.color)))
-		if wave.age>=wave.duration:
-			wave.node.queue_free()
-			waves.remove_at(i)
+func target_hit(index: int, damage: int, point: Vector3) -> void:
+	thorn_hits += 1
+	contacts += 1
+	target_damage[index] += damage
+	target_flash[index] = .2
+	number(str(damage),point+Vector3.UP*.3,Color(str(metadata.color)))
+
+func burst_heart(item: Dictionary) -> void:
+	giant_bursts += 1
+	var point: Vector3 = item.node.position
+	for j in target_points.size():
+		var distance := point.distance_to(target_points[j])
+		if distance<float(metadata.ranged.blastRadius):target_hit(j,int(metadata.ranged.damage) if distance<1.2 else int(metadata.ranged.damage)/2,target_points[j])
+	for i in 8:
+		var direction := Vector3(sin(i*TAU/8),0,cos(i*TAU/8))
+		var shard := PrismMesh.new()
+		shard.size = Vector3(.22,.22,.75)
+		var node := mesh_part(shard,mat("bcecf8",.6),self,point+direction*1.05)
+		node.look_at(node.position+direction,Vector3.UP,true)
+		outgoing.append({"node":node,"style":"fragment","age":0.0,"direction":direction,"hit":[]})
+		thorn_shots += 1
+	var flash := mesh_part(sphere(1),transparent("b7e9f5",.28),self,point)
+	flash.scale = Vector3.ONE*float(metadata.ranged.blastRadius)
+	effects.append({"node":flash,"life":.35,"duration":.35,"velocity":Vector3.ZERO,"label":false})
+	chips(point,12,true)
 
 func update_bolts(dt: float) -> void:
 	for i in range(outgoing.size()-1,-1,-1):
 		var item := outgoing[i]
-		var direction: Vector3 = item.direction
-		var previous: Vector3 = item.node.position+direction*.45
-		item.node.position += direction*float(metadata.ranged.speed)*dt
+		var previous: Vector3 = item.node.position
 		item.age += dt
-		if item.split and item.age>=float(metadata.ranged.splitAt):
-			for side in [-1,1]:emit_bolt(item.node.position,direction.rotated(Vector3.UP,side*float(metadata.ranged.splitAngle)),"void_shard")
-			split_events += 1
-			item.node.queue_free()
-			outgoing.remove_at(i)
-			continue
-		var end: Vector3 = item.node.position+direction*.45
-		var hit := -1
-		var nearest := INF
-		var contact := Vector3.ZERO
-		for j in target_points.size():
-			var point := Geometry3D.get_closest_point_to_segment(target_points[j],previous,end)
-			if point.distance_to(target_points[j])<.31 and previous.distance_to(point)<nearest:
-				hit = j
-				nearest = previous.distance_to(point)
-				contact = point
-		if hit>=0:
-			thorn_hits += 1
-			contacts += 1
-			target_damage[hit] += int(metadata.ranged.damage)
-			target_flash[hit] = .20
-			number(str(int(metadata.ranged.damage)),contact+Vector3.UP*.35,Color(str(metadata.color)))
-			item.node.position = contact-direction*.35
-			embedded.append(item.node)
-			if embedded.size()>24:embedded.pop_front().queue_free()
-			if item.style=="ice":
-				var patch := mesh_part(ring(.35,.42),transparent("9edce9",.6),self,Vector3(target_points[hit].x,.045,target_points[hit].z))
-				hazards.append({"node":patch,"age":0.0,"target":hit,"hit":false})
-			outgoing.remove_at(i)
-		elif item.age>2:
-			item.node.queue_free()
-			outgoing.remove_at(i)
+		if item.style=="avalanche":
+			item.node.position += item.direction*float(metadata.ranged.speed)*dt
+			item.node.rotation.z += dt*1.8
+			item.trail += dt
+			if item.trail>.16:
+				item.trail = 0
+				var patch := mesh_part(ring(.55,.72),transparent("9bdde9",.48),self,Vector3(item.node.position.x,.04,item.node.position.z))
+				hazards.append({"node":patch,"age":0.0})
+			if item.node.position.z>=5.6:
+				burst_heart(item)
+				item.node.queue_free()
+				outgoing.remove_at(i)
+		elif item.style=="fragment":
+			item.node.position += item.direction*5.5*dt
+			for j in target_points.size():
+				if j not in item.hit and Geometry3D.get_closest_point_to_segment(target_points[j],previous,item.node.position).distance_to(target_points[j])<.40:
+					item.hit.append(j)
+					target_hit(j,int(metadata.ranged.shardDamage),target_points[j])
+			if item.age>1.1:
+				item.node.queue_free()
+				outgoing.remove_at(i)
+		else:
+			var u: float = clampf(item.age/float(metadata.ranged.flightDuration),0,1)
+			# Outward left lane and return right lane form a closed loop; no homing.
+			item.node.position = Vector3(.7-sin(u*TAU)*2.5,1.15,3.6-cos(u*TAU)*2.7)
+			item.node.rotation.y += dt*15
+			var struck: Array = item.outHit if u<.5 else item.backHit
+			for j in target_points.size():
+				if j not in struck and Geometry3D.get_closest_point_to_segment(target_points[j],previous,item.node.position).distance_to(target_points[j])<float(metadata.ranged.radius)+.18:
+					struck.append(j)
+					target_hit(j,int(metadata.ranged.damage) if u<.5 else int(metadata.ranged.returnDamage),target_points[j])
+					if u>=.5:return_hits += 1
+			if u>=1:
+				item.node.queue_free()
+				outgoing.remove_at(i)
+
+func update_beam(dt: float) -> void:
+	if not is_instance_valid(beam):return
+	beam.visible = beam_active and clip=="Ranged" and phase<float(metadata.ranged.get("releases",[1.05])[0])+float(metadata.ranged.get("duration",1.9))
+	if not beam.visible:return
+	var u := clampf((phase-float(metadata.ranged.releases[0]))/float(metadata.ranged.duration),0,1)
+	var angle := lerpf(-float(metadata.ranged.sweepAngle),float(metadata.ranged.sweepAngle),u)
+	var start := socket("muzzle")
+	var end := Vector3(.7+sin(angle)*7.2,1.15,cos(angle)*7.2)
+	var length := start.distance_to(end)
+	beam.position = (start+end)*.5
+	beam.look_at(end,Vector3.UP,true)
+	beam_body.scale.z = length
+	beam_core.scale.z = length
+	beam_body.scale.x = 1+.08*sin(phase*40)
+	for j in target_points.size():
+		beam_cooldowns[j] = maxf(0,beam_cooldowns[j]-dt)
+		if beam_cooldowns[j]<=0 and Geometry3D.get_closest_point_to_segment(target_points[j],start,end).distance_to(target_points[j])<float(metadata.ranged.halfWidth)+.28:
+			beam_cooldowns[j] = float(metadata.ranged.tickInterval)
+			beam_ticks += 1
+			target_hit(j,int(metadata.ranged.damage),target_points[j])
 
 func update_hazards(dt: float) -> void:
 	for i in range(hazards.size()-1,-1,-1):
-		var hazard := hazards[i]
-		hazard.age += dt
-		if not hazard.hit and hazard.age>=float(metadata.ranged.hazardDelay):
-			hazard.hit = true
-			hazard_hits += 1
-			target_damage[int(hazard.target)] += int(metadata.ranged.hazardDamage)
-			number(str(int(metadata.ranged.hazardDamage)),target_points[int(hazard.target)]+Vector3.UP*.15,Color("bce8f0"))
-		if hazard.age>=float(metadata.ranged.hazardDuration):
-			hazard.node.queue_free()
+		hazards[i].age += dt
+		var duration: float = hazards[i].get("duration",1.4)
+		if hazards[i].get("kind","")=="prison":hazards[i].node.scale.y = smoothstep(0,.14,hazards[i].age)*(1-smoothstep(duration-.25,duration,hazards[i].age))
+		if hazards[i].age>duration:
+			hazards[i].node.queue_free()
 			hazards.remove_at(i)
 
 func living_minions() -> int:
@@ -437,9 +482,10 @@ func clear_extra() -> void:
 	hazards.clear()
 	if is_instance_valid(summon_warning):summon_warning.visible = false
 
+
 func phase_label() -> String:
-	if clip=="Melee":return str(metadata.melee.name).to_upper()+(" · WINDUP" if phase<float(metadata.melee.events[0]) else " · RETURN SWEEP" if study_id=="hollow-monarch" else " · AFTERSHOCK")
-	if clip=="Ranged":return str(metadata.ranged.name).to_upper()+(" · CHARGE" if phase<float(metadata.ranged.releases[0]) else " · SPLITTING ORBS" if study_id=="hollow-monarch" else " · SALVOS")
+	if clip=="Melee":return str(metadata.melee.name).to_upper()+(" · TELEGRAPH" if phase<float(metadata.melee.events[0]) else " · ERUPTION" if study_id=="frost-oracle" else " · LUNGING COMBO" if study_id=="hollow-monarch" else " · CHARGE / RUPTURE")
+	if clip=="Ranged":return str(metadata.ranged.name).to_upper()+(" · CHARGE" if phase<float(metadata.ranged.releases[0]) else " · GIANT ICE HEART" if study_id=="frost-oracle" else " · OUTWARD / RETURN" if study_id=="hollow-monarch" else " · SWEEPING BEAM")
 	if clip=="Summon":return "BROOD FURNACE · "+("OPENING HATCH" if phase<1.1 else "ENEMIES EMERGING" if phase<2.7 else "SEALING THE FOUNDRY")
 	if clip=="Death":return "THE GUARDIAN FALLS SILENT"
 	if clip=="Hit":return "CORE · RECOIL"
@@ -447,5 +493,5 @@ func phase_label() -> String:
 
 func state() -> Dictionary:
 	var result := super.state()
-	result.merge({"meleeEvents":melee_events,"hazardHits":hazard_hits,"splits":split_events,"hazards":hazards.size(),"summonWarning":is_instance_valid(summon_warning) and summon_warning.visible,"summonsAlive":living_minions(),"summonsSpawned":summon_total,"summonHits":summon_hits,"summonKills":summon_kills,"peakSummons":peak_minions},true)
+	result.merge({"meleeEvents":melee_events,"hazardHits":hazard_hits,"splits":split_events,"hazards":hazards.size(),"giantBursts":giant_bursts,"returnHits":return_hits,"beamTicks":beam_ticks,"beamActive":beam.visible,"summonWarning":is_instance_valid(summon_warning) and summon_warning.visible,"summonsAlive":living_minions(),"summonsSpawned":summon_total,"summonHits":summon_hits,"summonKills":summon_kills,"peakSummons":peak_minions},true)
 	return result

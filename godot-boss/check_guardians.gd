@@ -32,15 +32,36 @@ func run() -> void:
 			check(boss.close_damage-damage==int(boss.metadata.melee.damage*1.5),id+" escalating contact damage")
 			boss.command("Ranged")
 			var impacts: int = boss.thorn_hits
-			var splits: int = boss.split_events
-			var frost: int = boss.hazard_hits
+			var bursts: int = boss.giant_bursts
+			var returns: int = boss.return_hits
+			var ticks: int = boss.beam_ticks
+			var shots: int = boss.thorn_shots
 			advance(.8,dt)
 			check(boss.ranged_warning.visible,id+" ranged telegraph")
 			advance(2.9,dt)
-			var expected := 15 if id=="frost-oracle" else 20 if id=="hollow-monarch" else 21
-			check(boss.thorn_hits-impacts==expected,id+" complete projectile pattern dt="+str(dt))
-			if id=="hollow-monarch":check(boss.split_events-splits==10,"Ten orbs split once into twenty shards")
-			if id=="frost-oracle":check(boss.hazard_hits-frost==15,"Each frost impact leaves a delayed damage tick")
+			if id=="frost-oracle":
+				check(boss.giant_bursts-bursts==1 and boss.thorn_shots-shots==9,"One enormous ice heart bursts once into eight shards")
+				check(boss.thorn_hits>impacts and boss.outgoing.is_empty(),"Ice heart and fragments impact and expire")
+			elif id=="hollow-monarch":
+				check(boss.thorn_shots-shots==1 and boss.return_hits>returns,"One curved scythe deals separate outbound and return contacts")
+				check(boss.thorn_hits-impacts<=10 and boss.outgoing.is_empty(),"Returning blade cannot repeatedly damage a post in one pass")
+			else:
+				check(boss.thorn_shots==shots and boss.beam_ticks-ticks>=7,"Sweeping beam crosses target line without spawning projectile volleys")
+				check(not boss.beam.visible,"Beam stops after its active window")
+		boss.command("Melee")
+		advance(1.6)
+		if id!="frost-oracle":check(boss.actor.position.z>2.0,id+" close attack actually moves through the corridor")
+		else:
+			check(boss.hazards.size()==1,"Ice cage remains in the world after eruption")
+			check(boss.hazards[0].node.position.distance_to(boss.melee_center)<.01 and boss.hazards[0].node.scale.y>.95,"Ice prison holds full height at its target, without drifting or shrinking toward the boss")
+		boss.command("Reset")
+		var saved: Vector3 = boss.dummy.position
+		boss.dummy.position.x = 5
+		var safe_hits: int = boss.slam_hits
+		boss.command("Melee")
+		advance(3.45)
+		check(boss.slam_hits==safe_hits,id+" dodging outside attack geometry avoids damage")
+		boss.dummy.position = saved
 		boss.command("HoldMelee")
 		var hits: int = boss.slam_hits
 		advance(5)
@@ -89,6 +110,6 @@ func run() -> void:
 	stage.select_boss("invalid")
 	check(stage.boss.study_id=="briar-king","Invalid selection ignored")
 	stage.free()
-	if failures.is_empty():print("GUARDIANS_VALIDATION_OK: three rigs, escalating patterns, lingering frost, split shots, bounded autonomous brood, pause, death, reset and camera")
+	if failures.is_empty():print("GUARDIANS_VALIDATION_OK: three rigs, escalating patterns, giant ice heart, returning scythe, sweeping beam, bounded autonomous brood, pause, death, reset and camera")
 	else:print("GUARDIANS_VALIDATION_FAILED: ",failures)
 	quit(0 if failures.is_empty() else 1)
