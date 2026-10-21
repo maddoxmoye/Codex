@@ -8,3 +8,7 @@ wildfall.html
 godot-demo/.godot/
 godot-demo/.templates/
 .godot-tools/
+godot-models/.godot/
+godot-models/.templates/
+art/blender/*.blend1
+art/blender/*.blend2

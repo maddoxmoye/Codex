@@ -8,7 +8,8 @@
     "start": "node build.mjs && node server.mjs",
     "test": "node --test",
     "build": "node build.mjs",
-    "build:godot": "node scripts/build-godot-demo.mjs"
+    "build:godot": "node scripts/build-godot-demo.mjs",
+    "build:models": "node scripts/build-model-atelier.mjs"
   },
   "engines": {
     "node": ">=20"

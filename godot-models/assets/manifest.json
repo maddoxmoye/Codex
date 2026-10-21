@@ -1,0 +1,192 @@
+{
+  "edition": "Base designs 01",
+  "units": "meters",
+  "blenderVersion": "4.3.2",
+  "paletteSize": 256,
+  "assets": [
+    {
+      "id": "rowan",
+      "name": "Rowan",
+      "role": "Wayfarer",
+      "cloth": "forest",
+      "accent": "moss",
+      "trim": "sage",
+      "skin": "skin",
+      "hair": "auburn",
+      "eye": "sage",
+      "hood": true,
+      "bulk": 1.0,
+      "description": "Leaf-fastened forest cloak, layered trail leathers and an ashwood recurve.",
+      "kind": "archers",
+      "triangles": 5958,
+      "vertices": 3135,
+      "bones": 18,
+      "materials": 2,
+      "clips": [
+        "Idle",
+        "Walk"
+      ],
+      "heightMeters": 2.015,
+      "file": "assets/archers/rowan.glb",
+      "bytes": 695948
+    },
+    {
+      "id": "ash",
+      "name": "Ash",
+      "role": "Cinder Scout",
+      "cloth": "coal",
+      "accent": "russet",
+      "trim": "ember",
+      "skin": "skin_warm",
+      "hair": "auburn",
+      "eye": "gold",
+      "hood": false,
+      "bulk": 0.94,
+      "description": "Split russet scarf, swept hair and feather details on a lean scouting silhouette.",
+      "kind": "archers",
+      "triangles": 5854,
+      "vertices": 3077,
+      "bones": 18,
+      "materials": 2,
+      "clips": [
+        "Idle",
+        "Walk"
+      ],
+      "heightMeters": 2.155,
+      "file": "assets/archers/ash.glb",
+      "bytes": 684612
+    },
+    {
+      "id": "briar",
+      "name": "Briar",
+      "role": "Ironwarden",
+      "cloth": "slate",
+      "accent": "steel_dark",
+      "trim": "steel",
+      "skin": "skin_dark",
+      "hair": "ink",
+      "eye": "gold",
+      "hood": false,
+      "bulk": 1.13,
+      "description": "Layered blue-steel armor, broad pauldrons and an open-faced crested helmet.",
+      "kind": "archers",
+      "triangles": 6346,
+      "vertices": 3329,
+      "bones": 18,
+      "materials": 2,
+      "clips": [
+        "Idle",
+        "Walk"
+      ],
+      "heightMeters": 2.146,
+      "file": "assets/archers/briar.glb",
+      "bytes": 737696
+    },
+    {
+      "id": "nyx",
+      "name": "Nyx",
+      "role": "Moonstring",
+      "cloth": "indigo",
+      "accent": "violet",
+      "trim": "silver",
+      "skin": "skin_pale",
+      "hair": "ink",
+      "eye": "moon",
+      "hood": true,
+      "bulk": 0.98,
+      "description": "Pointed moon hood, crescent clasp, split mantle and crystal-tipped silver bow.",
+      "kind": "archers",
+      "triangles": 6134,
+      "vertices": 3231,
+      "bones": 18,
+      "materials": 2,
+      "clips": [
+        "Idle",
+        "Walk"
+      ],
+      "heightMeters": 2.07,
+      "file": "assets/archers/nyx.glb",
+      "bytes": 715516
+    },
+    {
+      "id": "pip",
+      "name": "Pip",
+      "role": "Gearwing",
+      "cloth": "teal_dark",
+      "accent": "teal",
+      "trim": "brass",
+      "skin": "skin",
+      "hair": "auburn",
+      "eye": "moon",
+      "hood": false,
+      "bulk": 1.0,
+      "description": "Teal utility coat, brass goggles, mechanical bow and a riveted clockwork pack.",
+      "kind": "archers",
+      "triangles": 7490,
+      "vertices": 3913,
+      "bones": 18,
+      "materials": 2,
+      "clips": [
+        "Idle",
+        "Walk"
+      ],
+      "heightMeters": 1.98,
+      "file": "assets/archers/pip.glb",
+      "bytes": 863636
+    },
+    {
+      "id": "fox",
+      "name": "Forest Fox",
+      "role": "Dart companion",
+      "description": "Russet coat, oversized ears, cream muzzle and a sweeping white-tipped brush.",
+      "kind": "pets",
+      "triangles": 2798,
+      "vertices": 1478,
+      "bones": 17,
+      "materials": 1,
+      "clips": [
+        "Idle",
+        "Trot"
+      ],
+      "heightMeters": 0.93,
+      "file": "assets/pets/fox.glb",
+      "bytes": 352340
+    },
+    {
+      "id": "wolf",
+      "name": "Wild Wolf",
+      "role": "Howling guardian",
+      "description": "Silver-blue coat, layered neck ruff, strong paws and a long brush tail.",
+      "kind": "pets",
+      "triangles": 3430,
+      "vertices": 1832,
+      "bones": 17,
+      "materials": 1,
+      "clips": [
+        "Idle",
+        "Trot"
+      ],
+      "heightMeters": 1.07,
+      "file": "assets/pets/wolf.glb",
+      "bytes": 426024
+    },
+    {
+      "id": "beetle",
+      "name": "Lantern Beetle",
+      "role": "Coin & experience scout",
+      "description": "Split jade carapace, six brass legs, petal wings and a warm lantern abdomen.",
+      "kind": "pets",
+      "triangles": 2332,
+      "vertices": 1256,
+      "bones": 14,
+      "materials": 3,
+      "clips": [
+        "Idle",
+        "Hover"
+      ],
+      "heightMeters": 0.52,
+      "file": "assets/pets/beetle.glb",
+      "bytes": 301068
+    }
+  ]
+}

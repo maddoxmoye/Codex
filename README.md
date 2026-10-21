@@ -8,6 +8,10 @@ Try the separate **[Godot iPhone graphics demo](https://maddoxmoye.github.io/Cod
 
 The link opens directly into a viewport-filling game, without a website header, footer or surrounding panels. Choosing an archer or continuing a save requests browser fullscreen from that click; browsers require a user gesture. Exiting fullscreen keeps the game filling the window. If fullscreen is unsupported or declined, play continues in the full window. The in-game **Options** menu contains sound, graphics, stats/inventory and progress/reset controls, and opening it during combat pauses the run.
 
+## Blender base models / Godot atelier
+
+Inspect the first **[archer and pet model collection](https://maddoxmoye.github.io/Codex/models/)** rendered in Godot. It contains five distinct archers and three companions, editable Blender source, individual GLBs, basic idle/movement clips and downloadable source. See [the art notes](art/blender/README.md) and [viewer/build instructions](godot-models/README.md). This is a separate design-review stage; the current game is not migrated by this asset pass.
+
 ## The Emberwild — Babylon.js edition
 
 The main game has a new **Babylon.js** renderer and original art built for this edition. The previous Three.js renderer is no longer used by the main game. Gameplay remains the existing, tested JavaScript simulation: all unlocks, saved runs, items, exclusive elements, rewards and 45/75-second waves carry over.
