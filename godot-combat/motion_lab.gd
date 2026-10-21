@@ -259,6 +259,17 @@ var pet_elapsed := 0.0
 var pet_event := false
 var pet_cycle := -1
 var collected := 0
+var wolf_state := ""
+var wolf_state_time := 0.0
+var wolf_roam_goal := Vector3.ZERO
+var wolf_lap := 0
+var wolf_bite_count := 0
+var wolf_next_bite_time := 0.0
+var wolf_blend_from: Array[Transform3D] = []
+var wolf_blend_time := 0.0
+const WOLF_SPEED := 0.30/(0.72*0.55)
+const WOLF_TURN_SPEED := 4.0
+const WOLF_BLEND_DURATION := 0.14
 var bites := 0
 var howls := 0
 var blocks := 0
@@ -410,6 +421,12 @@ func select_companion(id: String) -> void:
 	for name in fox_player.get_animation_list():fox_player.get_animation(name).loop_mode = Animation.LOOP_LINEAR if name in ["Idle","Trot","Crawl","Fly"] else Animation.LOOP_NONE
 	fox.position = Vector3(-1.45,0,0.65)
 	fox_clip = ""
+	wolf_state = ""
+	wolf_state_time = 0
+	wolf_lap = 0
+	wolf_next_bite_time = 0
+	wolf_blend_from.clear()
+	wolf_blend_time = 0
 	pet_elapsed = 0
 	pet_cycle = -1
 	pet_event = false
@@ -647,8 +664,13 @@ func update_defense(dt: float) -> void:
 			item.node.queue_free()
 			hostile.remove_at(i)
 
-func pet_play(next: String) -> void:
-	if fox_clip==next:return
+func pet_play(next: String, restart := false) -> void:
+	if fox_clip==next and not restart:return
+	if companion=="wolf":
+		wolf_blend_from.clear()
+		if not fox_clip.is_empty():
+			for i in fox_skeleton.get_bone_count():wolf_blend_from.append(fox_skeleton.get_bone_pose(i))
+		wolf_blend_time = 0
 	fox_clip = next
 	fox_time = 0
 	pet_event = false
@@ -702,29 +724,7 @@ func update_fox(dt: float) -> void:
 		var face: Vector3 = (goal if t<3.5 else home)-fox.position
 		if face.length()>0.05:fox.rotation.y = lerp_angle(fox.rotation.y,atan2(face.x,face.z),minf(1,dt*8))
 	elif companion=="wolf":
-		var t := fmod(pet_elapsed,6.0)
-		var goal := Vector3(-1.45,0,1.07) if t>1.4 else home+Vector3(sin(t*2)*0.3,0,cos(t*2)*0.3)
-		if fox.position.distance_to(goal)>0.07:
-			pet_play("Trot")
-			var d := goal-fox.position
-			fox.position = fox.position.move_toward(goal,dt*1.4)
-			fox.rotation.y = lerp_angle(fox.rotation.y,atan2(d.x,d.z),minf(1,dt*12))
-		elif t>4.3:
-			pet_play("Howl")
-			fox.rotation.y = lerp_angle(fox.rotation.y,0,minf(1,dt*12))
-			if fox_time>=.55 and not pet_event:
-				pet_event = true
-				howls += 1
-				pulse_ring(fox.position+Vector3(0,.06,0),Color("bad7e9"),1.75,.7)
-		else:
-			if fox_clip!="Bite" or fox_time>=.8:fox_clip = "";pet_play("Bite")
-			fox.rotation.y = lerp_angle(fox.rotation.y,0,minf(1,dt*12))
-			if fox_time>=float(fox_metadata.biteContact) and not pet_event:
-				pet_event = true
-				bites += 1
-				pet_hits += 1
-				pulse_ring(bite_target.position+Vector3(0,.55,-.25),Color("e8c996"),.25,.25,true)
-				floating_number(bite_target.position+Vector3(0,.9,0),str(roundi(float(metadata.damage)*1.3)),Color("f1d8a6"))
+		update_wolf(dt,home)
 	else:
 		fox_cooldown -= dt
 		if fox.position.distance_to(home)>0.1:
@@ -745,6 +745,75 @@ func update_fox(dt: float) -> void:
 	fox_time += dt
 	var length := fox_player.get_animation(fox_clip).length
 	fox_player.seek(fmod(fox_time,length) if fox_clip in ["Idle","Trot","Fly","Crawl"] else minf(fox_time,length),true)
+	if companion=="wolf" and not wolf_blend_from.is_empty():
+		wolf_blend_time += dt
+		var weight := smoothstep(0,WOLF_BLEND_DURATION,wolf_blend_time)
+		for i in wolf_blend_from.size():
+			fox_skeleton.set_bone_pose(i,wolf_blend_from[i].interpolate_with(fox_skeleton.get_bone_pose(i),weight))
+		if weight>=1:wolf_blend_from.clear()
+
+
+func wolf_enter(next: String, home := Vector3.ZERO) -> void:
+	wolf_state = next
+	wolf_state_time = 0
+	match next:
+		"Roam":
+			# Pick one destination per patrol, rather than chasing a new point every frame.
+			wolf_roam_goal = home+Vector3(-0.40 if wolf_lap%2==0 else 0.30,0,-0.22)
+			wolf_lap += 1
+			wolf_bite_count = 0
+			pet_play("Trot")
+		"Approach":pet_play("Trot")
+		"Face", "Rest":pet_play("Idle")
+		"Bite":pet_play("Bite",true)
+		"Howl":pet_play("Howl")
+
+func wolf_turn(direction: Vector3, dt: float) -> void:
+	if direction.length_squared()<0.0001:return
+	fox.rotation.y = rotate_toward(fox.rotation.y,atan2(direction.x,direction.z),WOLF_TURN_SPEED*dt)
+
+func update_wolf(dt: float, home: Vector3) -> void:
+	if wolf_state.is_empty():wolf_enter("Roam",home)
+	wolf_state_time += dt
+	match wolf_state:
+		"Roam":
+			var direction := wolf_roam_goal-fox.position
+			if direction.length()>0.025:
+				pet_play("Trot")
+				fox.position = fox.position.move_toward(wolf_roam_goal,WOLF_SPEED*dt)
+				wolf_turn(direction,dt)
+			else:pet_play("Idle")
+			if wolf_state_time>=1.4:wolf_enter("Approach")
+		"Approach":
+			var goal := bite_target.position+Vector3(0,0,-0.73)
+			var direction := goal-fox.position
+			fox.position = fox.position.move_toward(goal,WOLF_SPEED*dt)
+			wolf_turn(direction,dt)
+			if fox.position.distance_to(goal)<0.015:wolf_enter("Face")
+		"Face":
+			var direction := bite_target.position-fox.position
+			wolf_turn(direction,dt)
+			if absf(angle_difference(fox.rotation.y,atan2(direction.x,direction.z)))<0.04:wolf_enter("Bite")
+		"Bite":
+			# Body and facing stay planted through the entire authored bite and recovery.
+			if fox_time>=float(fox_metadata.biteContact) and pet_elapsed>=wolf_next_bite_time and not pet_event:
+				pet_event = true
+				wolf_next_bite_time = pet_elapsed+float(fox_metadata.biteCooldown)
+				bites += 1
+				pet_hits += 1
+				pulse_ring(bite_target.position+Vector3(0,.55,-.25),Color("e8c996"),.25,.25,true)
+				floating_number(bite_target.position+Vector3(0,.9,0),str(roundi(float(metadata.damage)*1.3)),Color("f1d8a6"))
+			if fox_time>=fox_player.get_animation("Bite").length:
+				wolf_bite_count += 1
+				wolf_enter("Howl" if wolf_bite_count>=3 else "Bite")
+		"Howl":
+			if fox_time>=.55 and not pet_event:
+				pet_event = true
+				howls += 1
+				pulse_ring(fox.position+Vector3(0,.06,0),Color("bad7e9"),1.75,.7)
+			if fox_time>=fox_player.get_animation("Howl").length:wolf_enter("Rest")
+		"Rest":
+			if wolf_state_time>=.35:wolf_enter("Roam",home)
 
 func pulse_ring(point: Vector3, tint: Color, radius: float, life: float, upright := false) -> void:
 	var torus := TorusMesh.new()
