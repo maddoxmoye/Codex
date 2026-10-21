@@ -1,43 +1,45 @@
-# The Briar King — first boss animation study
+# The four guardians — Blender → Godot
 
-Preview: **https://maddoxmoye.github.io/Codex/boss-preview/**
+Preview: **https://maddoxmoye.github.io/Codex/boss-preview/?boss=frost-oracle**
 
-An original Blender model and Godot 4.6.3 attack study for the first of Wildfall's four guardians, **The Briar King** (wave 5). This is an isolated design review; the current game, campaign AI, balance, saved progress, monster studies and character/pet preview remain unchanged.
+Four original Blender models with baked skeletal animation, rendered in Godot 4.6.3 Compatibility. This is a standalone combat/design study. The published campaign and saved progress are unchanged. Use the four boss buttons to compare the models and attack patterns; Briar King remains the default for existing links.
 
-The king has a five-point thorn crown, a carved wooden mask, split trunk armor, an amber seed-heart, an overlapping leaf mantle, a massive right root gauntlet and a living seed cannon on his left arm. His crown reaches about **3.82 meters**, versus Rowan's roughly 2.1-meter silhouette at the same world scale. **Rowan for scale** brings the actual approved archer GLB into the model view. The king is a new mesh and rig, rather than a scaled copy of Hollowhart.
+| Guardian | Wave | Proposed HP | Close attack | Ranged attack |
+| --- | --- | --- | --- | --- |
+| Briar King | 5 | 1,200 | Thronebreaker: 36 slam | Briar Decree: 3×3 thorns, 16 per hit |
+| Frost Oracle | 10 | 2,100 | Glacial Verdict: 48 + 24 frost pulses | Whiteout Constellation: 3×5 ice bolts, 22 per hit; each leaves an 8-damage frost tick |
+| Hollow Monarch | 15 | 3,400 | Hollow Requiem: 64 outward sweep + 32 return sweep | Grave Procession: 10 orbs split into 20 shards, 32 per shard |
+| Gilded Colossus | 20 | 5,200 | Titan’s Toll: 88 hammer impact + 44 aftershock | Solar Foundry: 3×7 solar spears, 44 per hit |
 
-## Two attacks
+These values demonstrate progression; they are not final campaign balance. Damage is applied to fixed demonstration posts, rather than a live player. Floor warnings precede attacks, projectiles follow fixed paths and stop on impact, and hit flashes/numbers show damage. Ice patches linger briefly; spectral orbs split once rather than homing. Each new guardian has six clips: Idle, Run, Melee, Ranged, Hit and Death. Colossus additionally has Summon.
 
-- **Thronebreaker / close:** a deliberate overhead raise and crouching ground slam. A full-size ground circle warns before the 1.55-second contact. The actual authored knuckle lands about 0.08m above the floor while the feet stay planted. A ring then expands across the marked area over 0.6s, hitting the nearby demonstration target once as it reaches that target. The king recovers his weight before the next attack.
-- **Briar Decree / ranged:** the left seed cannon rises and charges. Its shoulder pods open and the heart/muzzle brighten, while three floor lanes identify the fixed target directions. Salvos at 1.20, 1.55 and 1.90 seconds each launch **three visible thorn spears**. Each spear launches from the exported cannon socket, travels straight at 8m/s, tests its swept segment against a target and stops on impact. No homing or invisible instant damage is used. Damage numbers, target flashes, bark chips and embedded thorns show the impacts.
+## Brood Furnace
 
-Both attacks use complete baked body poses with separate windup, impact/release and recovery. The spear release samples the authored socket at its release marker even when a slow frame skips across that instant. The scene advances in substeps, and tests also exercise large frame skips directly. Attacks repeat in their individual review tabs; **Demo loop** alternates both attacks, a heavy stride and an incoming-arrow hit reaction.
+The Colossus opens its two chest doors in a dedicated animation. Three release markers emit two enemies each from its animated hatch socket. The six skinned Briarlings visibly arc out, land, turn, approach nearby posts and attack with their approved attack animation. Each has 60 HP and deals 14 damage once per 1.35-second attack cycle. Stable movement, bounded turning, a short anchored lunge and explicit animation states avoid a physics-driven pileup.
 
-## Controls and scope
+The preview caps **living summons at six**. Further furnace cycles replenish defeated enemies. **Strike brood** deals 30 damage to the first living summon; two hits demonstrate recoil, health loss and death. Summons persist through other boss attacks, pause with the scene, and die when their boss is defeated. Reset and switching bosses remove the old encounter. Campaign navigation, player targeting and spawn-rate balance remain integration work.
 
-Choose an attack card, or let Demo loop run. Auto camera pulls back to show attacks and returns to the model between them. Full model, Attack arena and Heart detail are separate framing choices. Drag/touch to orbit, scroll to zoom, or reset the view. **Hold windup** freezes the last chosen attack before release; Resume plays it out. Pause, ½×/¼× speed, woodland/plain studio and fullscreen are available. Native keys 1/2 select attacks; P pauses.
+## Review controls
 
-**Hit with arrow** sends a visible arrow into the core, reduces the demonstration boss health, flashes the bark and triggers an authored recoil. **Defeat** plays a kneeling collapse and fades the heart; Reset boss restores him. The 1,200 HP and attack damage values are presentation values, not a balance proposal or integration into the existing game's difficulty.
+Select a boss and choose an attack card; **3** selects Summon for Colossus. Keys **1/2** select close/ranged and **P** pauses. Demo loop cycles attacks, including the final boss’s summon sequence. **Hold windup** freezes the last attack before release. Full model, Attack arena, Heart detail, drag/touch orbit, scroll zoom, slow motion, woodland/plain backdrop, fullscreen and Rowan for scale are available.
 
-The preview uses three fixed target posts and one nearby post to make timing clear. Enemy decision-making, chasing a live player, navigation/collision, distance-based attack selection, invulnerability rules, rewards, campaign replacement and the other three bosses are later integration work. Rowan is only a scale reference, not an active combatant in this scene.
+**Hit with arrow** triggers an actual projectile impact, health loss and authored recoil. **Defeat** plays the collapse and darkens the core. Reset restores the encounter. On native Godot builds, keyboard/orbit controls are available; the full review HUD belongs to the web shell.
 
-## Art and performance
+## Editable art and budgets
 
-The delivery has **6,092 triangles, 23 deform bones and three shared-palette materials**. The 256×256 palette is embedded in the GLB; all skin weights are normalized, with at most four influences per vertex. The six clips are Idle, Run, Melee, Ranged, Hit and Death. Analytic limb IK, planted feet, secondary mantle/pod/crown motion and hand placement are evaluated in Blender and baked into skeletal animation. The hands are stylized; there is no facial rig, physics cloth or third-party motion capture. Thorn flight, warnings, shockwaves, impacts and heart brightness run in Godot.
+Each guardian has a distinct silhouette, original geometry, 23 deform bones, three palette materials and fewer than 10,000 triangles. Oracle floats in a crystal gown beneath an orbiting halo; Monarch carries a crescent scythe beneath swept horns and a torn cloak; Colossus has piston arms, a sun cannon, hammer fist and hinged furnace doors. Briar King’s approved mesh/animations are preserved. All four use baked authored motion, normalized weights and embedded palette textures. The minions reuse the approved 2,156-triangle, 13-bone Briarling model.
 
-The existing low-poly woodland is one merged static backdrop; the web project shares the existing Godot Compatibility engine. No threaded export or paid engine/plugin is required. Projectiles expire, embedded thorns are capped at 18, and effects are checked over repeated sequences. This small scene has not been benchmarked on a physical iPhone and does not predict the cost of a full boss wave. Software-rendering browser checks can run slower than wall time because the simulation caps frame deltas.
-
-## Editable delivery and rebuilding
-
-Download **Blender + Godot files** for `briar-king.blend`, the geometry/animation generator, palette, rendered portrait, animated GLB, timing/socket metadata and the complete Godot project. The source includes a lit Blender studio and camera. Model, animation, materials and accessories are original procedural assets built for Wildfall.
+The **Blender + Godot files** download includes all four editable `.blend` studios, generators, portraits/lineup, GLBs, timing/socket metadata and the Godot project. The legacy filename `briar-king-source.zip` is retained for existing links. No paid engine or plugin is required. The preview shares the existing Godot web engine and has a content-hashed project pack.
 
 ```sh
 blender -b --factory-startup --python art/blender/build_briar_king.py
+blender -b --factory-startup --python art/blender/build_guardians.py
+blender -b --factory-startup --python art/blender/render_guardian_lineup.py
 npm run build:godot
 npm run build:boss
 PORT=3002 node server.mjs
 ```
 
-Open `http://localhost:3002/dist/boss-preview/`, or open `godot-boss/project.godot` in Godot 4.6.3. Web controls live in the HTML shell; the native project starts its demo automatically and supports the keyboard/orbit controls above. Content-hashed project packs prevent browsers reusing an older boss animation after a deployment.
+Open `http://localhost:3002/dist/boss-preview/` or `godot-boss/project.godot` in Godot 4.6.3. This small scene has not been benchmarked on a physical iPhone and does not establish full-wave performance.
 
-`check_boss.gd` validates rig/clip budgets, actual raised/ground-contact socket heights, planted feet, warning-before-contact order, one slam hit, three salvos/nine thorns and nine real target impacts at 16ms/100ms/600ms. It checks paused held windups, arrow impacts, attack interruption, defeat and bounded effects across 90 seconds of repeat playback. Asset tests inspect GLB geometry, palette UVs, normalized skin, distinct animation tracks and source presence. Browser review covers model/attack views, both held windups and impacts, damage, defeat, Rowan scale and portrait layout.
+`check_boss.gd` preserves the original King’s socket, planted-foot, warning, projectile, pause, interruption, defeat and camera checks. `check_guardians.gd` exercises the three new rigs, exact hit counts/damage at 16/100ms, frost ticks, splitting shots, held windups, mobile/desktop framing, autonomous summons, spawn cap, pause, death, replenishment and bounded effects across repeated playback. Node tests inspect exported geometry, skin, clips, metadata and editable source. Browser checks exercise selection, real attacks, hatch/minions, defeat/reset and portrait layout.

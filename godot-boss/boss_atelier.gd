@@ -1,5 +1,8 @@
 extends Node3D
 const BOSS := preload("res://boss_motion.gd")
+const GUARDIAN := preload("res://guardian_motion.gd")
+const IDS := ["briar-king","frost-oracle","hollow-monarch","gilded-colossus"]
+var boss_id := "briar-king"
 var boss: Node3D
 var camera: Camera3D
 var scenery: Node3D
@@ -47,10 +50,11 @@ func _ready() -> void:
 	ground.material_override = material
 	ground.position.y = -.06
 	add_child(ground)
-	boss = Node3D.new()
-	boss.set_script(BOSS)
-	add_child(boss)
-	boss.set_active(true)
+	var initial := "briar-king"
+	if OS.has_feature("web"):
+		var requested = JavaScriptBridge.eval("(window.bossRequest || {}).id || 'briar-king'",true)
+		if str(requested) in IDS:initial = str(requested)
+	select_boss(initial)
 	scale_archer = load("res://assets/rowan.glb").instantiate()
 	add_child(scale_archer)
 	scale_archer.position = Vector3(2.8,0,-.2)
@@ -70,10 +74,23 @@ func _ready() -> void:
 	get_viewport().scaling_3d_scale = minf(1,1.5/dpr)
 	update_camera(1)
 	if OS.has_feature("web"):JavaScriptBridge.eval("window.bossReady=true",true)
-	print("BRIAR_KING_READY: original boss, authored close and ranged attacks")
+	print("GUARDIANS_READY: four original bosses, escalating attacks and Colossus summons")
+
+func select_boss(id: String) -> void:
+	if id not in IDS:return
+	if is_instance_valid(boss):boss.free()
+	boss_id = id
+	boss = Node3D.new()
+	boss.set_script(BOSS if id=="briar-king" else GUARDIAN)
+	boss.study_id = id
+	add_child(boss)
+	boss.set_active(true)
+	turn = -.42
+	pitch = .21
+	zoom = 1
 
 func arena_view() -> bool:
-	return view_mode=="Arena" or (view_mode=="Auto" and boss.clip in ["Melee","Ranged"])
+	return view_mode=="Arena" or (view_mode=="Auto" and boss.clip in ["Melee","Ranged","Summon"])
 
 func bounds_points(subject: Node3D) -> Array[Vector3]:
 	var result: Array[Vector3] = []
@@ -85,10 +102,10 @@ func bounds_points(subject: Node3D) -> Array[Vector3]:
 
 func update_camera(dt: float) -> void:
 	var arena := arena_view()
-	var focus := Vector3(0,1.55,0)
-	var ranged: bool = boss.clip=="Ranged" or boss.mode=="Ranged"
+	var focus := Vector3(0,float(boss.metadata.heightMeters)*.405,0)
+	var ranged: bool = boss.clip=="Ranged" or boss.mode=="Ranged" or boss.clip=="Summon" or boss.mode=="Summon"
 	if arena:focus = Vector3(.1,.55,2.0) if ranged else Vector3(-.45,.75,.60)
-	elif view_mode=="Heart":focus = Vector3(0,2.15,0)
+	elif view_mode=="Heart":focus = Vector3(0,float(boss.metadata.hitCenter),0)
 	if scale_visible and not arena:focus.x = .7
 	var tilt: float = pitch+(.18 if arena else 0)
 	var back := Vector3(sin(turn)*cos(tilt),sin(tilt),cos(turn)*cos(tilt))
@@ -99,12 +116,12 @@ func update_camera(dt: float) -> void:
 	var up := back.cross(right).normalized()
 	var distance := 9.0 if arena else 7.5
 	var points := bounds_points(boss.actor)
-	if not OS.has_feature("web"):points.append(Vector3(0,4.35,0))
+	if not OS.has_feature("web"):points.append(Vector3(0,float(boss.metadata.heightMeters)+.5,0))
 	elif boss.clip=="Melee":points.append(Vector3(-.6,4.05,.3))
 	if scale_visible and not arena:points.append_array(bounds_points(scale_archer))
 	if arena:
 		if ranged:
-			for x in [-1.2,2.65]:
+			for x in [float(boss.target_points[0].x)-.5,float(boss.target_points[-1].x)+.5]:
 				for z in [1.0,6.35]:points.append(Vector3(x,.04,z))
 			for point in boss.target_points:points.append(point+Vector3.UP*.35)
 		else:
@@ -138,6 +155,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode==KEY_1:boss.command("Melee")
 		if event.keycode==KEY_2:boss.command("Ranged")
+		if event.keycode==KEY_3 and boss.metadata.has("summon"):boss.command("Summon")
 		if event.keycode==KEY_P:boss.paused = not boss.paused
 
 func _process(delta: float) -> void:
@@ -153,6 +171,7 @@ func _process(delta: float) -> void:
 	poll = 0
 	var request = JSON.parse_string(JavaScriptBridge.eval("JSON.stringify(window.bossRequest || {})",true))
 	if request:
+		if str(request.get("id",boss_id))!=boss_id:select_boss(str(request.id))
 		if request.has("motion"):
 			boss.command(str(request.motion))
 			if str(request.motion).begins_with("Hold"):JavaScriptBridge.eval("window.bossRequest.paused=true",true)
@@ -170,5 +189,5 @@ func _process(delta: float) -> void:
 			zoom = 1
 			JavaScriptBridge.eval("window.bossRequest.reset=false",true)
 	var state: Dictionary = boss.state()
-	state.merge({"fps":Engine.get_frames_per_second(),"view":view_mode,"arena":arena_view(),"scale":scale_visible,"woodland":woodland},true)
+	state.merge({"id":boss_id,"fps":Engine.get_frames_per_second(),"view":view_mode,"arena":arena_view(),"scale":scale_visible,"woodland":woodland},true)
 	JavaScriptBridge.eval("window.bossState="+JSON.stringify(state),true)

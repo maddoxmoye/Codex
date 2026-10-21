@@ -1,0 +1,130 @@
+{
+  "name": "The Gilded Colossus",
+  "subtitle": "The walking brood foundry",
+  "wave": 20,
+  "tier": 4,
+  "color": "efbb6c",
+  "health": 5200,
+  "arrowDamage": 325,
+  "melee": {
+    "name": "Titan\u2019s Toll",
+    "contact": 1.45,
+    "warningStart": 0.08,
+    "warningEnd": 1.45,
+    "radius": 3.6,
+    "damage": 88,
+    "waveDuration": 0.62,
+    "recovery": 2.55,
+    "events": [
+      1.45,
+      2.05
+    ],
+    "multipliers": [
+      1,
+      0.5
+    ],
+    "pattern": "foundry"
+  },
+  "ranged": {
+    "name": "Solar Foundry",
+    "releases": [
+      0.95,
+      1.3,
+      1.65
+    ],
+    "warningStart": 0.1,
+    "speed": 10.0,
+    "damage": 44,
+    "recovery": 2.25,
+    "shotsPerVolley": 7,
+    "style": "solar"
+  },
+  "summon": {
+    "name": "Brood Furnace",
+    "releases": [
+      1.1,
+      1.45,
+      1.8
+    ],
+    "perRelease": 2,
+    "maxAlive": 6,
+    "damage": 14,
+    "health": 60,
+    "contact": 0.56,
+    "attackInterval": 1.35,
+    "warningStart": 0.15
+  },
+  "description": "A towering gold-and-stone engine. Its chest opens into a living enemy foundry.",
+  "meleeDetail": "88 hammer impact + 44 aftershock. Largest danger area.",
+  "rangedDetail": "3 \u00d7 7 solar spears \u00b7 44 per hit. Faster, denser firing lanes.",
+  "id": "gilded-colossus",
+  "file": "assets/gilded-colossus.glb",
+  "clips": {
+    "Idle": 3.6,
+    "Run": 1.2,
+    "Melee": 3.6,
+    "Ranged": 3.8,
+    "Hit": 0.9,
+    "Death": 3.0,
+    "Summon": 4.6
+  },
+  "bones": 23,
+  "triangles": 6672,
+  "materials": 3,
+  "heightMeters": 4.938485145568848,
+  "sockets": {
+    "muzzle": {
+      "bone": "cannon",
+      "local": [
+        1.4418314719932823e-07,
+        0.7929997444152832,
+        1.450918460932371e-07
+      ]
+    },
+    "breech": {
+      "bone": "cannon",
+      "local": [
+        1.4418314719932823e-07,
+        0.12999992072582245,
+        1.5497131755637383e-07
+      ]
+    },
+    "knuckle": {
+      "bone": "hand.R",
+      "local": [
+        1.3258912190394767e-07,
+        0.5359382629394531,
+        0.008374059572815895
+      ]
+    },
+    "heart": {
+      "bone": "core",
+      "local": [
+        0.0,
+        0.07799983024597168,
+        0.20800000429153442
+      ]
+    },
+    "hatch": {
+      "bone": "chest",
+      "local": [
+        0.0,
+        0.4549999237060547,
+        0.9359999895095825
+      ]
+    },
+    "staffTip": {
+      "bone": "hand.R",
+      "local": [
+        1.2388863979140297e-07,
+        1.030843734741211,
+        0.22107446193695068
+      ]
+    }
+  },
+  "hitCenter": 2.704,
+  "hitRadius": 0.7150000000000001,
+  "healthBone": "crown",
+  "healthOffset": 1.3,
+  "notes": "Original Blender boss study. Damage and mechanics are proposed values for this preview, not campaign balance."
+}

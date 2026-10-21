@@ -18,7 +18,7 @@ Inspect four original **[Blender monster designs in Godot](https://maddoxmoye.gi
 
 ## Rowan animation preview
 
-Meet **[The Briar King, the first boss](https://maddoxmoye.github.io/Codex/boss-preview/)**: a new Blender-built woodland monarch with a thorn crown, amber heart, root gauntlet and living seed cannon. Watch his close-range Thronebreaker slam and ranged Briar Decree salvos, including warnings, visible projectiles, shockwaves and damage feedback. Inspect held windups, hit/defeat motions and Rowan at the same scale. This is a separate boss draft before campaign integration. See [the boss study notes](godot-boss/README.md).
+Meet **[the four guardians](https://maddoxmoye.github.io/Codex/boss-preview/?boss=frost-oracle)**: the Briar King, Frost Oracle, Hollow Monarch and Gilded Colossus. Original Blender models have distinct close/ranged animations, escalating proposed damage, frost hazards, splitting projectiles and a final boss whose chest releases autonomous enemies. Compare all four, hold windups, inspect hit/defeat motions and bring in Rowan for scale. This is a separate boss draft before campaign integration. See [the boss study notes](godot-boss/README.md).
 
 Try the **[five-character combat atelier](https://maddoxmoye.github.io/Codex/combat-preview/)**: Ash, Briar, Nyx and Pip now join Rowan with their own defensive and offensive ability choreography, synchronized arrows and target feedback. Wolf has bites and howls; Lantern Beetle crawls, opens its shells, flies, collects and delivers tokens. Select characters and pets, inspect close-ups and slow motion, or download the Blender/Godot source. This is a separate combat draft before boss integration. See [the combat study notes](godot-combat/README.md).
 

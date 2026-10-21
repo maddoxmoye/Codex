@@ -59,7 +59,7 @@ jobs:
         run: npm run build:combat
         env:
           GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
-      - name: Validate and export first boss animation study
+      - name: Validate and export four guardian animation studies
         run: npm run build:boss
         env:
           GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot

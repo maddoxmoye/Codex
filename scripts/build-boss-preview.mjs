@@ -8,7 +8,7 @@ const out=path.join(root,'dist/boss-preview');
 await mkdir(out,{recursive:true});await mkdir(path.join(root,'godot-boss/.templates'),{recursive:true});
 await copyFile(path.join(root,'godot-demo/.templates/web_nothreads_release.zip'),path.join(root,'godot-boss/.templates/web_nothreads_release.zip'));
 const env={...process.env,XDG_CACHE_HOME:process.env.XDG_CACHE_HOME||'/tmp/wildfall-godot-cache',XDG_CONFIG_HOME:process.env.XDG_CONFIG_HOME||'/tmp/wildfall-godot-config',XDG_DATA_HOME:process.env.XDG_DATA_HOME||'/tmp/wildfall-godot-data'};
-for(const args of [['--headless','--path','godot-boss','--editor','--import'],['--headless','--path','godot-boss','--script','check_boss.gd'],['--headless','--path','godot-boss','--export-release','Web',path.join(out,'king.html')]]){
+for(const args of [['--headless','--path','godot-boss','--editor','--import'],['--headless','--path','godot-boss','--script','check_boss.gd'],['--headless','--path','godot-boss','--script','check_guardians.gd'],['--headless','--path','godot-boss','--export-release','Web',path.join(out,'king.html')]]){
  const r=spawnSync(process.env.GODOT_BIN||'godot',args,{cwd:root,env,encoding:'utf8',maxBuffer:24*1024*1024});
  process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
  if(r.error||r.status!==0||/SCRIPT ERROR:|Parse Error:|Failed to export project/.test((r.stdout||'')+(r.stderr||'')))throw Error('Godot king export failed');
@@ -22,13 +22,19 @@ await copyFile(path.join(out,'king.pck'),path.join(out,packName));
 config.executable='../godot-demo/engine';config.mainPack=packName;
 config.fileSizes={[packName]:(await stat(path.join(out,'king.pck'))).size,'../godot-demo/engine.wasm':(await stat(path.join(root,'dist/godot-demo/engine.wasm'))).size};
 const downloadSize=Object.values(config.fileSizes).reduce((a,b)=>a+b,0);
-const html=(await readFile(path.join(root,'godot-boss/web-shell.html'),'utf8')).replace('{{GODOT_CONFIG}}',()=>JSON.stringify(config)).replace('{{DOWNLOAD_MB}}',String(Math.ceil(downloadSize/1024/1024)));
+const guardians=await readFile(path.join(root,'godot-boss/assets/guardians.json'),'utf8');
+const html=(await readFile(path.join(root,'godot-boss/web-shell.html'),'utf8')).replace('{{GODOT_CONFIG}}',()=>JSON.stringify(config)).replace('{{GUARDIANS}}',()=>guardians).replace('{{DOWNLOAD_MB}}',String(Math.ceil(downloadSize/1024/1024)));
 await writeFile(path.join(out,'index.html'),html);
 await cp(path.join(root,'godot-boss/assets'),path.join(out,'assets'),{recursive:true,filter:src=>!src.endsWith('.import')});
 await copyFile(path.join(root,'art/blender/renders/briar-king.png'),path.join(out,'portrait.png'));
+await mkdir(path.join(out,'portraits'),{recursive:true});
+for(const id of Object.keys(JSON.parse(guardians)))await copyFile(path.join(root,'art/blender/renders',id+'.png'),path.join(out,'portraits',id+'.png'));
+await copyFile(path.join(root,'art/blender/renders/guardian-lineup.png'),path.join(out,'lineup.png'));
 const zip=spawnSync('python3',['-c',`import zipfile, pathlib
 root=pathlib.Path(${JSON.stringify(root)})
 files=['art/blender/build_briar_king.py','art/blender/briar-king.blend','art/blender/briar-king-palette.png','art/blender/build_monsters.py','art/blender/build_roster.py','art/blender/renders/briar-king.png']
+files+=['art/blender/build_guardians.py','art/blender/render_guardian_lineup.py','art/blender/renders/guardian-lineup.png']
+for boss in ['frost-oracle','hollow-monarch','gilded-colossus']:files += ['art/blender/'+boss+'.blend','art/blender/renders/'+boss+'.png']
 with zipfile.ZipFile(root/'dist/boss-preview/briar-king-source.zip','w',zipfile.ZIP_DEFLATED) as z:
  for file in files:z.write(root/file,file)
  for p in (root/'godot-boss').rglob('*'):
@@ -36,4 +42,4 @@ with zipfile.ZipFile(root/'dist/boss-preview/briar-king-source.zip','w',zipfile.
    z.write(p,p.relative_to(root))
 `],{cwd:root,encoding:'utf8'});
 if(zip.status!==0)throw Error(zip.stderr);
-console.log('Built first boss animation preview: dist/boss-preview/');
+console.log('Built four guardian animation previews: dist/boss-preview/');

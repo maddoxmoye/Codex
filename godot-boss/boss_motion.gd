@@ -1,5 +1,6 @@
 extends "res://creature_motion.gd"
 ## One original boss, two authored attacks. No campaign migration or production AI.
+var study_id := "briar-king"
 var melee_warning: Node3D
 var ranged_warning: Node3D
 var melee_center := Vector3.ZERO
@@ -20,7 +21,7 @@ var target_damage: Array[int] = [0,0,0]
 var close_damage := 0
 
 func _ready() -> void:
-	creature_id = "briar-king"
+	creature_id = study_id
 	super._ready()
 	hp_root.scale = Vector3.ONE*1.8
 	for mesh in actor.find_children("*","MeshInstance3D",true,false):

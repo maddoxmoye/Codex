@@ -1,0 +1,117 @@
+{
+  "name": "The Frost Oracle",
+  "subtitle": "Keeper of the white silence",
+  "wave": 10,
+  "tier": 2,
+  "color": "8ddbe8",
+  "health": 2100,
+  "arrowDamage": 175,
+  "melee": {
+    "name": "Glacial Verdict",
+    "contact": 1.4,
+    "warningStart": 0.1,
+    "warningEnd": 1.4,
+    "radius": 2.8,
+    "damage": 48,
+    "waveDuration": 0.65,
+    "recovery": 2.35,
+    "events": [
+      1.4,
+      2.0
+    ],
+    "multipliers": [
+      1,
+      0.5
+    ],
+    "pattern": "frost"
+  },
+  "ranged": {
+    "name": "Whiteout Constellation",
+    "releases": [
+      1.12,
+      1.52,
+      1.92
+    ],
+    "warningStart": 0.16,
+    "speed": 8.8,
+    "damage": 22,
+    "recovery": 2.4,
+    "shotsPerVolley": 5,
+    "style": "ice",
+    "hazardDuration": 1.6,
+    "hazardDelay": 0.8,
+    "hazardDamage": 8
+  },
+  "description": "A floating ice seer with a split crystal mantle, star halo and forked staff.",
+  "meleeDetail": "48 impact + 24 aftershock. Two expanding frost rings.",
+  "rangedDetail": "3 \u00d7 5 ice bolts \u00b7 22 per bolt. Frost patches deal 8 delayed damage.",
+  "id": "frost-oracle",
+  "file": "assets/frost-oracle.glb",
+  "clips": {
+    "Idle": 3.6,
+    "Run": 1.2,
+    "Melee": 3.6,
+    "Ranged": 3.8,
+    "Hit": 0.9,
+    "Death": 3.0
+  },
+  "bones": 23,
+  "triangles": 3000,
+  "materials": 3,
+  "heightMeters": 4.162642478942871,
+  "sockets": {
+    "muzzle": {
+      "bone": "cannon",
+      "local": [
+        -2.8029333520862565e-07,
+        0.6588003039360046,
+        -6.645529992965749e-08
+      ]
+    },
+    "breech": {
+      "bone": "cannon",
+      "local": [
+        -2.802933636303351e-07,
+        0.1080000177025795,
+        -5.004016401244371e-08
+      ]
+    },
+    "knuckle": {
+      "bone": "hand.R",
+      "local": [
+        -1.4650839830210316e-07,
+        0.445241242647171,
+        0.006956865079700947
+      ]
+    },
+    "heart": {
+      "bone": "core",
+      "local": [
+        0.0,
+        0.06480002403259277,
+        0.1728000044822693
+      ]
+    },
+    "hatch": {
+      "bone": "chest",
+      "local": [
+        0.0,
+        0.37799978256225586,
+        0.7776000499725342
+      ]
+    },
+    "staffTip": {
+      "bone": "hand.R",
+      "local": [
+        -1.36070539724642e-07,
+        0.8563936352729797,
+        0.18366199731826782
+      ]
+    }
+  },
+  "hitCenter": 2.2464000000000004,
+  "hitRadius": 0.5940000000000001,
+  "healthBone": "crown",
+  "healthOffset": 1.08,
+  "notes": "Original Blender boss study. Damage and mechanics are proposed values for this preview, not campaign balance."
+}
