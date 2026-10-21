@@ -460,7 +460,7 @@ func update_camera(dt: float) -> void:
 		offset = Vector3(-5.3,3.3,6.4)
 	var size := get_viewport().get_visible_rect().size
 	if size.x<size.y:
-		offset *= 1.6 if view_mode == "Range" else 1.15
+		offset *= 1.6 if view_mode == "Range" else 1.45 if view_mode=="Fox" else 1.15
 	offset = offset.rotated(Vector3.UP,view_turn)
 	offset.y += view_pitch
 	camera.position = camera.position.lerp(focus+offset,minf(1,dt*7))
