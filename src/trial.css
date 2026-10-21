@@ -4,3 +4,4 @@
 @media(max-height:600px){#trial-stage{min-height:0}.scene-label{display:none}header{padding:14px 24px}.intro{bottom:95px}.intro h1{font-size:36px;margin:10px 0}.intro p{display:none}.intro>small{margin-top:10px}.intro .primary{padding:12px 18px}.right-tools{right:24px;bottom:100px;gap:5px}.right-tools .pill{padding:7px 10px}.element-dock,body.playing .element-dock{bottom:38px}.vitals{top:76px}.skills,body.playing .skills{bottom:42px;left:24px}#trial-touch{bottom:110px;left:24px}footer{bottom:12px;left:24px;right:24px}}
 @media(max-height:600px) and (min-width:601px){.element-dock,body.playing .element-dock{left:auto;right:24px;transform:none}}
 @media(max-height:600px) and (max-width:600px){body.playing .skills{bottom:120px}#trial-touch{bottom:190px}}
+@media(max-height:600px){.right-tools{bottom:125px}}
