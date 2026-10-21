@@ -30,6 +30,19 @@ jobs:
         run: npm test
       - name: Build standalone website
         run: npm run build
+      - name: Cache Godot web build tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            .godot-tools
+            godot-demo/.templates
+          key: godot-4.6.3-linux-single-thread-web-v1
+      - name: Install official Godot web tools
+        run: bash scripts/install-godot-web.sh
+      - name: Export Godot iPhone graphics study
+        run: npm run build:godot
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10242d"><link rel="icon" href="data:,">
+<title>The Moonwell · Godot Graphics Study</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;color:#eee9dc;background:#10242d}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}button,select{font:inherit;color:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid #e6c88d;outline-offset:3px}button:disabled{cursor:wait;opacity:.65}#canvas{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none;touch-action:none}#canvas:focus{outline:none}.top{position:fixed;z-index:2;left:max(22px,env(safe-area-inset-left));right:max(22px,env(safe-area-inset-right));top:max(20px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:14px;pointer-events:none}.wordmark{font:15px Georgia,serif;letter-spacing:3px;text-shadow:0 2px 8px #000}.wordmark small{display:block;font:8px system-ui;letter-spacing:2px;color:#cbb989;margin-top:7px}.controls{display:flex;align-items:center;gap:6px;pointer-events:auto}.controls button,.controls select{background:#11262ce8;border:1px solid #9cb4ae55;border-radius:5px;padding:9px;font-size:11px;min-height:36px}.stats{position:fixed;z-index:2;top:max(85px,calc(env(safe-area-inset-top) + 70px));left:max(22px,env(safe-area-inset-left));padding:13px 16px;background:#10232bce;border:1px solid #b5cab32b;border-radius:5px;min-width:140px;pointer-events:none;backdrop-filter:blur(8px)}.fps{display:flex;align-items:baseline;gap:7px}.fps strong{font:33px Georgia,serif;color:#e7d0a0;font-variant-numeric:tabular-nums}.fps span{font-size:9px;letter-spacing:1px;color:#becbc5}.stats p{font-size:10px;color:#becbc5;margin:6px 0 0}.bottom{position:fixed;z-index:2;bottom:max(23px,env(safe-area-inset-bottom));left:max(22px,env(safe-area-inset-left));right:max(22px,env(safe-area-inset-right));display:flex;align-items:end;justify-content:space-between;gap:20px;pointer-events:none;text-shadow:0 2px 8px #001}.caption span{font-size:8px;letter-spacing:2px;color:#e6c88d}.caption h1{font:clamp(23px,4vw,38px) Georgia,serif;margin:7px 0}.caption p,.note{font-size:10px;color:#cad3cc;line-height:1.6;margin:0}.note{max-width:220px;text-align:right}.screen{position:fixed;z-index:5;inset:0;display:grid;place-items:center;padding:28px;background:radial-gradient(ellipse at 70% 30%,#36626466,transparent 55%),radial-gradient(ellipse at 20% 80%,#37695c44,transparent 45%),#10242d}.screen[hidden]{display:none}.panel{width:100%;max-width:430px;text-align:center}.sigil{font:70px Georgia;color:#ddc791;margin-bottom:26px;text-shadow:0 0 60px #6de1d977}.panel .eyebrow{font-size:9px;letter-spacing:3px;color:#bdc9c1}.panel h2{font:44px/1.1 Georgia,serif;font-weight:400;margin:16px 0 20px}.panel h2 em{color:#ddc791}.panel p{font-size:13px;line-height:1.8;color:#b9cac8;margin:0 auto 22px;max-width:340px}.enter{display:block;width:100%;padding:16px;background:#e9dfc9;color:#152a30;border:1px solid #efdfb6;border-radius:5px;font-weight:600;font-size:13px}.panel small{display:block;color:#9db2b1;font-size:10px;line-height:1.7;margin-top:16px}.progress{height:3px;border-radius:3px;margin:20px 0 10px;background:#ffffff17;overflow:hidden}.progress i{display:block;width:0%;height:100%;background:#e2c990;transition:width .2s}.status{min-height:35px;font-size:11px;color:#d3c5a9;line-height:1.6}#reload{margin-top:15px;background:transparent;border:1px solid #718d89;border-radius:4px;padding:10px 18px;color:#eee9dc}.hud[hidden]{display:none}
+@media(max-width:600px){.top{left:14px;right:14px;top:max(14px,env(safe-area-inset-top))}.wordmark{font-size:11px;letter-spacing:2px}.wordmark small{font-size:6px;letter-spacing:1px}.controls button,.controls select{font-size:10px;padding:7px;max-width:100px}.stats{left:14px;top:max(73px,calc(env(safe-area-inset-top) + 62px));padding:9px 12px;min-width:125px}.fps strong{font-size:27px}.bottom{left:14px;right:14px;bottom:max(18px,env(safe-area-inset-bottom))}.note{font-size:8px;max-width:130px}.caption p{font-size:9px}.caption span{font-size:7px}.panel h2{font-size:40px}}
+@media(max-height:460px){.screen{padding:15px}.sigil{font-size:34px;margin-bottom:8px}.panel h2{font-size:32px;margin:9px 0}.panel p{font-size:11px;margin-bottom:12px}.panel small{margin-top:8px}.stats{top:66px}.bottom{bottom:12px}.caption h1{font-size:23px}}
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="0" aria-label="Automatic Godot 3D forest diorama"></canvas>
+<div class="hud" id="hud" hidden>
+ <div class="top"><div class="wordmark">WILDFALL<small>A GODOT GRAPHICS STUDY</small></div><div class="controls"><select id="quality" aria-label="Graphics quality"><option value="light">Light</option><option value="balanced" selected>Balanced</option><option value="high">High detail</option></select><button id="pause" aria-pressed="false">Pause</button><button id="fullscreen" aria-label="Enter fullscreen">⛶</button></div></div>
+ <div class="stats" aria-label="Live performance"><div class="fps"><strong id="fps">—</strong><span>FPS</span></div><p id="average">Warming up…</p><p id="render">Preparing the grove</p></div>
+ <div class="bottom"><div class="caption"><span>01 / THE MOONWELL</span><h1>A little living world.</h1><p>No controls needed. Just watch.</p></div><p class="note">Godot 4.6.3 · WebGL 2<br>Safari / browser preview<br>Native iPhone performance will differ.</p></div>
+</div>
+<div id="loading" class="screen"><div class="panel"><div class="sigil">✧</div><div class="eyebrow">WILDFALL / ENGINE STUDIES</div><h2>A moment at<br><em>the Moonwell.</em></h2><p>A floating grove, an archer, a little magic.<br>An animated 3D scene made in Godot.</p><button class="enter" id="enter">Enter the grove →</button><div id="progress" class="progress" hidden><i id="bar"></i></div><div class="status" id="status" role="status" aria-live="polite"></div><button id="reload" hidden>Reload demo</button><small>First visit downloads about {{DOWNLOAD_MB}} MB.<br>Works in Safari. No app installation or game progress required.</small></div></div>
+<script src="engine.js"></script>
+<script>
+'use strict';
+window.demoQuality='balanced';window.demoPaused=false;
+const $=id=>document.getElementById(id);
+const config={{GODOT_CONFIG}};
+config.ensureCrossOriginIsolationHeaders=false;
+config.canvas=$('canvas');config.canvasResizePolicy=2;config.focusCanvas=false;
+config.onProgress=(current,total)=>{if(total>0){const percent=Math.min(100,Math.round(current/total*100));$('bar').style.width=percent+'%';$('status').textContent=percent<100?'Gathering the grove… '+percent+'%':'Preparing lights and shaders…';}};
+config.onPrintError=(...args)=>console.error('[Godot]',...args);
+const engine=new Engine(config);
+function failure(message){$('loading').hidden=false;$('status').textContent=message;$('enter').hidden=true;$('reload').hidden=false;$('hud').hidden=true;}
+$('reload').onclick=()=>location.reload();
+$('enter').onclick=async()=>{
+ $('enter').disabled=true;$('enter').textContent='Opening the grove…';$('progress').hidden=false;$('status').textContent='Loading Godot…';
+ try{
+  const missing=Engine.getMissingFeatures({threads:false});
+  if(missing.length)throw new Error('This browser needs '+missing.join(', ')+'. Try opening this link directly in an updated Safari.');
+  await engine.startGame();
+  let elapsed=0;
+  const ready=setInterval(()=>{elapsed+=100;if(window.godotDemoReady){clearInterval(ready);$('loading').hidden=true;$('hud').hidden=false;$('canvas').focus();}else if(elapsed>60000){clearInterval(ready);failure('The scene is taking too long to start. Reload, or close other tabs and try Safari again.');}},100);
+ }catch(error){console.error(error);failure('Could not start the graphics demo. '+(error.message||String(error)));}
+};
+$('quality').onchange=()=>{window.demoQuality=$('quality').value;$('average').textContent='Warming up…';};
+$('pause').onclick=()=>{window.demoPaused=!window.demoPaused;$('pause').textContent=window.demoPaused?'Resume':'Pause';$('pause').setAttribute('aria-pressed',String(window.demoPaused));};
+if(!document.documentElement.requestFullscreen)$('fullscreen').hidden=true;
+$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{}};
+document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'⤢':'⛶';$('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen':'Enter fullscreen');});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){window.demoPaused=true;$('pause').textContent='Resume';$('pause').setAttribute('aria-pressed','true');}});
+setInterval(()=>{const s=window.godotDemoStats;if(!s)return;$('fps').textContent=s.paused?'Ⅱ':s.fps;$('average').textContent=s.paused?'Scene paused':s.warmup?'Warming up…':s.average.toFixed(1)+' average · '+Math.floor(s.seconds)+'s';$('render').textContent=Math.round(s.draws)+' draws · '+Math.round(s.triangles/1000)+'k triangles';},500);
+$('canvas').addEventListener('webglcontextlost',event=>{event.preventDefault();failure('The graphics context was interrupted. Close other tabs if needed, then reload the demo.');});
+</script>
+</body></html>

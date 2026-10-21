@@ -3,3 +3,8 @@ coverage/
 .DS_Store
 dist/
 wildfall.html
+
+# Godot editor cache and locally downloaded official web export template.
+godot-demo/.godot/
+godot-demo/.templates/
+.godot-tools/

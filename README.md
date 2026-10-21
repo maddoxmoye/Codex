@@ -4,6 +4,8 @@ A browser survival adventure in a continuous 4,800 × 4,000-unit world. A low pe
 
 Play the deployed game at **https://maddoxmoye.github.io/Codex/**.
 
+Try the separate **[Godot iPhone graphics demo](https://maddoxmoye.github.io/Codex/godot-demo/)** in Safari: an automatic animated diorama with live FPS and three detail settings. This is a real Godot web export, separate from the Babylon.js game. See [the demo's build instructions and measurement limits](godot-demo/README.md).
+
 The link opens directly into a viewport-filling game, without a website header, footer or surrounding panels. Choosing an archer or continuing a save requests browser fullscreen from that click; browsers require a user gesture. Exiting fullscreen keeps the game filling the window. If fullscreen is unsupported or declined, play continues in the full window. The in-game **Options** menu contains sound, graphics, stats/inventory and progress/reset controls, and opening it during combat pauses the run.
 
 ## The Emberwild — Babylon.js edition
