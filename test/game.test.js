@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,WORLD,REGIONS,regionAt,SHOP,BOSSES,xpForLevel,advanceGame,CHARACTERS,isUnlocked,MYTHICAL_UPGRADES,ELEMENT_COLORS,isBossWave} from '../src/game.js';
+import {Game,WORLD,REGIONS,regionAt,SHOP,BOSSES,xpForLevel,advanceGame,CHARACTERS,isUnlocked,MYTHICAL_UPGRADES,ELEMENT_COLORS,isBossWave,RARITIES} from '../src/game.js';
 import {SCENERY,SOLIDS,STRUCTURES,CHESTS,OPEN_INTERIOR,EDGE_BAND,blocked,moveBody,projectileBlocked,findFree} from '../src/world.js';
 const create=()=>{const g=new Game(()=>.5);g.start();g.obstacles=[];g.spawnTime=999;g.player.x=500;g.player.y=330;return g;};
 const enemy=(x=650,y=330,hp=500)=>({x,y,r:12,hp,speed:0,damage:0,slow:0,kind:'brute'});
@@ -330,4 +330,14 @@ test('juggernauts resist arrow impacts and telegraph slams; the final guardian w
 });
 test('maxed Economy stops appearing in shop and level choices and keeps capped prices meaningful',()=>{
  const g=create();g.player.economy=50;g.gainXP(20);g.nextWave();assert.equal(g.draftChoices.length,4);assert.equal(g.draftChoices.some(i=>i.id==='economy'),false);for(const id of ['economy','bargain'])assert.equal(g.offer(SHOP.find(i=>i.id===id)).available,false);assert.equal(g.discountedPrice(35),18);
+});
+
+
+test('all shop offers carry a rarity, with higher-tier upgrades weighted below ordinary upgrades',()=>{
+ assert.ok(SHOP.every(i=>RARITIES[i.rarity]&&i.rarity!=='mythical'));
+ assert.equal(SHOP.find(i=>i.id==='heal').rarity,'common');assert.equal(SHOP.find(i=>i.id==='pet').rarity,'uncommon');assert.equal(SHOP.find(i=>i.id==='piercing').rarity,'rare');assert.equal(SHOP.find(i=>i.id==='multi').rarity,'epic');
+ let seed=42;const g=new Game(()=>{seed=(seed*16807)%2147483647;return seed/2147483647;});const counts={common:0,uncommon:0,rare:0,epic:0};const pool=Object.keys(counts).map(rarity=>({rarity}));for(let i=0;i<2000;i++)counts[g.weightedSample(pool,1)[0].rarity]++;assert.ok(counts.common>counts.uncommon&&counts.uncommon>counts.rare&&counts.rare>counts.epic);
+});
+test('mythic chests retain a random selection across the entire mythic pool and never enter ordinary shops',()=>{
+ const picks=new Set();for(const random of [0,.3,.6,.99]){const g=new Game(()=>random);g.start();g.dropChest(g.player,'mythical');g.nextWave();assert.equal(g.state,'reward');const item=g.chestQueue[0].reward;assert.equal(item.rarity,'mythical');picks.add(item.id);g.resolveChest('take');assert.equal(g.upgradeHistory.at(-1).rarity,'mythical');assert.ok(g.shopOffers.every(o=>SHOP.some(i=>i.id===o.id)));}assert.equal(picks.size,4);
 });

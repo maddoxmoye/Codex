@@ -1,5 +1,5 @@
-import {CHARACTERS,cleanProgress,isUnlocked,ECONOMY_UPGRADES,RARE_UPGRADES,MYTHICAL_UPGRADES} from './content.js';
-export {CHARACTERS,isUnlocked,MYTHICAL_UPGRADES,ELEMENT_COLORS} from './content.js';
+import {withRarity,RARITIES,CHARACTERS,cleanProgress,isUnlocked,ECONOMY_UPGRADES,RARE_UPGRADES,MYTHICAL_UPGRADES} from './content.js';
+export {CHARACTERS,isUnlocked,MYTHICAL_UPGRADES,ELEMENT_COLORS,RARITIES} from './content.js';
 import { WORLD, REGIONS, regionAt, SOLIDS, firstObstacleHit, segmentHit, moveBody, seekBody, findFree, projectileBlocked } from './world.js';
 export { WORLD, REGIONS, regionAt };
 export const BOSSES=['The Briar King','The Frost Oracle','The Hollow Monarch','The Gilded Colossus'];
@@ -56,7 +56,7 @@ export const SHOP=[
     {id:element+'-duration',name:e.duration,icon:e.icon,text:element==='ice'?'Longer, stronger chill':element==='fire'?'+1 second burn duration':'+1.5 seconds poison duration',price:30,level:2,repeat:true,max:5,category:'element',element,rankKey:'duration'},
     {id:element+'-special',name:e.special,icon:e.icon,text:e.detail,price:45,level:3,repeat:true,max:3,category:'element',element,rankKey:'special'}
   ])
-];
+].map(withRarity);
 export const LEVEL_UPGRADES=[
   {id:'economy',name:'Deal Maker',icon:'◈',text:'+5 Economy · save 5% more on purchases and rerolls, up to 50%'},
   {id:'health',name:'Heartwood',icon:'♥',text:'+15 maximum health · restore 15 health'},
@@ -86,7 +86,7 @@ export class Game {
   }
   chooseCharacter(id){const c=CHARACTERS.find(c=>c.id===id);if(this.state!=='loadout'||!c||!isUnlocked(c,this.progress))return false;this.character=id;this.loadout={...c.skills};this.shopRevision++;return true;}
   skill(slot){return SKILLS[slot].find(s=>s.id===this.loadout[slot]);}
-  recordUpgrade(item,source){this.upgradeHistory.push({id:item.id,name:item.name,text:item.text,category:item.category||'stat',element:item.element||null,source,level:this.player.level,wave:this.wave,rarity:item.rarity||'common',status:item.id==='heal'?'used':'active'});}
+  recordUpgrade(item,source){this.upgradeHistory.push({id:item.id,name:item.name,text:item.text,category:item.category||'stat',element:item.element||null,rankKey:item.rankKey||null,source,level:this.player.level,wave:this.wave,rarity:item.rarity||'common',status:item.id==='heal'?'used':'active'});}
   statSheet(){
     const p=this.player;
     return [
@@ -131,7 +131,7 @@ export class Game {
     if(this.shopRound===round)return;
     this.shopRound=round;this.shopBaseCost=5+Math.floor(Math.max(0,round-1)/2)*2;this.rerolls=0;this.rollOffers();
   }
-  weightedSample(items,count){const pool=[...items],out=[];while(pool.length&&out.length<count){const weights=pool.map(i=>i.rarity==='rare'?.25:1),sum=weights.reduce((a,b)=>a+b,0);let roll=this.random()*sum,index=0;while(index<pool.length-1&&roll>=weights[index]){roll-=weights[index];index++;}out.push(pool.splice(index,1)[0]);}return out;}
+  weightedSample(items,count){const pool=[...items],out=[];while(pool.length&&out.length<count){const weights=pool.map(i=>RARITIES[i.rarity||'common'].weight),sum=weights.reduce((a,b)=>a+b,0);let roll=this.random()*sum,index=0;while(index<pool.length-1&&roll>=weights[index]){roll-=weights[index];index++;}out.push(pool.splice(index,1)[0]);}return out;}
   rollOffers(){this.shopOffers=this.weightedSample(SHOP.filter(i=>this.offer(i).available),4).map(item=>({id:item.id,sold:false}));this.shopRevision++;}
   goldMultiplier(){return 1+(this.player.ranks.mint||0)*.2+(this.player.goldrush?.5:0);}
   earnCombatGold(amount){

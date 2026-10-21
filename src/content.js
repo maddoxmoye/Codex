@@ -11,6 +11,20 @@ export function cleanProgress(value){
 }
 export const isUnlocked=(character,progress)=>!character.metric||(progress[character.metric]||0)>=character.target;
 export const ELEMENT_COLORS={fire:'#ff334d',ice:'#397dff',poison:'#b34dff'};
+export const RARITIES=Object.freeze({
+ common:{label:'Common',weight:1,color:'#b8c4ae'},
+ uncommon:{label:'Uncommon',weight:.65,color:'#78dca4'},
+ rare:{label:'Rare',weight:.25,color:'#75bce2'},
+ epic:{label:'Epic',weight:.12,color:'#ce9aff'},
+ mythical:{label:'Mythic',weight:1,color:'#ff405a'}
+});
+const EPIC_IDS=new Set(['multi','regen']);
+const RARE_IDS=new Set(['wolf','piercing','ricochet','reaper','interest']);
+const UNCOMMON_IDS=new Set(['element-base','nova','pet','collector','momentum','mint','bargain','loaded','dashburst','gale']);
+export function withRarity(item){
+ const rarity=item.rarity||(EPIC_IDS.has(item.id)?'epic':RARE_IDS.has(item.id)||item.rankKey==='special'?'rare':UNCOMMON_IDS.has(item.id)||item.rankKey==='duration'?'uncommon':'common');
+ return {...item,rarity};
+}
 export const ECONOMY_UPGRADES=[
  {id:'economy',name:'Merchant’s Instinct',icon:'◈',text:'+5 Economy: save another 5% on purchases and rerolls, up to 50%.',price:30,level:1,repeat:true,max:10,category:'economy'},
  {id:'mint',name:'Pocket Mint',icon:'◈',text:'+20% combat gold per rank (max 3). Stacks with Heavy Pockets.',price:35,level:1,repeat:true,max:3,category:'economy'},

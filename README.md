@@ -245,3 +245,11 @@ The rendering library is **Three.js** (MIT); gameplay uses custom JavaScript. Fr
 Borrowed Time grants 25% speed for 4 seconds, slows enemies and their shots within 240 units by 65%, and blocks damage for its first second (12s cooldown). Gear Expectations adds an empowered three-arrow fan every 0.6s for 4s (13s cooldown); amplification extends and strengthens it. Clockwork arrows obey the same first-hit, piercing and ricochet rules as normal player arrows.
 
 Element colors are fire red, ice blue and poison purple across arrows, effects, status rings and HUD. Affected enemies receive a matching body tint that disappears when the effect expires or the element is swapped. Each enemy owns its tint materials; removing enemies disposes those materials without affecting other enemies or scenery.
+
+### Illustrated upgrades and rarity
+
+Every shop offer has an inline vector illustration matched to its effect, a written rarity label, and a matching border. The same illustrations appear on chest rewards and acquired-upgrade history. Examples include a coin-carrying beetle, fox and wolf faces, reroll dice, piercing and ricochet paths, a thorn mantle, and a phoenix. Element upgrades use red fire, blue ice or purple poison art with distinct power, duration or special-effect marks. Icons remain visible on mobile and work offline in the standalone build.
+
+Shop rarity weights, per eligible item: Common 1.0, Uncommon 0.65, Rare 0.25, Epic 0.12. These are relative weights, not fixed percentages; the current eligible pool determines the odds. Examples: tonic and ordinary stat boosts are Common; fox, beetle and utility upgrades are Uncommon; piercing, ricochet and wolf are Rare; Triple Shot and Living Roots are Epic. Existing prices, rank caps and level requirements still apply.
+
+Mythic powers stay exclusive to guardian chests and have equal selection weight within that pool. Their reward cards, history icons and dropped chests glow crimson red. Phoenix, Stormglass lightning, Worldroot effects and Orbit suns also use a red signature while retaining their distinct shapes. Enemy warning markers continue to indicate danger through their outlines and filling ground areas.
