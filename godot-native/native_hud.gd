@@ -343,6 +343,9 @@ func build_shop(s: Dictionary) -> void:
 	var continue_button := button("Enter wave %d%s   →"%[int(s.wave)+1," · The Briar King" if int(s.wave)==2 else ""],_send.bind("continue"),true)
 	continue_button.custom_minimum_size.x=330;continue_button.add_theme_stylebox_override("normal",box_style(Color("fffaf0"),Color("c8b78e"),14,7));continue_button.add_theme_stylebox_override("hover",box_style(Color("ffffff"),SHOP_GOLD,14,7));footer.add_child(continue_button)
 
+func armor_reduction(value: float) -> int:
+	return roundi(value/(20+value)*100) if value>0 else 0
+
 func add_shop_stats(parent: VBoxContainer, s: Dictionary) -> void:
 	var p: Dictionary=s.build.stats;var arrow: float=float(p.damage)*(1+float(p.damage_bonus))+(float(p.elemental_power)*(1+float(p.element_bonus)) if str(s.element)!="physical" else 0)
 	var stats: Array=[
