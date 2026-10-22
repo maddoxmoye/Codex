@@ -27,3 +27,8 @@ godot-boss/.templates/
 
 godot-arena/.godot/
 godot-arena/.templates/
+
+# Native desktop study build caches and downloads.
+godot-native/.godot/
+godot-native/.templates/
+godot-native/exports/

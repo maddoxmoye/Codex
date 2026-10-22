@@ -1,0 +1,42 @@
+{
+  "id": "thornback",
+  "clips": {
+    "Idle": 3.2,
+    "Run": 0.88,
+    "Attack": 2.65,
+    "Hit": 0.8,
+    "Death": 1.8
+  },
+  "attackType": "charge",
+  "attackContact": 1.23,
+  "attackRecovery": 1.65,
+  "windupTime": 0.62,
+  "health": 120,
+  "arrowDamage": 40,
+  "dummyDamage": 24,
+  "hitCenter": 0.7,
+  "hitRadius": 0.4,
+  "healthBone": "body",
+  "healthOffset": 1.02,
+  "chargeStart": 0.78,
+  "chargeEnd": 1.25,
+  "chargeDistance": 1.65,
+  "damageStyle": "armor",
+  "runLabel": "Heavy trot",
+  "attackLabel": "Tusks down",
+  "bones": 17,
+  "name": "Thornback / motion study",
+  "file": "assets/thornback-motion.glb",
+  "triangles": 4542,
+  "sockets": {
+    "nose": {
+      "bone": "head",
+      "local": [
+        0.0,
+        0.6125931143760681,
+        0.0354202538728714
+      ]
+    }
+  },
+  "notes": "Authored Blender clips; isolated attack timing and damage study, not campaign AI or balance."
+}

@@ -14,7 +14,10 @@
     "build:monsters": "node scripts/build-monster-preview.mjs",
     "build:combat": "node scripts/build-combat-preview.mjs",
     "build:boss": "node scripts/build-boss-preview.mjs",
-    "build:arena": "node scripts/build-arena-demo.mjs"
+    "build:arena": "node scripts/build-arena-demo.mjs",
+    "check:native": "node scripts/check-native-demo.mjs",
+    "build:native": "node scripts/build-native-demo.mjs --release-links",
+    "build:native:page": "node scripts/build-native-demo.mjs --landing-only"
   },
   "engines": {
     "node": ">=20"

@@ -1,0 +1,9 @@
+{
+  "source": "source/rowan-emberwood.blend",
+  "strideMeters": 1.0,
+  "stanceFraction": 0.55,
+  "runCycleSeconds": 0.8,
+  "authoredStrideSpeed": 2.2727272727272725,
+  "runtime": "Cached lower-body run poses, distance-driven cycle, independent upper-body aiming and attacks",
+  "attackClips": "Approved original clips and timings retained"
+}
