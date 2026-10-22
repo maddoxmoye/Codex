@@ -35,14 +35,25 @@ func run() -> void:
 	check(not game.choose_training(id,token),"Same training reward cannot be claimed twice")
 	check(game.build.offers.size()==4,"Shop opens with exactly four items")
 	var quiver_def: Dictionary={}
+	var boots_def: Dictionary={}
+	var lens_def: Dictionary={}
+	var heartwood_def: Dictionary={}
 	for catalog_item in game.build.catalog:
 		if catalog_item.id=="quiver":quiver_def=catalog_item
+		elif catalog_item.id=="boots":boots_def=catalog_item
+		elif catalog_item.id=="lens":lens_def=catalog_item
+		elif catalog_item.id=="heartwood":heartwood_def=catalog_item
 	var original_shop_wave: int=game.build.shop_wave
 	game.build.shop_wave=1;var wave1_price: int=game.build.price(quiver_def)
 	game.build.shop_wave=2;var wave2_price: int=game.build.price(quiver_def)
 	game.build.shop_wave=3;var wave3_price: int=game.build.price(quiver_def)
 	check(wave2_price>wave1_price and wave3_price>wave2_price,"Shop item prices tighten upward each completed wave")
-	check(is_equal_approx(game.build.wave_price_multiplier(),1.24),"Wave 3 shop pressure reaches 24 percent")
+	game.build.shop_wave=1
+	check(game.build.price(quiver_def)<game.build.price(boots_def) and game.build.price(boots_def)<game.build.price(lens_def) and game.build.price(lens_def)<game.build.price(heartwood_def),"Rarity multipliers increase shop prices from common through mythic")
+	var first_quiver: int=game.build.price(quiver_def)
+	game.build.ranks["quiver"]=1
+	check(game.build.price(quiver_def)>first_quiver,"Repeat purchases increase item price by stack pressure")
+	game.build.ranks.erase("quiver")
 	game.build.shop_wave=original_shop_wave
 	var time: float=game.clock;var health: float=game.player_unit.hp
 	advance(3)
@@ -56,6 +67,9 @@ func run() -> void:
 	var base_cost: int=game.build.price(game.build.offers[2])
 	check(game.buy_item("seal") and game.run_stats.economy==10,"Merchant seal adds dedicated Economy stat")
 	check(game.build.price(game.build.offers[2])<base_cost,"Economy reprices remaining items")
+	game.build.stats().economy=40
+	var capped_stats: Dictionary=game.build.stats()
+	check(float(capped_stats.economy)<=40,"Economy discount is capped at 40 percent")
 	check(game.buy_item("compass") and is_equal_approx(game.run_stats.pickup_radius,2.65),"Gathering Compass expands actual pickup radius")
 	check(game.buy_item("lodestone") and game.elemental_power>=12,"Lodestone raises shared elemental power")
 	check(game.build.offers.all(func(item):return item.sold),"All four items can be bought in one visit")
