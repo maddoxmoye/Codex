@@ -425,7 +425,7 @@ func active_inventory_count(s: Dictionary) -> int:
 
 func add_shop_inventory(parent: VBoxContainer, s: Dictionary, height:=120) -> void:
 	var scroll := ScrollContainer.new();scroll.custom_minimum_size.y=height;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;parent.add_child(scroll)
-	var grid := GridContainer.new();grid.columns=4;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_theme_constant_override("h_separation",7);grid.add_theme_constant_override("v_separation",7);scroll.add_child(grid)
+	var grid := GridContainer.new();grid.columns=5;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_theme_constant_override("h_separation",6);grid.add_theme_constant_override("v_separation",6);scroll.add_child(grid)
 	var grouped := {}
 	for item in s.build.history:
 		var state: String="used" if str(item.id)=="heartwood" and bool(s.build.reviveUsed) else str(item.status)
@@ -438,14 +438,14 @@ func add_shop_inventory(parent: VBoxContainer, s: Dictionary, height:=120) -> vo
 	for value in grouped.values():
 		var item: Dictionary=value.item;var rarity: String=str(item.get("rarity","common"));var rarity_color: Color=SHOP_RARITIES.get(rarity,Color("6d7783"))
 		if str(item.source)=="level":rarity_color=Color("3b78a8")
-		var tile := PanelContainer.new();tile.name="OwnedItemTile";tile.custom_minimum_size=Vector2(155,52);tile.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		tile.add_theme_stylebox_override("panel",box_style(rarity_color,rarity_color.lightened(.25),8,6));tile.tooltip_text=str(item.get("description",""));grid.add_child(tile)
-		var item_row := row(7);tile.add_child(item_row);item_row.add_child(icon(str(item.get("icon","gem")),Color("f6f2e9"),28))
-		var item_text := column(1);item_text.size_flags_horizontal=Control.SIZE_EXPAND_FILL;item_row.add_child(item_text)
+		var tile := PanelContainer.new();tile.name="OwnedItemTile";tile.custom_minimum_size=Vector2(128,44);tile.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		tile.add_theme_stylebox_override("panel",box_style(rarity_color,rarity_color.lightened(.25),6,6));tile.tooltip_text=str(item.get("description",""));grid.add_child(tile)
+		var item_row := row(5);tile.add_child(item_row);item_row.add_child(icon(str(item.get("icon","gem")),Color("f6f2e9"),22))
+		var item_text := column(0);item_text.size_flags_horizontal=Control.SIZE_EXPAND_FILL;item_row.add_child(item_text)
 		var title_text: String=str(item.name)+(" ×%d"%int(value.count) if int(value.count)>1 else "")
-		item_text.add_child(paragraph(title_text,10,Color("ffffff")))
+		var title_label := label(title_text,9,Color("ffffff"));title_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;title_label.clip_text=true;item_text.add_child(title_label)
 		var source_text: String="Spent" if value.state=="used" else "Training" if str(item.source)=="level" else rarity.capitalize()
-		item_text.add_child(label(source_text,8,Color("e5e2dc")))
+		item_text.add_child(label(source_text,7,Color("e5e2dc")))
 		if value.state=="used":tile.modulate=Color(1,1,1,.56)
 
 func shop_card_style(rarity: String, hovered: bool) -> StyleBoxFlat:
@@ -537,11 +537,14 @@ func shop_card(item: Dictionary, s: Dictionary) -> Control:
 		var prefix: String="+ " if positive else "- "
 		var stat := paragraph(prefix+str(entry.text).trim_prefix("+").trim_prefix("−").trim_prefix("-"),9,stat_color)
 		stat.name="ShopStatLine";stats_box.add_child(stat)
+	if str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp):
+		var warning := paragraph("FULL HEALTH · HEALING WOULD BE WASTED",8,Color("ffd06e"))
+		warning.name="ShopFullHealthWarning";stats_box.add_child(warning)
 
 	var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(space)
 	var full: bool=str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp)
 	var sold: bool=bool(item.sold);var eligible: bool=bool(item.get("eligible",true));var affordable: bool=bool(item.affordable)
-	var unavailable: bool=sold or not eligible or full
+	var unavailable: bool=sold or not eligible
 	var ribbon := Button.new();ribbon.name="ShopPurchase";ribbon.custom_minimum_size=Vector2(0,44);ribbon.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ribbon.mouse_filter=Control.MOUSE_FILTER_STOP
 	ribbon.disabled=unavailable or not affordable
 	var ribbon_normal := box_style(Color("2d3032"),Color("55595d"),10,7)
@@ -614,7 +617,7 @@ func build_settings() -> void:
 
 func coin_icon(dimensions:=24) -> TextureRect:
 	var node := TextureRect.new();node.custom_minimum_size=Vector2(dimensions,dimensions);node.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;node.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;node.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var path := "res://assets/ui/coin.svg"
+	var path := "res://assets/ui/gold_coin.svg"
 	if not texture_cache.has(path):texture_cache[path]=load(path)
 	node.texture=texture_cache[path]
 	return node
