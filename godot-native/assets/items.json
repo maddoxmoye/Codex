@@ -87,13 +87,13 @@
     "id": "seal",
     "name": "Merchant’s Seal",
     "icon": "coin",
-    "description": "Recognized by woodland traders. +10 Economy: save 10% on items and rerolls, up to 50%.",
+    "description": "Recognized by woodland traders. +10 Economy: save 10% on items and rerolls, up to 40%.",
     "price": 22,
     "rarity": "uncommon",
     "effects": {
       "economy": 10
     },
-    "cap": 5,
+    "cap": 4,
     "element": "",
     "category": "utility"
   },
