@@ -67,9 +67,10 @@ func run() -> void:
 	var base_cost: int=game.build.price(game.build.offers[2])
 	check(game.buy_item("seal") and game.run_stats.economy==10,"Merchant seal adds dedicated Economy stat")
 	check(game.build.price(game.build.offers[2])<base_cost,"Economy reprices remaining items")
-	game.build.stats().economy=40
+	for i in 5:game.build.history.append({"id":"economy-test","status":"active","effects":{"economy":10}})
 	var capped_stats: Dictionary=game.build.stats()
-	check(float(capped_stats.economy)<=40,"Economy discount is capped at 40 percent")
+	check(float(capped_stats.economy)==40,"Economy discount is capped at 40 percent")
+	for i in 5:game.build.history.pop_back()
 	check(game.buy_item("compass") and is_equal_approx(game.run_stats.pickup_radius,2.65),"Gathering Compass expands actual pickup radius")
 	check(game.buy_item("lodestone") and game.elemental_power>=12,"Lodestone raises shared elemental power")
 	check(game.build.offers.all(func(item):return item.sold),"All four items can be bought in one visit")
