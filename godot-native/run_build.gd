@@ -1,6 +1,8 @@
 extends RefCounted
 ## Run inventory and offers; the arena validates the current gameplay phase.
 const RARITY_WEIGHTS := {"common":50.0,"uncommon":30.0,"rare":12.0,"mythic":1.0}
+const TRAINING_RARITY_WEIGHTS := {"common":46.0,"uncommon":31.0,"rare":18.0,"mythic":5.0}
+const TRAINING_RARITY_MULTIPLIERS := {"common":1.0,"uncommon":1.35,"rare":1.75,"mythic":2.35}
 const BASE := {"max_hp":140.0,"damage":22.0,"damage_bonus":0.0,"elemental_power":8.0,"armor":0.0,"speed_bonus":0.0,"pickup_radius":2.0,"economy":0.0,"salvage":.5,"gold_bonus":0.0,"attack_speed":0.0,"pet_damage":1.0,"crit":0.0,"heal_kill":0.0,"regen":0.0,"haste":0.0,"revive":0.0,"burn_bonus":0.0,"venom_bonus":0.0,"duration":0.0,"element_bonus":0.0,"slow_bonus":0.0,"stacks":4.0}
 const TRAINING := [
 	{"id":"vitality","name":"Vitality","icon":"heart","description":"+18 maximum health and heal 18.","effects":{"max_hp":18}},
@@ -114,8 +116,36 @@ func reroll(coins: int, element: String) -> int:
 	rerolls+=1;roll(element)
 	return cost
 
+func training_rarity() -> String:
+	var total := 0.0
+	for weight in TRAINING_RARITY_WEIGHTS.values():total+=float(weight)
+	var ticket := rng.randf()*total
+	for rarity in ["common","uncommon","rare","mythic"]:
+		var weight: float=float(TRAINING_RARITY_WEIGHTS[rarity])
+		if ticket<weight:return rarity
+		ticket-=weight
+	return "common"
+
+func scale_training(item: Dictionary, rarity: String) -> Dictionary:
+	var result: Dictionary=item.duplicate(true)
+	var multiplier: float=float(TRAINING_RARITY_MULTIPLIERS.get(rarity,1.0))
+	result.rarity=rarity
+	var scaled := {}
+	for key in result.effects:
+		var value: float=float(result.effects[key])*multiplier
+		if key in ["max_hp","damage","elemental_power","armor"]:
+			value=roundf(value)
+		else:
+			value=snappedf(value,.01)
+		scaled[key]=value
+	result.effects=scaled
+	return result
+
 func prepare_training() -> void:
-	draft=sample(TRAINING,4);draft_revision+=1
+	var picks: Array[Dictionary]=sample(TRAINING,4)
+	draft.clear()
+	for item in picks:draft.append(scale_training(item,training_rarity()))
+	draft_revision+=1
 
 func choose_training(id: String, token: int) -> Dictionary:
 	if token!=draft_revision:return {}
