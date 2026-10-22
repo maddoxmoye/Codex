@@ -53,6 +53,9 @@ func update(unit: HuntUnit, dt: float) -> void:
 			game.move_actor(unit,goal-unit.position)
 		while int(unit.extra.event)<events.size() and t>=float(events[int(unit.extra.event)]):
 			melee_event(unit,int(unit.extra.event));unit.extra.event+=1
+		if unit.kind=="briar-king" and t>=1.55 and t<=2.15 and not unit.wave_hit:
+			if game.player_unit.position.distance_to(unit.attack_center)<2.3*clampf((t-1.55)/.6,0,1)+.35:
+				unit.wave_hit=true;game.hurt_player(36*unit.damage_scale,"Thronebreaker")
 		if is_instance_valid(unit.warning):unit.warning.visible=t<float(events[0])
 	elif unit.clip=="Ranged":
 		while unit.release_index<info.ranged.releases.size() and t>=float(info.ranged.releases[unit.release_index]):
@@ -91,7 +94,7 @@ func melee_event(unit: HuntUnit, index: int) -> void:
 			center=unit.position
 			struck=Geometry3D.get_closest_point_to_segment(game.player_unit.position,unit.charge_start,unit.position).distance_to(game.player_unit.position)<1.2
 		_:
-			struck=offset.length()<float(info.melee.radius)+game.player_unit.radius
+			struck=false # King shockwave expands over its original 0.6s window.
 	game.pulse(center+Vector3.UP*.08,float(info.melee.radius),info.color,.6)
 	if game.native_fx:game.native_fx.burst(center+Vector3.UP*.2,Color(info.color),28,.10,4);game.native_fx.play_sound("slam",2)
 	if struck:game.hurt_player(amount,info.melee.name)

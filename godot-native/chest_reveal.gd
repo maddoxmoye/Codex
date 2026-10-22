@@ -1,9 +1,11 @@
 extends SubViewportContainer
 ## Native staged reveal. Its clock belongs to the reward UI, never to combat.
 signal completed
+signal reward_visible
 const TIMING := {"normal":{"land":.35,"shake":.8,"open":1.2,"reward":1.45,"done":2.0},"mythic":{"land":.5,"shake":1.25,"open":1.85,"reward":2.15,"done":2.9}}
 var elapsed := 0.0
 var finished := false
+var reward_shown := false
 var chest: Node3D
 var lid: Node3D
 var treasure: MeshInstance3D
@@ -68,4 +70,5 @@ func advance(dt: float) -> void:
 		var phase := fposmod(elapsed-float(timing.shake)+float(i)*.061,1.8)/1.8
 		var angle := i*2.39996
 		spark.position=Vector3(sin(angle)*phase,1+phase*1.8,cos(angle)*phase);spark.scale=Vector3.ONE*(1-phase)*opening
+	if elapsed>=float(timing.reward) and not reward_shown:reward_shown=true;reward_visible.emit()
 	if elapsed>=float(timing.done) and not finished:finished=true;completed.emit()

@@ -160,7 +160,7 @@ var selection_buttons := {}
 var player_name: Label
 
 func archer_portrait(id: String, parent: Control) -> SubViewportContainer:
-	var holder := SubViewportContainer.new();holder.custom_minimum_size=Vector2(120,170);holder.stretch=true
+	var holder := SubViewportContainer.new();holder.custom_minimum_size=Vector2(120,240);holder.stretch=true
 	holder.mouse_filter=Control.MOUSE_FILTER_IGNORE;holder.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	parent.add_child(holder)
 	var viewport := SubViewport.new();viewport.size=Vector2i(220,220);viewport.transparent_bg=true
@@ -188,7 +188,7 @@ func build_title() -> void:
 		var role := label(info.role,12,SHOP_MUTED);role.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;stack.add_child(role)
 	selection_detail=column(12);title_box.add_child(selection_detail);update_character_detail()
 	var controls := row();title_box.add_child(controls)
-	var start := button("Start Run",_begin.bind("start"),true,true);start.custom_minimum_size.x=250;controls.add_child(start);controls.add_child(flex())
+	var start := button("Start Run",_begin.bind("start"),true,true);start.custom_minimum_size=Vector2(250,52);start.add_theme_stylebox_override("normal",box_style(SHOP_INK,SHOP_GOLD,14,6));start.add_theme_color_override("font_color",IVORY);controls.add_child(start);controls.add_child(flex())
 	for pair in [["Explore the ruins","tour"],["Visit the trader","camp"],["Face the Briar King","boss"]]:controls.add_child(button(pair[0],_begin.bind(pair[1]),false,true))
 	controls.add_child(button("Settings",open_settings,false,true));controls.add_child(button("Quit",func():get_tree().quit(),false,true))
 	title_footer=label("WASD move   ·   Space defense   ·   E special   ·   Right-drag orbit   ·   F11 fullscreen",12,SHOP_MUTED);title_box.add_child(title_footer)
@@ -707,7 +707,7 @@ func build_chest(s: Dictionary) -> void:
 	var content := column(14);card.add_child(content);content.add_child(label(str(item.rarity).to_upper()+" / FOUND ITEM",12,accent));content.add_child(image);content.add_child(label(item.name,26,SHOP_CARD_TEXT,true));content.add_child(paragraph(item.description,15,SHOP_CARD_MUTED))
 	for line in shop_effect_lines(item):content.add_child(paragraph(line.text,15,SHOP_GAIN if line.positive else SHOP_LOSS))
 	card.modulate.a=0
-	var tween := create_tween();tween.tween_interval(float(reveal.timing.reward));tween.tween_property(card,"modulate:a",1.0,.3)
+	reveal.reward_visible.connect(func():card.modulate.a=1.0)
 	var caption := label("%d chest%s remaining · Level rewards and trader follow"%[int(s.chests.queued),"" if int(s.chests.queued)==1 else "s"],12,SHOP_MUTED);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(caption)
 	var choices := row();choices.alignment=BoxContainer.ALIGNMENT_CENTER;modal_content.add_child(choices)
 	var take := button("Take item",_send.bind("chest:take:"+str(reward.token)),true,true);choices.add_child(take)

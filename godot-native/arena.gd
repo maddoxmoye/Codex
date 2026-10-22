@@ -870,7 +870,9 @@ func damage_enemy(enemy: HuntUnit, amount: float, element: String, source := "ar
 		enemy.state="Dead";enemy.dead_time=0;enemy.clear_status();enemy.play("Death",true)
 		if is_instance_valid(enemy.warning):enemy.warning.visible=false
 		killed+=1;wave_kills+=1
-		if Campaign.is_boss(enemy.kind) and wave not in boss_kills:boss_kills.append(wave)
+		if Campaign.is_boss(enemy.kind) and wave not in boss_kills:
+			boss_kills.append(wave)
+			if not practice:rewards.spawn(enemy.position,true)
 		elif not practice and not enemy.extra.get("brood",false) and rng.randf()<rewards.NORMAL_DROP:rewards.spawn(enemy.position)
 		player_unit.hp=minf(player_unit.maximum,player_unit.hp+float(run_stats.heal_kill))
 		spawn_pickup(enemy.position,Campaign.is_boss(enemy.kind))

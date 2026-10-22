@@ -164,6 +164,7 @@ func run() -> void:
 	check(game.ended and not game.victory,"Final timer survival without Colossus kill is not victory")
 	game.start_run(false);game.clear_combat();game.wave=19;game.stage="shop";game.continue_run()
 	game.damage_enemy(game.enemies[0],100000,"physical");game.wave_left=0;game.update_encounter(.016)
+	while game.stage=="chest":game.rewards.resolve("take",game.rewards.current.token)
 	check(game.ended and game.victory,"Final kill plus surviving timer grants victory")
 	for w in range(1,26):
 		check(is_equal_approx(game.Campaign.health_scale(w),1+.10*(w-1)+.012*pow(w-1,2)),"Exact nonlinear HP at wave "+str(w))

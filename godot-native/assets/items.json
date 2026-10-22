@@ -496,5 +496,50 @@
     "cap": 3,
     "element": "",
     "category": "utility"
+  },
+  {
+    "id": "sunforge",
+    "name": "Sunforge Bow",
+    "icon": "bow",
+    "description": "A bow forged in the last light. +35% attack speed and +30% physical arrow damage.",
+    "effects": {
+      "attack_speed": 0.35,
+      "damage_bonus": 0.3
+    },
+    "price": 65,
+    "rarity": "mythic",
+    "cap": 1,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "worldroot",
+    "name": "Worldroot Heart",
+    "icon": "sprig",
+    "description": "An ancient living core. +80 maximum health and +6 armor.",
+    "effects": {
+      "max_hp": 80,
+      "armor": 6
+    },
+    "price": 65,
+    "rarity": "mythic",
+    "cap": 1,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "clock-crown",
+    "name": "Clockwork Crown",
+    "icon": "clock",
+    "description": "The foundry keeps your time. −22% ability cooldowns and +50% pet damage.",
+    "effects": {
+      "haste": 0.22,
+      "pet_damage": 0.5
+    },
+    "price": 65,
+    "rarity": "mythic",
+    "cap": 1,
+    "element": "",
+    "category": "gear"
   }
 ]

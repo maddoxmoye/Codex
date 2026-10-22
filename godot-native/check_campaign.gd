@@ -38,6 +38,20 @@ func run() -> void:
 		check(game.rewards.resolve("take",token),"Sequential chest can be claimed")
 		check(not game.rewards.resolve("take",token),"Stale chest claim cannot duplicate reward")
 	check(game.stage=="training","Level rewards follow the complete chest queue")
+	for killed_boss in [false,true]:
+		for wave in [5,10,15,20]:
+			game.start_run(false);game.clear_combat();game.wave=wave;game.stage="boss";game.spawn_boss()
+			var boss: HuntUnit=game.enemies[0]
+			if killed_boss:game.damage_enemy(boss,boss.hp,"physical")
+			check(game.rewards.ground.size()==(1 if killed_boss else 0),"Only actual boss death earns a Mythic chest at wave "+str(wave))
+			game.wave_left=0;game.update_encounter(.016)
+			if killed_boss:
+				check(game.stage=="chest" and game.rewards.current.mythic and game.rewards.ground.is_empty(),"Earned Mythic auto-collects at wave end")
+				check(game.rewards.current.item.rarity=="mythic","Guardian chest uses premium Mythic table")
+				game.rewards.resolve("take",game.rewards.current.token)
+			else:check(game.rewards.current.is_empty() and game.rewards.queue.is_empty(),"Timer survival awards no Mythic chest")
+			if wave==20:check(game.victory==killed_boss and game.ended,"Final victory requires actual kill and resolves final rewards first")
+			else:check(not game.ended and game.stage in ["shop","training"],"Living or defeated guardian permits campaign progression")
 	game.free();await create_timer(.15).timeout
 	if failures.is_empty():print("EMBERWOOD_CAMPAIGN_OK: ",assertions," guardian choreography, release and cleanup assertions")
 	else:print("EMBERWOOD_CAMPAIGN_FAILED: ",failures)
