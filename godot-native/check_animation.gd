@@ -18,7 +18,7 @@ func advance(unit: HuntUnit, seconds: float, dt: float) -> void:
 		unit.pose(step);elapsed+=step
 func run() -> void:
 	var game=load("res://arena.tscn").instantiate();root.add_child(game);game.set_process(false);game.manual_test=true
-	for id in ["rowan","fox","briarling","sporecaller","thornback","briar-king"]:
+	for id in ["rowan","ash","briar","nyx","pip","fox","briarling","sporecaller","thornback","briar-king"]:
 		var unit: HuntUnit=game.make_unit(id,Vector3.ZERO)
 		for dt in [.016,.1]:
 			for clip in unit.animation.get_animation_list():
@@ -56,6 +56,19 @@ func run() -> void:
 	var draw := capture(game.player_unit)
 	for i in 12:game.simulate(.016)
 	check(difference(draw,capture(game.player_unit))>.1,"Gameplay shooting animates Rowan's bow draw")
+	for id in ["ash","briar","nyx","pip"]:
+		game.return_to_title();game.select_archer(id);game.start_run(false);game.auto_fire=false;game.stage="test";game.request={}
+		check(game.cast_dash() and game.player_unit.clip==game.archer.space,id+" defense activates its authored clip")
+		game.update_player(.1)
+		check(game.player_unit.clip==game.archer.space and game.invulnerable>0,id+" defense animates and protects")
+		check(game.cast_salvo() and game.player_unit.clip==game.archer.attack,id+" offense activates its authored clip")
+		var before_shots: int=game.shots
+		var release: float=float(game.archer.offense.cycle)*1.82/3.2 if float(game.archer.offense.cycle)>0 else .35
+		game.update_player(release-.01)
+		check(game.shots==before_shots,id+" waits for bow release marker")
+		game.update_player(.02)
+		check(game.shots-before_shots==int(game.archer.offense.count),id+" releases the correct volley at its animation marker")
+		check(game.player_unit.clip==game.archer.attack,id+" keeps the ability clip at projectile release")
 	game.free()
 	# Let the audio mix thread finish its scheduled stop/fade before engine exit.
 	await create_timer(.15).timeout

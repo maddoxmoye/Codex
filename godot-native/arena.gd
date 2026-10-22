@@ -1,5 +1,6 @@
 extends Node3D
 const Archers := preload("res://archer_catalog.gd")
+var abilities := preload("res://archer_abilities.gd").new()
 var selected_archer := "rowan"
 var archer: Dictionary = Archers.get_archer("rowan")
 const Build := preload("res://run_build.gd")
@@ -143,6 +144,7 @@ func ring(radius: float, color: String, alpha := .6) -> MeshInstance3D:
 
 func _ready() -> void:
 	Engine.max_fps = 60
+	abilities.setup(self)
 	rng.seed = 8237
 	world = WorldEnvironment.new()
 	world.environment = Environment.new()
@@ -297,6 +299,7 @@ func load_selected_archer() -> void:
 
 func start_run(boss_only: bool) -> void:
 	load_selected_archer()
+	abilities.reset()
 	build.character_base=archer.base.duplicate()
 	is_title=false;tour_mode=false;smoothed_move=Vector3.ZERO;camera_kick=0
 	player_unit.reset_motion();fox.reset_motion()
@@ -390,6 +393,7 @@ func set_element(name: String) -> bool:
 	return true
 
 func cast_dash() -> bool:
+	if selected_archer!="rowan":return abilities.cast("space")
 	if not running or paused or ended or stage in ["shop","training"] or dash_cooldown>0:return false
 	dash_cooldown=2.6*(1-float(run_stats.haste));dash_left=.19;invulnerable=maxf(invulnerable,.3);shooting=false;salvo_left=0;nocked.visible=false
 	dash_direction=movement.normalized() if movement.length()>.05 else facing
@@ -399,6 +403,7 @@ func cast_dash() -> bool:
 	return true
 
 func cast_salvo() -> bool:
+	if selected_archer!="rowan":return abilities.cast("attack")
 	if not running or paused or ended or stage in ["shop","training"] or salvo_cooldown>0 or dash_left>0:return false
 	salvo_cooldown=11*(1-float(run_stats.haste));salvo_left=1.1;salvo_fired=false;shooting=false
 	player_unit.play("Salvo",true)
@@ -673,7 +678,7 @@ func update_player(dt: float) -> void:
 		if native_fx and dash_trail_clock<=0:
 			native_fx.burst(player_unit.position+Vector3.UP*.3,Color("a7d4cc"),4,.055,.5);dash_trail_clock=.045
 		return
-	move_actor(player_unit,movement*player_unit.speed*dt)
+	move_actor(player_unit,movement*player_unit.speed*abilities.speed_multiplier()*dt)
 	# Solid actors cannot walk through the King or crowd into a trunk.
 	for enemy in enemies:
 		if enemy.hp<=0:continue
@@ -681,6 +686,9 @@ func update_player(dt: float) -> void:
 		var minimum := player_unit.radius+enemy.radius
 		if delta.length()<minimum and delta.length()>.001:player_unit.position=clamp_position(enemy.position+delta.normalized()*minimum,player_unit.radius)
 	var trigger := (auto_fire and is_instance_valid(target)) or bool(request.get("fire",false)) or (not OS.has_feature("web") and not gameplay_input_blocked() and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
+	if abilities.update(dt,aim):
+		nocked.visible=false
+		return
 	if salvo_left>0:
 		salvo_left=maxf(0,salvo_left-dt)
 		player_unit.pose(dt)
@@ -718,6 +726,7 @@ func update_enemy(enemy: HuntUnit, dt: float) -> void:
 		enemy.dead_time+=dt
 		enemy.pose(dt)
 		return
+	dt*=abilities.slow_at(enemy.position)
 	update_status(enemy,dt)
 	if enemy.hp<=0:return
 	enemy.cooldown=maxf(0,enemy.cooldown-dt)
@@ -960,7 +969,8 @@ func segment_time(start: Vector3, end: Vector3, center: Vector3, radius: float) 
 func update_projectiles(dt: float) -> void:
 	for i in range(projectiles.size()-1,-1,-1):
 		var item := projectiles[i]
-		item.age+=dt
+		var travel_dt := dt*abilities.slow_at(item.node.position) if item.owner=="enemy" else dt
+		item.age+=travel_dt
 		if item.style=="lob":
 			var u: float=clampf(item.age/1.05,0,1)
 			item.node.position=item.start.lerp(item.end+Vector3.UP*.1,u)+Vector3.UP*sin(u*PI)*1.8
@@ -969,7 +979,7 @@ func update_projectiles(dt: float) -> void:
 				item.node.queue_free();projectiles.remove_at(i)
 			continue
 		var previous: Vector3=item.node.position
-		var next: Vector3=previous+item.direction*item.speed*dt
+		var next: Vector3=previous+item.direction*item.speed*travel_dt
 		var nearest := INF
 		var target: HuntUnit
 		for obstacle in obstacles:

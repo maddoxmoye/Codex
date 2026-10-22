@@ -270,8 +270,8 @@ func refresh() -> void:
 	objective_text.text="Wander, turn the camera and take in the light." if tour else "Read the warnings. Keep moving." if bool(s.practice) else "Defeat the King and survive the timer." if int(s.wave)==3 else "Survive until the camp opens."
 	boss_box.visible=not tour and str(s.stage)=="boss" and float(s.bossHp)>0
 	boss_bar.max_value=maxf(1,float(s.bossMax));boss_bar.value=float(s.bossHp);boss_text.text="%d / %d   ·   %s"%[ceili(float(s.bossHp)),int(s.bossMax),"THRONEBREAKER" if s.bossAction=="Melee" else "BRIAR DECREE" if s.bossAction=="Ranged" else "THE KING ADVANCES"]
-	dash_button.text="SPACE  Windskip" if float(s.dash)<=0 else "Windskip · %.1fs"%float(s.dash);dash_button.disabled=float(s.dash)>0
-	salvo_button.text="E  Flock & Awe" if float(s.salvo)<=0 else "Flock & Awe · %.1fs"%float(s.salvo);salvo_button.disabled=float(s.salvo)>0
+	dash_button.text="SPACE  "+s.archer.spaceName if float(s.dash)<=0 else s.archer.spaceName+" · %.1fs"%float(s.dash);dash_button.disabled=float(s.dash)>0
+	salvo_button.text="E  "+s.archer.attackName if float(s.salvo)<=0 else s.archer.attackName+" · %.1fs"%float(s.salvo);salvo_button.disabled=float(s.salvo)>0
 	for key in element_buttons:
 		var b: Button=element_buttons[key];b.add_theme_color_override("font_color",ELEMENTS[key] if key==s.element else MUTED)
 		b.add_theme_stylebox_override("normal",box_style(Color("2b3b2e") if key==s.element else Color("101b18e0"),ELEMENTS[key] if key==s.element else LINE,10,5))
