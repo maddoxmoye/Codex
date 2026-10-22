@@ -56,6 +56,11 @@ func run() -> void:
 		advance(.35,step)
 		check(game.hurt_player(36,"test") and game.player_unit.hp==hp-36,"Damage resumes after dash invulnerability")
 		check(not game.hurt_player(36,"test"),"Post-hit invulnerability prevents repeated instant hits")
+		game.run_stats.mending=.01;game.player_unit.hp=100;game.mending_safe_time=5.0
+		game.update_player(1.0)
+		check(absf(game.player_unit.hp-101.4)<.05,"Mending Moss restores 1% maximum health per second after five safe seconds")
+		game.invulnerable=0
+		check(game.hurt_player(10,"test") and game.mending_safe_time==0.0,"Taking damage resets the Mending Moss safety timer")
 		empty_arena();game.set_element("fire")
 		game.spawn_enemy("briar-king",Vector3(0,0,8))
 		check(game.cast_salvo() and not game.cast_salvo(),"Salvo can cast once per cooldown")
