@@ -177,8 +177,7 @@ func _ready() -> void:
 		JavaScriptBridge.eval("window.huntReady=true",true)
 	else:
 		native_fx=load("res://native_effects.gd").new();add_child(native_fx)
-		if FileAccess.file_exists("res://native_hud.gd"):
-			native_hud=load("res://native_hud.gd").new();add_child(native_hud);native_hud.setup(self)
+		native_hud=load("res://native_hud.gd").new();add_child(native_hud);native_hud.setup(self)
 		get_viewport().size_changed.connect(update_render_scale)
 		settings.load("user://emberwood-settings.cfg")
 		set_master_volume(float(settings.get_value("audio","volume",.7)))
