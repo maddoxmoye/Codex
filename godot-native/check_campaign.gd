@@ -20,6 +20,18 @@ func run() -> void:
 			if action=="Summon":check(game.bosses.brood_count()==6,"Colossus emits six bounded brood from its hatch")
 		game.clear_combat()
 		check(game.enemies.is_empty() and game.projectiles.is_empty(),"Guardian cleanup removes attacks and adds")
+	game.start_run(false);game.clear_combat();game.stage="skirmish"
+	game.rewards.spawn(Vector3(12,0,0));game.rewards.spawn(Vector3(-12,0,0))
+	check(game.rewards.ground.size()==2,"Two earned chests remain on ground")
+	game.rewards.spawn(game.player_unit.position);game.rewards.update(.016)
+	check(game.rewards.queue.size()==1,"Nearby earned chest collects manually")
+	game.gain_xp(60);game.wave_left=0;game.update_encounter(.016)
+	check(game.stage=="chest" and game.rewards.ground.is_empty() and game.rewards.queue.size()==2,"Wave auto-collects every chest and opens queue before levels")
+	for i in 3:
+		var token: int=game.rewards.current.token
+		check(game.rewards.resolve("take",token),"Sequential chest can be claimed")
+		check(not game.rewards.resolve("take",token),"Stale chest claim cannot duplicate reward")
+	check(game.stage=="training","Level rewards follow the complete chest queue")
 	game.free();await create_timer(.15).timeout
 	if failures.is_empty():print("EMBERWOOD_CAMPAIGN_OK: ",assertions," guardian choreography, release and cleanup assertions")
 	else:print("EMBERWOOD_CAMPAIGN_FAILED: ",failures)

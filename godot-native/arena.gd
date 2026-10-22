@@ -2,6 +2,7 @@ extends Node3D
 const Campaign := preload("res://campaign.gd")
 var boss_kills: Array[int] = []
 const Archers := preload("res://archer_catalog.gd")
+var rewards := preload("res://chest_rewards.gd").new()
 var bosses := preload("res://boss_director.gd").new()
 var pets := preload("res://pet_director.gd").new()
 var abilities := preload("res://archer_abilities.gd").new()
@@ -148,7 +149,7 @@ func ring(radius: float, color: String, alpha := .6) -> MeshInstance3D:
 
 func _ready() -> void:
 	Engine.max_fps = 60
-	abilities.setup(self);pets.setup(self);bosses.setup(self)
+	abilities.setup(self);pets.setup(self);bosses.setup(self);rewards.setup(self)
 	rng.seed = 8237
 	world = WorldEnvironment.new()
 	world.environment = Environment.new()
@@ -211,7 +212,7 @@ func begin_mode(mode: String) -> void:
 	sync_mouse_mode()
 
 func return_to_title() -> void:
-	pets.reset()
+	rewards.reset();pets.reset()
 	clear_combat()
 	for item in pickups:item.node.queue_free()
 	pickups.clear()
@@ -229,9 +230,9 @@ func set_free_camera(enabled: bool) -> void:
 	free_camera=enabled;sync_mouse_mode()
 
 func sync_mouse_mode() -> void:
-	if is_title or paused or ended or stage in ["shop","training"]:native_drag=false
+	if is_title or paused or ended or stage in ["shop","training","chest"]:native_drag=false
 	if DisplayServer.get_name()=="headless":return
-	var capture := free_camera and not is_title and not paused and not ended and stage not in ["shop","training"]
+	var capture := free_camera and not is_title and not paused and not ended and stage not in ["shop","training","chest"]
 	Input.mouse_mode=Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
 
 func set_master_volume(value: float) -> void:
@@ -266,13 +267,13 @@ func render_scale_for_size(pixels: Vector2) -> float:
 	return clampf(sqrt(budget/maxf(1,pixels.x*pixels.y)),.25,ceiling)
 
 func movement_input_blocked() -> bool:
-	return is_title or paused or ended or stage in ["shop","training"] or (is_instance_valid(native_hud) and native_hud.captures_movement_input())
+	return is_title or paused or ended or stage in ["shop","training","chest"] or (is_instance_valid(native_hud) and native_hud.captures_movement_input())
 
 func gameplay_input_blocked() -> bool:
 	return is_title or (is_instance_valid(native_hud) and native_hud.captures_gameplay_input())
 
 func _notification(what: int) -> void:
-	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT and running and not ended and not is_title and stage not in ["shop","training"]:
+	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT and running and not ended and not is_title and stage not in ["shop","training","chest"]:
 		paused=true;sync_mouse_mode()
 
 func warning_ring(radius: float, color: String, _alpha := .8) -> MeshInstance3D:
@@ -304,7 +305,7 @@ func load_selected_archer() -> void:
 
 func start_run(boss_only: bool) -> void:
 	load_selected_archer()
-	abilities.reset();pets.reset()
+	abilities.reset();pets.reset();rewards.reset()
 	build.character_base=archer.base.duplicate()
 	is_title=false;tour_mode=false;smoothed_move=Vector3.ZERO;camera_kick=0
 	player_unit.reset_motion();fox.reset_motion()
@@ -401,7 +402,7 @@ func set_element(name: String) -> bool:
 
 func cast_dash() -> bool:
 	if selected_archer!="rowan":return abilities.cast("space")
-	if not running or paused or ended or stage in ["shop","training"] or dash_cooldown>0:return false
+	if not running or paused or ended or stage in ["shop","training","chest"] or dash_cooldown>0:return false
 	dash_cooldown=2.6*(1-float(run_stats.haste));dash_left=.19;invulnerable=maxf(invulnerable,.3);shooting=false;salvo_left=0;nocked.visible=false
 	dash_direction=movement.normalized() if movement.length()>.05 else facing
 	player_unit.play("Windskip",true)
@@ -411,13 +412,17 @@ func cast_dash() -> bool:
 
 func cast_salvo() -> bool:
 	if selected_archer!="rowan":return abilities.cast("attack")
-	if not running or paused or ended or stage in ["shop","training"] or salvo_cooldown>0 or dash_left>0:return false
+	if not running or paused or ended or stage in ["shop","training","chest"] or salvo_cooldown>0 or dash_left>0:return false
 	salvo_cooldown=11*(1-float(run_stats.haste));salvo_left=1.1;salvo_fired=false;shooting=false
 	player_unit.play("Salvo",true)
 	if native_fx:native_fx.play_sound("salvo")
 	return true
 
 func consume_command(command: String) -> void:
+	if command.begins_with("chest:"):
+		var parts := command.split(":")
+		if parts.size()==3:rewards.resolve(parts[1],parts[2].to_int())
+		return
 	if command.begins_with("buy:"):
 		buy_item(command.trim_prefix("buy:"));return
 	if command.begins_with("train:"):
@@ -432,7 +437,7 @@ func consume_command(command: String) -> void:
 		"camp":
 			start_run(false);gold=40;gain_xp(60);wave_left=0;finish_wave()
 		"pause":
-			if running and not ended and stage not in ["shop","training"]:paused=not paused;sync_mouse_mode()
+			if running and not ended and stage not in ["shop","training","chest"]:paused=not paused;sync_mouse_mode()
 		"dash":cast_dash()
 		"salvo":cast_salvo()
 		"auto":auto_fire=not auto_fire
@@ -444,7 +449,7 @@ func read_controls() -> void:
 	request=data
 	for command in request.get("commands",[]):consume_command(str(command))
 	JavaScriptBridge.eval("if(window.huntInput){window.huntInput.commands=[];window.huntInput.dx=0;window.huntInput.dy=0;window.huntInput.wheel=0;}",true)
-	if request.get("hidden",false) and running and not ended and stage not in ["shop","training"]:paused=true
+	if request.get("hidden",false) and running and not ended and stage not in ["shop","training","chest"]:paused=true
 	var quality := str(request.get("quality","balanced"))
 	if quality!=current_quality:
 		current_quality=quality
@@ -495,7 +500,7 @@ func _process(delta: float) -> void:
 	read_controls()
 	sync_mouse_mode()
 	var remaining := minf(delta,.1)
-	if running and not paused and not ended and stage not in ["shop","training"]:
+	if running and not paused and not ended and stage not in ["shop","training","chest"]:
 		while remaining>.00001:
 			var step := minf(remaining,1.0/60)
 			simulate(step)
@@ -513,7 +518,7 @@ func _process(delta: float) -> void:
 		JavaScriptBridge.eval("window.huntState="+JSON.stringify(snapshot()),true)
 
 func simulate(dt: float) -> void:
-	if not running or paused or ended or stage in ["shop","training"]:return
+	if not running or paused or ended or stage in ["shop","training","chest"]:return
 	simulation_step=dt
 	clock+=dt;stage_time+=dt
 	dash_cooldown=maxf(0,dash_cooldown-dt);salvo_cooldown=maxf(0,salvo_cooldown-dt);invulnerable=maxf(0,invulnerable-dt);mending_safe_time+=dt
@@ -531,6 +536,7 @@ func simulate(dt: float) -> void:
 	if ended:return
 	update_effects(dt)
 	update_pickups(dt)
+	rewards.update(dt)
 	update_encounter(dt)
 	for i in range(enemies.size()-1,-1,-1):
 		if enemies[i].hp<=0 and enemies[i].dead_time>3.1:
@@ -598,6 +604,7 @@ func clear_combat() -> void:
 
 func finish_wave() -> void:
 	if stage not in ["skirmish","boss"] or ended:return
+	rewards.collect_all()
 	var previous_gold := gold
 	var recovered_xp := 0.0
 	var ground_gold := 0.0
@@ -612,11 +619,14 @@ func finish_wave() -> void:
 	player_unit.hp+=heal
 	settlement={"wave":wave,"gold":gold-previous_gold,"xp":recovered_xp,"rate":float(run_stats.salvage),"bounty":bounty,"healed":snappedf(heal,.1),"kills":wave_kills}
 	clear_combat()
-	if wave==Campaign.WAVES:
-		ended=true;victory=not Campaign.REQUIRE_FINAL_KILL or wave in boss_kills;stage="complete"
-		return
 	build.open_shop(wave,equipped)
-	if not pending_levels.is_empty():stage="training";build.prepare_training()
+	advance_rewards()
+
+func advance_rewards() -> void:
+	if rewards.open_next():stage="chest"
+	elif not pending_levels.is_empty():stage="training";build.prepare_training()
+	elif wave>=Campaign.WAVES:
+		ended=true;victory=not Campaign.REQUIRE_FINAL_KILL or wave in boss_kills;stage="complete"
 	else:stage="shop"
 
 func buy_item(id: String) -> bool:
@@ -643,7 +653,7 @@ func choose_training(id: String, token: int) -> bool:
 	if item.is_empty():return false
 	pending_levels.pop_front();refresh_build()
 	player_unit.hp=minf(player_unit.maximum,player_unit.hp+maxf(0,player_unit.maximum-before))
-	if pending_levels.is_empty():stage="shop"
+	if pending_levels.is_empty():advance_rewards()
 	else:build.prepare_training()
 	return true
 
@@ -861,6 +871,7 @@ func damage_enemy(enemy: HuntUnit, amount: float, element: String, source := "ar
 		if is_instance_valid(enemy.warning):enemy.warning.visible=false
 		killed+=1;wave_kills+=1
 		if Campaign.is_boss(enemy.kind) and wave not in boss_kills:boss_kills.append(wave)
+		elif not practice and not enemy.extra.get("brood",false) and rng.randf()<rewards.NORMAL_DROP:rewards.spawn(enemy.position)
 		player_unit.hp=minf(player_unit.maximum,player_unit.hp+float(run_stats.heal_kill))
 		spawn_pickup(enemy.position,Campaign.is_boss(enemy.kind))
 		if enemy.kind=="briar-king" and practice:victory=true;ended=true
@@ -880,7 +891,7 @@ func update_status(enemy: HuntUnit, dt: float) -> void:
 	if enemy.poison_time<=0:enemy.poison_stacks=0
 
 func hurt_player(amount: float, _source: String) -> bool:
-	if invulnerable>0 or ended or not running or stage in ["shop","training"]:return false
+	if invulnerable>0 or ended or not running or stage in ["shop","training","chest"]:return false
 	mending_safe_time=0.0
 	amount*=20/(20+float(run_stats.armor))
 	taken+=amount;player_unit.flash=.15;camera_kick=.07
@@ -1092,4 +1103,4 @@ func snapshot() -> Dictionary:
 		if enemy.ice_time>0:statuses.ice+=1
 		if enemy.poison_time>0:statuses.poison+=1
 		enemy_states.append({"kind":enemy.kind,"hp":snappedf(enemy.hp,.1),"state":enemy.state,"clip":enemy.clip,"time":snappedf(enemy.action_time,.01),"x":snappedf(enemy.position.x,.01),"z":snappedf(enemy.position.z,.01),"poison":enemy.poison_stacks})
-	return {"bossName":bosses.definitions[boss.kind].name if is_instance_valid(boss) else "Guardian","bossKills":boss_kills,"campaignWaves":Campaign.WAVES,"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}
+	return {"chests":rewards.view(),"bossName":bosses.definitions[boss.kind].name if is_instance_valid(boss) else "Guardian","bossKills":boss_kills,"campaignWaves":Campaign.WAVES,"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}

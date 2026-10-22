@@ -154,7 +154,7 @@ func run() -> void:
 	game.damage_enemy(king,king.hp,"physical")
 	check(not game.ended and 5 in game.boss_kills,"Killing King records kill but keeps wave running")
 	game.wave_left=0;game.update_encounter(.016)
-	check(not game.ended and game.stage in ["shop","training"],"Boss kill progresses through normal rewards")
+	check(not game.ended and game.stage in ["shop","training","chest"],"Boss kill progresses through normal rewards")
 	game.start_run(false);game.wave=4;game.stage="shop";game.continue_run()
 	game.wave_left=0;game.update_encounter(.016)
 	check(not game.ended and game.stage=="shop" and game.boss_kills.is_empty(),"Surviving living King advances without a kill")

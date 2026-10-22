@@ -113,7 +113,7 @@ func record(item: Dictionary, source: String) -> void:
 	var entry := item.duplicate(true)
 	entry.source=source;entry.status="used" if item.effects.has("heal") else "active"
 	history.append(entry)
-	if source=="shop":ranks[item.id]=int(ranks.get(item.id,0))+1
+	if source in ["shop","chest"]:ranks[item.id]=int(ranks.get(item.id,0))+1
 	revision+=1
 
 func buy(id: String, coins: int, element: String) -> Dictionary:

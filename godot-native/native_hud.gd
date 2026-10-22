@@ -277,11 +277,11 @@ func refresh() -> void:
 	tour_buttons.visible=tour
 	controls_text.text="WASD Move    Space Windskip    E Salvo    %s    Scroll Zoom    Esc Pause"%["Mouse Orbit · Free camera" if bool(game.get("free_camera")) else "Right-drag Orbit"]
 	if not bool(s.auto):controls_text.text+="    Click Fire"
-	var mode := "settings" if settings_open else "training" if str(s.stage)=="training" and not bool(s.ended) else "shop" if str(s.stage)=="shop" and not bool(s.ended) else "pause" if (bool(s.paused) or bool(s.ended)) and not title else ""
+	var mode := "settings" if settings_open else "chest" if str(s.stage)=="chest" else "training" if str(s.stage)=="training" and not bool(s.ended) else "shop" if str(s.stage)=="shop" and not bool(s.ended) else "pause" if (bool(s.paused) or bool(s.ended)) and not title else ""
 	if title and not settings_open:mode=""
 	modal_layer.visible=mode!=""
 	if mode=="":current_modal="";last_modal_key="";return
-	var key: String=mode+":"+str(s.build.revision)+":"+str(s.build.draftRevision)+":"+str(s.gold)+":"+str(s.hp)+":"+str(s.element)+":"+str(s.ended)+":"+str(s.paused)
+	var key: String=mode+":"+str(s.build.revision)+":"+str(s.build.draftRevision)+":"+str(s.gold)+":"+str(s.hp)+":"+str(s.element)+":"+str(s.ended)+":"+str(s.paused)+":"+str(s.chests.revision)
 	if mode=="settings":key="settings"
 	if key!=last_modal_key:
 		last_modal_key=key;current_modal=mode;rebuild_modal(s,mode)
@@ -289,7 +289,7 @@ func refresh() -> void:
 func rebuild_modal(s: Dictionary, mode: String) -> void:
 	for child in modal_panel.get_children():modal_panel.remove_child(child);child.queue_free()
 	var light: bool=mode=="training"
-	var modal_bg: Color=IVORY if light else SHOP_PANEL if mode=="shop" else PANEL
+	var modal_bg: Color=IVORY if light else SHOP_PANEL if mode in ["shop","chest"] else PANEL
 	var modal_border: Color=Color("d8d3c5") if light else Color("8d887f") if mode=="shop" else LINE
 	modal_panel.add_theme_stylebox_override("panel",box_style(modal_bg,modal_border,28,10))
 	var scroll := ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;modal_panel.add_child(scroll)
@@ -297,6 +297,7 @@ func rebuild_modal(s: Dictionary, mode: String) -> void:
 	match mode:
 		"training":build_training(s)
 		"shop":build_shop(s)
+		"chest":build_chest(s)
 		"settings":build_settings()
 		_:build_pause(s)
 	layout()
@@ -678,7 +679,7 @@ func set_preset(value: String) -> void:
 	current_preset=value;if_call("set_graphics_preset",value);last_modal_key="";refresh()
 
 func open_settings() -> void:
-	settings_resume=not bool(current_state.get("paused",false)) and not bool(current_state.get("ended",false)) and not bool(game.get("is_title")) and str(current_state.get("stage","")) not in ["shop","training"]
+	settings_resume=not bool(current_state.get("paused",false)) and not bool(current_state.get("ended",false)) and not bool(game.get("is_title")) and str(current_state.get("stage","")) not in ["shop","training","chest"]
 	if settings_resume:game.call("consume_command","pause")
 	settings_open=true;last_modal_key="";refresh()
 
@@ -690,3 +691,14 @@ func close_settings() -> void:
 func toggle_fullscreen() -> void:
 	var mode: int=DisplayServer.window_get_mode()
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if mode in [DisplayServer.WINDOW_MODE_FULLSCREEN,DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN] else DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+func build_chest(s: Dictionary) -> void:
+	var reward: Dictionary=s.chests.current
+	if reward.is_empty():return
+	modal_content.add_child(label("MYTHIC CHEST" if reward.mythic else "WOODLAND CHEST",14,SHOP_INK))
+	modal_content.add_child(label(reward.item.name,36,SHOP_INK,true))
+	modal_content.add_child(paragraph(reward.item.description,16,SHOP_MUTED))
+	var choices := row();modal_content.add_child(choices)
+	choices.add_child(button("Take item",_send.bind("chest:take:"+str(reward.token)),true,true))
+	choices.add_child(button("Reroll · %d gold"%int(s.chests.rerollCost),_send.bind("chest:reroll:"+str(reward.token)),false,true))
+	choices.add_child(button("Sell · %d gold"%int(s.chests.sellPrice),_send.bind("chest:sell:"+str(reward.token)),false,true))
