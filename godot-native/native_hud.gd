@@ -6,15 +6,19 @@ const IVORY := Color("eee9dc")
 const GOLD := Color("dcc58b")
 const MUTED := Color("a0b0a6")
 const LINE := Color("405149")
-const SHOP_PANEL := Color("13201b")
-const SHOP_CARD := Color("192821")
-const SHOP_CARD_HOVER := Color("22352b")
-const SHOP_LINE := Color("4d6255")
-const SHOP_MUTED := Color("aab9ad")
-const SHOP_GOLD := Color("d7bd7a")
-const SHOP_GAIN := Color("8fd39c")
-const SHOP_LOSS := Color("e47d74")
-const SHOP_TILE := Color("17251f")
+const SHOP_PANEL := Color("d6d1c7")
+const SHOP_INK := Color("242525")
+const SHOP_MUTED := Color("686760")
+const SHOP_LINE := Color("aaa59a")
+const SHOP_GOLD := Color("b17f2f")
+const SHOP_GAIN := Color("9ee06d")
+const SHOP_LOSS := Color("ff8a7a")
+const SHOP_CARD_TEXT := Color("f6f2e9")
+const SHOP_CARD_MUTED := Color("d8d4cc")
+const SHOP_STATS_PANEL := Color("25292d")
+const SHOP_STATS_LINE := Color("4b5055")
+const SHOP_RARITIES := {"common":Color("626873"),"uncommon":Color("2f7658"),"rare":Color("65458d"),"mythic":Color("8e3f36")}
+const SHOP_RARITY_BORDERS := {"common":Color("c7ccd2"),"uncommon":Color("76d3a3"),"rare":Color("c49bf1"),"mythic":Color("ff8b70")}
 const ELEMENTS := {"physical":Color("dfd4b3"),"fire":Color("f17960"),"ice":Color("78cce6"),"poison":Color("b189df")}
 const RARITIES := {"common":Color("acb9af"),"uncommon":Color("8dc4ad"),"rare":Color("bca8df"),"mythic":Color("f36862")}
 var game: Node3D
@@ -250,7 +254,7 @@ func rebuild_modal(s: Dictionary, mode: String) -> void:
 	for child in modal_panel.get_children():modal_panel.remove_child(child);child.queue_free()
 	var light: bool=mode=="training"
 	var modal_bg: Color=IVORY if light else SHOP_PANEL if mode=="shop" else PANEL
-	var modal_border: Color=Color("d8d3c5") if light else Color("667a6b") if mode=="shop" else LINE
+	var modal_border: Color=Color("d8d3c5") if light else Color("8d887f") if mode=="shop" else LINE
 	modal_panel.add_theme_stylebox_override("panel",box_style(modal_bg,modal_border,28,10))
 	var scroll := ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;modal_panel.add_child(scroll)
 	modal_content=column(18);modal_content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(modal_content)
@@ -278,22 +282,24 @@ func build_training(s: Dictionary) -> void:
 
 func build_shop(s: Dictionary) -> void:
 	var header := row();modal_content.add_child(header)
-	var heading := column(5);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.add_child(heading)
+	var heading := column(4);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.add_child(heading)
 	heading.add_child(label("CAMP / WAVE %d COMPLETE"%int(s.wave),10,SHOP_GOLD))
-	heading.add_child(label("The woodland trader.",32,IVORY,true))
+	heading.add_child(label("The woodland trader.",32,SHOP_INK,true))
 	var recovered: Dictionary=s.get("settlement",{})
 	heading.add_child(paragraph("Recovered %d gold · %d XP · %s health · %d%% ground recovery"%[int(recovered.get("gold",0)),int(recovered.get("xp",0)),number(float(recovered.get("healed",0))),roundi(float(recovered.get("rate",.5))*100)],11,SHOP_MUTED))
-	var wallet := column(3);header.add_child(wallet)
-	var coins := label("◉ %d"%int(s.gold),29,SHOP_GOLD,true);coins.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;wallet.add_child(coins)
+	var wallet := column(2);header.add_child(wallet)
+	var coins := label("◉ %d"%int(s.gold),30,SHOP_GOLD,true);coins.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;wallet.add_child(coins)
 	var level_line := label("LEVEL %d  ·  %s ARROWS"%[int(s.level),str(s.element).to_upper()],10,SHOP_MUTED);level_line.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;wallet.add_child(level_line)
-	modal_content.add_child(divider(Color("516659")))
+	modal_content.add_child(divider(SHOP_LINE))
 
 	var body := row(18);body.size_flags_vertical=Control.SIZE_EXPAND_FILL;modal_content.add_child(body)
 	var stock := column(10);stock.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(stock)
 	var stock_header := row(8);stock.add_child(stock_header)
-	stock_header.add_child(label("TRADER STOCK",11,SHOP_GOLD))
+	stock_header.add_child(label("TRADER STOCK",11,SHOP_INK))
 	stock_header.add_child(flex())
-	var reroll := button("Reroll · ◉ %d"%int(s.build.rerollCost),_send.bind("reroll"));reroll.disabled=int(s.gold)<int(s.build.rerollCost);reroll.custom_minimum_size=Vector2(150,38);stock_header.add_child(reroll)
+	var reroll := button("REROLL",_send.bind("reroll"));reroll.disabled=int(s.gold)<int(s.build.rerollCost);reroll.custom_minimum_size=Vector2(105,36)
+	reroll.add_theme_stylebox_override("normal",box_style(Color("efebe4"),Color("a7a199"),9,6));reroll.add_theme_stylebox_override("hover",box_style(Color("ffffff"),SHOP_GOLD,9,6));reroll.add_theme_color_override("font_color",SHOP_INK);reroll.add_theme_color_override("font_hover_color",SHOP_INK);stock_header.add_child(reroll)
+	stock_header.add_child(label("◉ %d"%int(s.build.rerollCost),12,SHOP_GOLD,true))
 
 	var cards := HBoxContainer.new();cards.add_theme_constant_override("separation",10);cards.size_flags_horizontal=Control.SIZE_EXPAND_FILL;stock.add_child(cards)
 	for item in s.build.offers:
@@ -306,31 +312,62 @@ func build_shop(s: Dictionary) -> void:
 		else:
 			cards.add_child(shop_card(item,s))
 
-	var shop_note := paragraph("Hover an offer to highlight it. Purchased cards leave their slot so the shop never shifts under your cursor.",10,SHOP_MUTED)
-	stock.add_child(shop_note)
-	stock.add_child(divider(Color("405549")))
-	var owned_header := row(8);stock.add_child(owned_header)
-	owned_header.add_child(label("OWNED / CURRENT RUN",11,SHOP_GOLD));owned_header.add_child(flex())
+	var owned_panel := PanelContainer.new();owned_panel.add_theme_stylebox_override("panel",box_style(Color("ece8e0"),Color("bbb5aa"),12,8));stock.add_child(owned_panel)
+	var owned_box := column(7);owned_panel.add_child(owned_box)
+	var owned_header := row(8);owned_box.add_child(owned_header)
+	owned_header.add_child(label("OWNED / CURRENT RUN",11,SHOP_INK));owned_header.add_child(flex())
 	owned_header.add_child(label("%d entries"%active_inventory_count(s),10,SHOP_MUTED))
-	add_shop_inventory(stock,s,122)
+	add_shop_inventory(owned_box,s,118)
 
-	var sidebar_panel := PanelContainer.new();sidebar_panel.custom_minimum_size.x=255;sidebar_panel.add_theme_stylebox_override("panel",box_style(Color("101c17"),Color("40564a"),16,8));body.add_child(sidebar_panel)
-	var sidebar := column(9);sidebar_panel.add_child(sidebar)
-	sidebar.add_child(label("ROWAN / STATS",11,SHOP_GOLD));sidebar.add_child(label("Current build",21,IVORY,true))
-	add_stats(sidebar,s,true)
-	sidebar.add_child(divider(Color("405549")))
-	sidebar.add_child(label("ARROW ELEMENT",10,SHOP_MUTED))
+	var sidebar_panel := PanelContainer.new();sidebar_panel.custom_minimum_size.x=260;sidebar_panel.add_theme_stylebox_override("panel",box_style(SHOP_STATS_PANEL,Color("565b61"),16,9));body.add_child(sidebar_panel)
+	var sidebar := column(8);sidebar_panel.add_child(sidebar)
+	sidebar.add_child(label("ROWAN / STATS",11,SHOP_GOLD));sidebar.add_child(label("Current build",22,Color("f4f1e9"),true))
+	add_shop_stats(sidebar,s)
+	sidebar.add_child(divider(SHOP_STATS_LINE))
+	sidebar.add_child(label("ARROW ELEMENT",10,Color("aeb4b8")))
 	var element_row := GridContainer.new();element_row.columns=2;element_row.add_theme_constant_override("h_separation",5);element_row.add_theme_constant_override("v_separation",5);sidebar.add_child(element_row)
 	for element in ["physical","fire","ice","poison"]:
+		var active: bool=element==s.element
 		var b := button("Plain" if element=="physical" else str(element).capitalize(),_send.bind(element))
 		b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=35;b.add_theme_font_size_override("font_size",10)
-		b.add_theme_color_override("font_color",ELEMENTS[element] if element==s.element else SHOP_MUTED);element_row.add_child(b)
-	sidebar.add_child(paragraph("Element gear follows the equipped arrow type. Shared gear stays with Rowan.",10,SHOP_MUTED))
+		var accent: Color=ELEMENTS[element]
+		b.add_theme_stylebox_override("normal",box_style(Color(accent,.23) if active else Color("31363a"),accent if active else Color("555b60"),8,5))
+		b.add_theme_stylebox_override("hover",box_style(Color(accent,.34),accent,8,5))
+		b.add_theme_color_override("font_color",accent if active else Color("c2c6c9"));b.add_theme_color_override("font_hover_color",accent.lightened(.14));element_row.add_child(b)
+	sidebar.add_child(paragraph("Element gear follows the equipped arrow type. Shared gear stays with Rowan.",10,Color("aeb4b8")))
 
 	var footer := row(10);modal_content.add_child(footer)
-	footer.add_child(button("Settings",open_settings));footer.add_child(button("Leave run",_return_title));footer.add_child(flex())
+	var settings_button := button("Settings",open_settings);settings_button.add_theme_color_override("font_color",SHOP_INK);settings_button.add_theme_stylebox_override("normal",box_style(Color("e8e4dc"),Color("aaa59a"),12,6));footer.add_child(settings_button)
+	var leave_button := button("Leave run",_return_title);leave_button.add_theme_color_override("font_color",SHOP_INK);leave_button.add_theme_stylebox_override("normal",box_style(Color("e8e4dc"),Color("aaa59a"),12,6));footer.add_child(leave_button)
+	footer.add_child(flex())
 	var continue_button := button("Enter wave %d%s   →"%[int(s.wave)+1," · The Briar King" if int(s.wave)==2 else ""],_send.bind("continue"),true)
-	continue_button.custom_minimum_size.x=330;footer.add_child(continue_button)
+	continue_button.custom_minimum_size.x=330;continue_button.add_theme_stylebox_override("normal",box_style(Color("fffaf0"),Color("c8b78e"),14,7));continue_button.add_theme_stylebox_override("hover",box_style(Color("ffffff"),SHOP_GOLD,14,7));footer.add_child(continue_button)
+
+func add_shop_stats(parent: VBoxContainer, s: Dictionary) -> void:
+	var p: Dictionary=s.build.stats;var arrow: float=float(p.damage)*(1+float(p.damage_bonus))+(float(p.elemental_power)*(1+float(p.element_bonus)) if str(s.element)!="physical" else 0)
+	var stats: Array=[
+		["Maximum health",number(float(p.max_hp)),Color("ff8c8c")],
+		["Arrow damage",number(arrow),Color("ffd36f")],
+		["Elemental power",number(float(p.elemental_power)),ELEMENTS.get(s.element,Color("9bd5e6"))],
+		["Armor",number(float(p.armor))+" · %d%%"%armor_reduction(float(p.armor)),Color("9ebcf4")],
+		["Move speed","%.2f m/s"%(5*(1+float(p.speed_bonus))),Color("82d9d2")],
+		["Attack cadence","%.2f sec"%(.8/(1+float(p.attack_speed))),Color("efb6ff")],
+		["Pickup radius","%.2f m"%float(p.pickup_radius),Color("b8d98e")],
+		["Economy","%d%%"%int(p.economy),SHOP_GOLD],
+		["Gold earned","+%d%%"%roundi(float(p.gold_bonus)*100),SHOP_GOLD],
+		["Ground recovery","%d%%"%roundi(float(p.salvage)*100),SHOP_GOLD],
+		["Fox damage","%.2f×"%float(p.pet_damage),Color("d4b07c")],
+		["Critical chance","%d%%"%roundi(float(p.crit)*100),Color("f0a6c6")],
+		["Cooldown reduction","%d%%"%roundi(float(p.haste)*100),Color("b8a8ff")],
+		["Regeneration","%.1f / sec"%float(p.regen),Color("8ee89e")]
+	]
+	if str(s.element)=="fire":stats.append(["Burn damage","%.1f / sec"%(float(p.elemental_power)*.75*(1+float(p.burn_bonus))),ELEMENTS.fire]);stats.append(["Burn duration","%.1f sec"%(3+float(p.duration)),ELEMENTS.fire])
+	elif str(s.element)=="ice":stats.append(["Ice slow","%d%%"%roundi(minf(.6,.35+float(p.slow_bonus))*100),ELEMENTS.ice]);stats.append(["Ice duration","%.1f sec"%(2.5+float(p.duration)),ELEMENTS.ice])
+	elif str(s.element)=="poison":stats.append(["Poison / stack","%.1f / sec"%(float(p.elemental_power)*.375*(1+float(p.venom_bonus))),ELEMENTS.poison]);stats.append(["Poison stacks",str(int(p.stacks)),ELEMENTS.poison])
+	var grid := GridContainer.new();grid.columns=2;grid.add_theme_constant_override("h_separation",12);grid.add_theme_constant_override("v_separation",4);parent.add_child(grid)
+	for stat in stats:
+		var stat_name := label(str(stat[0]),10,Color("b9bec1"));stat_name.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_child(stat_name)
+		var stat_value := label(str(stat[1]),10,stat[2]);stat_value.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;grid.add_child(stat_value)
 
 func active_inventory_count(s: Dictionary) -> int:
 	var count := 0
@@ -352,30 +389,26 @@ func add_shop_inventory(parent: VBoxContainer, s: Dictionary, height:=120) -> vo
 	if grouped.is_empty():
 		var empty := paragraph("Nothing packed yet. Purchases and level training will appear here.",11,SHOP_MUTED);grid.add_child(empty);return
 	for value in grouped.values():
-		var item: Dictionary=value.item;var rarity_color: Color=RARITIES.get(str(item.get("rarity","common")),SHOP_LINE)
+		var item: Dictionary=value.item;var rarity: String=str(item.get("rarity","common"));var rarity_color: Color=SHOP_RARITIES.get(rarity,Color("6d7783"))
+		if str(item.source)=="level":rarity_color=Color("3b78a8")
 		var tile := PanelContainer.new();tile.name="OwnedItemTile";tile.custom_minimum_size=Vector2(155,52);tile.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		var tile_bg: Color=SHOP_TILE.lerp(rarity_color,.11)
-		tile.add_theme_stylebox_override("panel",box_style(tile_bg,rarity_color,8,6));tile.tooltip_text=str(item.get("description",""))
-		grid.add_child(tile)
-		var item_row := row(7);tile.add_child(item_row);item_row.add_child(icon(str(item.get("icon","gem")),ELEMENTS.get(str(item.get("element","")),rarity_color),28))
+		tile.add_theme_stylebox_override("panel",box_style(rarity_color,rarity_color.lightened(.25),8,6));tile.tooltip_text=str(item.get("description",""));grid.add_child(tile)
+		var item_row := row(7);tile.add_child(item_row);item_row.add_child(icon(str(item.get("icon","gem")),Color("f6f2e9"),28))
 		var item_text := column(1);item_text.size_flags_horizontal=Control.SIZE_EXPAND_FILL;item_row.add_child(item_text)
 		var title_text: String=str(item.name)+(" ×%d"%int(value.count) if int(value.count)>1 else "")
-		item_text.add_child(paragraph(title_text,10,IVORY))
-		var source_text: String="Spent" if value.state=="used" else "Training" if str(item.source)=="level" else str(item.get("rarity","common")).capitalize()
-		item_text.add_child(label(source_text,8,SHOP_MUTED))
-		if value.state=="used":tile.modulate=Color(1,1,1,.52)
+		item_text.add_child(paragraph(title_text,10,Color("ffffff")))
+		var source_text: String="Spent" if value.state=="used" else "Training" if str(item.source)=="level" else rarity.capitalize()
+		item_text.add_child(label(source_text,8,Color("e5e2dc")))
+		if value.state=="used":tile.modulate=Color(1,1,1,.56)
 
-func shop_card_style(rarity_color: Color, hovered: bool, mythic: bool) -> StyleBoxFlat:
-	var base: Color=SHOP_CARD.lerp(rarity_color,.17 if hovered else .09)
-	var border: Color=rarity_color.lightened(.10 if hovered else 0.0)
-	var style := box_style(base,border,13,8)
-	style.border_width_top=4
-	style.shadow_color=Color(rarity_color,.24 if hovered else .08)
-	style.shadow_size=8 if hovered else 2
-	style.shadow_offset=Vector2(0,2 if hovered else 1)
-	if mythic:
-		style.shadow_color=Color("f3686266") if hovered else Color("db4a3b38")
-		style.shadow_size=11 if hovered else 6
+func shop_card_style(rarity: String, hovered: bool) -> StyleBoxFlat:
+	var base: Color=SHOP_RARITIES.get(rarity,Color("626873"))
+	var border: Color=SHOP_RARITY_BORDERS.get(rarity,Color("c7ccd2"))
+	var style := box_style(base.lightened(.06) if hovered else base,border.lightened(.08) if hovered else border,13,8)
+	style.border_width_top=5
+	style.shadow_color=Color(border,.30 if hovered else .16)
+	style.shadow_size=10 if hovered else 4
+	style.shadow_offset=Vector2(0,2)
 	return style
 
 func effect_display_name(key: String) -> String:
@@ -437,39 +470,44 @@ func shop_effect_lines(item: Dictionary) -> Array[Dictionary]:
 
 func shop_card(item: Dictionary, s: Dictionary) -> Control:
 	var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.custom_minimum_size=Vector2(195,275);card.mouse_filter=Control.MOUSE_FILTER_PASS
-	var rarity: String=str(item.rarity);var rarity_color: Color=RARITIES.get(rarity,SHOP_MUTED);var mythic: bool=rarity=="mythic"
-	card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,false,mythic))
-	card.mouse_entered.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,true,mythic)))
-	card.mouse_exited.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,false,mythic)))
+	var rarity: String=str(item.rarity);var rarity_color: Color=SHOP_RARITY_BORDERS.get(rarity,Color("c7ccd2"))
+	card.add_theme_stylebox_override("panel",shop_card_style(rarity,false))
+	card.mouse_entered.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity,true)))
+	card.mouse_exited.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity,false)))
 	var content := column(7);card.add_child(content)
 
-	var item_heading := row(7);content.add_child(item_heading);var element: String=str(item.get("element",""));item_heading.add_child(icon(str(item.icon),ELEMENTS.get(element,rarity_color),42))
+	var item_heading := row(7);content.add_child(item_heading);var element: String=str(item.get("element",""));item_heading.add_child(icon(str(item.icon),Color("ffffff"),42))
 	var names := column(2);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL;item_heading.add_child(names)
 	var rarity_label := label(rarity.to_upper()+(" / "+element.to_upper() if element!="" else ""),8,rarity_color);rarity_label.name="ShopRarity";names.add_child(rarity_label)
-	var title := paragraph(str(item.name),15,rarity_color.lightened(.16));title.add_theme_font_override("font",serif_font);names.add_child(title)
+	var title := paragraph(str(item.name),15,Color("ffffff"));title.add_theme_font_override("font",serif_font);names.add_child(title)
 
-	var description := paragraph(str(item.description),9,Color("c2cbc4"));description.custom_minimum_size.y=36;content.add_child(description)
+	var description := paragraph(str(item.description),9,SHOP_CARD_MUTED);description.custom_minimum_size.y=36;content.add_child(description)
 
 	var stats_box := column(2);content.add_child(stats_box)
 	for entry in shop_effect_lines(item):
-		var stat_color: Color=SHOP_GAIN if bool(entry.positive) else SHOP_LOSS
-		var stat := paragraph(("＋ " if bool(entry.positive) else "− ")+str(entry.text).trim_prefix("+").trim_prefix("−"),9,stat_color)
+		var positive: bool=bool(entry.positive)
+		var stat_color: Color=SHOP_GAIN if positive else SHOP_LOSS
+		var prefix: String="+ " if positive else "- "
+		var stat := paragraph(prefix+str(entry.text).trim_prefix("+").trim_prefix("−").trim_prefix("-"),9,stat_color)
 		stat.name="ShopStatLine";stats_box.add_child(stat)
 
 	var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(space)
 	var full: bool=str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp)
 	var sold: bool=bool(item.sold);var eligible: bool=bool(item.get("eligible",true));var affordable: bool=bool(item.affordable)
-	var caption: String="Packed  ✓" if sold else "Unavailable" if not eligible else "Health full" if full else "Need ◉ %d GOLD"%int(item.cost) if not affordable else "Buy  ·  ◉ %d GOLD"%int(item.cost)
-	var buy := button(caption,_send.bind("buy:"+str(item.id)));buy.custom_minimum_size.y=38
-	buy.disabled=sold or not eligible or not affordable or full
-	buy.add_theme_stylebox_override("normal",box_style(Color("292c2b"),Color("696e6b"),10,6))
-	buy.add_theme_stylebox_override("hover",box_style(Color("363a38"),Color("989d99"),10,6))
-	buy.add_theme_stylebox_override("pressed",box_style(Color("202322"),Color("b9bdb9"),10,6))
-	buy.add_theme_stylebox_override("disabled",box_style(Color("222524"),Color("4a4e4c"),10,6))
-	buy.add_theme_color_override("font_color",SHOP_GOLD);buy.add_theme_color_override("font_hover_color",SHOP_GOLD.lightened(.12));buy.add_theme_color_override("font_pressed_color",SHOP_GOLD);buy.add_theme_color_override("font_disabled_color",Color(SHOP_GOLD,.34))
-	content.add_child(buy)
+
+	var purchase := HBoxContainer.new();purchase.add_theme_constant_override("separation",6);content.add_child(purchase)
+	var buy_caption: String="Packed" if sold else "Unavailable" if not eligible else "Health full" if full else "Buy"
+	var buy := button(buy_caption,_send.bind("buy:"+str(item.id)));buy.custom_minimum_size=Vector2(78,38);buy.disabled=sold or not eligible or not affordable or full
+	buy.add_theme_stylebox_override("normal",box_style(Color("ece8df"),Color("c7c1b7"),9,6));buy.add_theme_stylebox_override("hover",box_style(Color("ffffff"),Color("ffffff"),9,6));buy.add_theme_stylebox_override("pressed",box_style(Color("d8d3ca"),Color("ffffff"),9,6));buy.add_theme_stylebox_override("disabled",box_style(Color("d7d2ca"),Color("b4afa7"),9,6))
+	buy.add_theme_color_override("font_color",Color("2b2c2c"));buy.add_theme_color_override("font_hover_color",Color("111212"));buy.add_theme_color_override("font_pressed_color",Color("111212"));buy.add_theme_color_override("font_disabled_color",Color("7b7973"));purchase.add_child(buy)
+
+	var price_panel := PanelContainer.new();price_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;price_panel.add_theme_stylebox_override("panel",box_style(Color("2c2d2e"),Color("444547"),9,6));purchase.add_child(price_panel)
+	var price_text: String="◉ %d GOLD"%int(item.cost) if eligible and not full else "—"
+	var price := label(price_text,10,SHOP_GOLD,true);price.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;price.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;price_panel.add_child(price)
+	if sold or not eligible or full:price.modulate=Color(1,1,1,.38)
+
 	var owned_text: String="ONE PER RUN" if str(item.id)=="heartwood" else "OWNED %d / %d"%[int(item.owned),int(item.cap)]
-	content.add_child(label(owned_text,8,Color("aeb5b0")))
+	content.add_child(label(owned_text,8,Color("eeeae3")))
 	return card
 
 func add_stats(parent: VBoxContainer, s: Dictionary, compact:=false) -> void:
