@@ -1,0 +1,56 @@
+name: Publish Emberwood Mac trial
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Verified source commit to export
+        required: true
+        default: 117c21d6f42d8a6d65408828b152bfa9dbc7d0ba
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: emberwood-mac-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Cache official Godot editor and templates
+        uses: actions/cache@v4
+        with:
+          path: |
+            .godot-tools
+            godot-demo/.templates
+            godot-native/.templates
+          key: godot-4.6.3-emberwood-mac-v1
+      - name: Install verified official build tools
+        run: |
+          bash scripts/install-godot-web.sh
+          bash scripts/install-godot-native.sh
+      - name: Validate and export universal Mac app
+        run: npm run build:native
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
+      - name: Upload release files and publish completed draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload emberwood-mac-v0.1.0 \
+            dist/native-demo/Wildfall-Emberwood-macOS.zip \
+            dist/native-demo/Wildfall-Emberwood-source.zip \
+            dist/native-demo/SHA256SUMS.txt \
+            dist/native-demo/build-info.json \
+            dist/native-demo/MAC_README.md \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit emberwood-mac-v0.1.0 --repo "$GITHUB_REPOSITORY" --draft=false
