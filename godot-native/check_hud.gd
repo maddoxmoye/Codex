@@ -66,7 +66,7 @@ func run() -> void:
 	var coins: int=game.gold
 	click("Choose");await settle();check(game.stage=="shop" and game.gold==coins,"Free choice advances to shop without spending gold")
 	check(hud.current_modal=="shop" and buttons(hud.modal_panel,"Choose").is_empty(),"Shop replaces the separate reward menu")
-	check(hud.modal_panel.find_children("ShopPayoff","Label",true,false).size()>=4,"Shop shows payoff details for each offer")
+	check(hud.modal_panel.find_children("ShopStatLine","Label",true,false).size()>=4,"Shop shows direct stat deltas for each offer")
 	game.gold=500;hud.refresh();await settle()
 	var history_size: int=game.build.history.size()
 	var purchase_buttons:=buttons(hud.modal_panel,"Buy")
