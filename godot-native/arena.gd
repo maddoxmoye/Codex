@@ -2,6 +2,7 @@ extends Node3D
 const Campaign := preload("res://campaign.gd")
 var boss_kills: Array[int] = []
 const Archers := preload("res://archer_catalog.gd")
+var bosses := preload("res://boss_director.gd").new()
 var pets := preload("res://pet_director.gd").new()
 var abilities := preload("res://archer_abilities.gd").new()
 var selected_archer := "rowan"
@@ -147,7 +148,7 @@ func ring(radius: float, color: String, alpha := .6) -> MeshInstance3D:
 
 func _ready() -> void:
 	Engine.max_fps = 60
-	abilities.setup(self);pets.setup(self)
+	abilities.setup(self);pets.setup(self);bosses.setup(self)
 	rng.seed = 8237
 	world = WorldEnvironment.new()
 	world.environment = Environment.new()
@@ -309,6 +310,7 @@ func start_run(boss_only: bool) -> void:
 	player_unit.reset_motion();fox.reset_motion()
 	if native_fx:native_fx.clear_transients()
 	for unit in enemies:
+		bosses.clear_unit(unit)
 		if is_instance_valid(unit.warning):unit.warning.queue_free()
 		unit.queue_free()
 	enemies.clear()
@@ -583,6 +585,7 @@ func gain_xp(amount: float) -> void:
 
 func clear_combat() -> void:
 	for enemy in enemies:
+		bosses.clear_unit(enemy)
 		if is_instance_valid(enemy.warning):enemy.warning.queue_free()
 		enemy.queue_free()
 	enemies.clear()
@@ -724,6 +727,12 @@ func update_player(dt: float) -> void:
 	reticle.position=aim_point+Vector3.UP*.04
 
 func update_enemy(enemy: HuntUnit, dt: float) -> void:
+	if enemy.hp>0 and enemy.extra.has("air"):
+		enemy.extra.air+=dt
+		var u: float=clampf(float(enemy.extra.air)/.65,0,1)
+		enemy.position=enemy.extra.start.lerp(enemy.extra.landing,u)+Vector3.UP*sin(u*PI)*.8;enemy.pose(dt)
+		if u>=1:enemy.extra.erase("air")
+		return
 	if enemy.hp<=0:
 		enemy.dead_time+=dt
 		enemy.pose(dt)
@@ -732,6 +741,7 @@ func update_enemy(enemy: HuntUnit, dt: float) -> void:
 	dt*=abilities.slow_at(enemy.position)*(1-enemy.slow_amount if enemy.slow_time>0 else 1.0)
 	update_status(enemy,dt)
 	if enemy.hp<=0:return
+	if Campaign.is_boss(enemy.kind):bosses.update(enemy,dt);return
 	enemy.cooldown=maxf(0,enemy.cooldown-dt)
 	var to_player := player_unit.position-enemy.position
 	var reach := to_player.length()
@@ -800,6 +810,7 @@ func update_enemy(enemy: HuntUnit, dt: float) -> void:
 	enemy.pose(dt,rate*(2 if wants_move else 1))
 
 func begin_attack(enemy: HuntUnit) -> void:
+	if Campaign.is_boss(enemy.kind):bosses.begin(enemy);return
 	enemy.state="Attack";enemy.action_time=0;enemy.fired=false;enemy.wave_hit=false;enemy.release_index=0
 	enemy.aim=(player_unit.position-enemy.position).normalized();enemy.aim.y=0
 	enemy.rotation.y=atan2(enemy.aim.x,enemy.aim.z)
@@ -845,12 +856,13 @@ func damage_enemy(enemy: HuntUnit, amount: float, element: String, source := "ar
 			"ice":enemy.ice_time=2.5+float(run_stats.duration)
 			"poison":enemy.poison_time=4+float(run_stats.duration);enemy.poison_stacks=mini(int(run_stats.stacks),enemy.poison_stacks+1)
 	if enemy.hp<=0:
+		bosses.clear_unit(enemy)
 		enemy.state="Dead";enemy.dead_time=0;enemy.clear_status();enemy.play("Death",true)
 		if is_instance_valid(enemy.warning):enemy.warning.visible=false
 		killed+=1;wave_kills+=1
 		if Campaign.is_boss(enemy.kind) and wave not in boss_kills:boss_kills.append(wave)
 		player_unit.hp=minf(player_unit.maximum,player_unit.hp+float(run_stats.heal_kill))
-		spawn_pickup(enemy.position,enemy.kind=="briar-king")
+		spawn_pickup(enemy.position,Campaign.is_boss(enemy.kind))
 		if enemy.kind=="briar-king" and practice:victory=true;ended=true
 
 func update_status(enemy: HuntUnit, dt: float) -> void:
@@ -915,9 +927,9 @@ func fire_arrow(start: Vector3, direction: Vector3, owner: String, multiplier: f
 func spawn_bolt(start: Vector3, direction: Vector3, owner: String, damage: float, style: String) -> void:
 	if owner=="pet":damage*=float(run_stats.pet_damage)
 	var node := Node3D.new();add_child(node);node.position=start
-	if style=="thorn":
+	if style in ["thorn","ice-shard"]:
 		var thorn := PrismMesh.new();thorn.size=Vector3(.13,.13,.7)
-		mesh_part(thorn,material("d5b179",.2),node,Vector3.ZERO)
+		mesh_part(thorn,material("bcecf8" if style=="ice-shard" else "d5b179",.2),node,Vector3.ZERO)
 		for side in [-1,1]:mesh_part(box(Vector3(.18,.025,.13)),material("ca855d"),node,Vector3(side*.07,0,-.18))
 	else:mesh_part(sphere(.07),material("e6d6a4",.5),node,Vector3.ZERO)
 	node.look_at(start+direction,Vector3.UP,true)
@@ -944,6 +956,9 @@ func update_projectiles(dt: float) -> void:
 	for i in range(projectiles.size()-1,-1,-1):
 		var item := projectiles[i]
 		var travel_dt := dt*abilities.slow_at(item.node.position) if item.owner=="enemy" else dt
+		if item.style in ["avalanche","boomerang"]:
+			if bosses.special_projectile(item,travel_dt):item.node.queue_free();projectiles.remove_at(i)
+			continue
 		item.age+=travel_dt
 		if item.style=="lob":
 			var u: float=clampf(item.age/1.05,0,1)
@@ -1022,7 +1037,7 @@ func update_effects(dt: float) -> void:
 		var item := effects[i];item.life-=dt
 		item.node.position+=item.velocity*dt
 		if item.label:item.node.modulate.a=clampf(item.life/.25,0,1)
-		else:item.node.scale=Vector3.ONE*maxf(.02,1-item.life/item.duration) if item.duration>.4 else Vector3.ONE*maxf(.02,item.life/item.duration)
+		elif not item.get("fixed",false):item.node.scale=Vector3.ONE*maxf(.02,1-item.life/item.duration) if item.duration>.4 else Vector3.ONE*maxf(.02,item.life/item.duration)
 		if item.life<=0:item.node.queue_free();effects.remove_at(i)
 
 func spawn_pickup(point: Vector3, boss := false) -> void:
@@ -1077,4 +1092,4 @@ func snapshot() -> Dictionary:
 		if enemy.ice_time>0:statuses.ice+=1
 		if enemy.poison_time>0:statuses.poison+=1
 		enemy_states.append({"kind":enemy.kind,"hp":snappedf(enemy.hp,.1),"state":enemy.state,"clip":enemy.clip,"time":snappedf(enemy.action_time,.01),"x":snappedf(enemy.position.x,.01),"z":snappedf(enemy.position.z,.01),"poison":enemy.poison_stacks})
-	return {"bossKills":boss_kills,"campaignWaves":Campaign.WAVES,"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}
+	return {"bossName":bosses.definitions[boss.kind].name if is_instance_valid(boss) else "Guardian","bossKills":boss_kills,"campaignWaves":Campaign.WAVES,"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}

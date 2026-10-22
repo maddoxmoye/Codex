@@ -49,7 +49,7 @@ const godot = process.env.GODOT_BIN || 'godot';
 run(godot, ['--headless', '--path', project, '--editor', '--import']);
 const checks = [];
 if (!skipChecks) {
-  for (const name of ['check_hunt.gd', 'check_animation.gd', 'check_run.gd', 'check_motion.gd', 'check_hud.gd', 'check_native.gd']) {
+  for (const name of ['check_hunt.gd', 'check_animation.gd', 'check_run.gd', 'check_motion.gd', 'check_hud.gd', 'check_native.gd', 'check_campaign.gd']) {
     if (!await exists(path.join(project, name))) continue;
     run(godot, ['--headless', '--path', project, '--script', name]);
     checks.push(name);

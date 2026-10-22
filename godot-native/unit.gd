@@ -1,6 +1,7 @@
 class_name HuntUnit
 extends Node3D
 ## A real animated actor. The arena owns combat; this node owns skeletal presentation.
+var extra := {}
 var actor: Node3D
 var animation: AnimationPlayer
 var skeleton: Skeleton3D

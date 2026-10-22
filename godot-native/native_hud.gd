@@ -266,6 +266,7 @@ func refresh() -> void:
 	timer_text.add_theme_font_size_override("font_size",23 if tour or bool(s.practice) else 31)
 	objective_text.text="Wander, turn the camera and take in the light." if tour else "Read the warnings. Keep moving." if bool(s.practice) else "Defeat the guardian to earn a Mythic chest." if int(s.wave)%5==0 else "Survive until the camp opens."
 	boss_box.visible=not tour and str(s.stage)=="boss" and float(s.bossHp)>0
+	(boss_box.get_child(0) as Label).text=str(s.bossName).to_upper()
 	boss_bar.max_value=maxf(1,float(s.bossMax));boss_bar.value=float(s.bossHp);boss_text.text="%d / %d   ·   %s"%[ceili(float(s.bossHp)),int(s.bossMax),"THRONEBREAKER" if s.bossAction=="Melee" else "BRIAR DECREE" if s.bossAction=="Ranged" else "THE KING ADVANCES"]
 	dash_button.text="SPACE  "+s.archer.spaceName if float(s.dash)<=0 else s.archer.spaceName+" · %.1fs"%float(s.dash);dash_button.disabled=float(s.dash)>0
 	salvo_button.text="E  "+s.archer.attackName if float(s.salvo)<=0 else s.archer.attackName+" · %.1fs"%float(s.salvo);salvo_button.disabled=float(s.salvo)>0
