@@ -66,6 +66,15 @@ func run() -> void:
 		for i in int(round(2/dt)):rowan.pose(dt)
 		phases.append(rowan.gait_time)
 	check(absf(phases[0]-phases[1])<.09,"Distance-driven gait stays consistent at 10 and 60 simulation steps per second")
+	# Gait phase is measured distance, not a second low-pass velocity filter.
+	rowan.reset_motion();rowan.configure_motion(Vector3(0,0,5),.016);rowan.play("Run",true)
+	rowan.pose(.016)
+	check(is_equal_approx(rowan.gait_time,.016*5/rowan.RUN_STRIDE_SPEED),"First stride advances by actual travel, without animation-only acceleration lag")
+	rowan.configure_motion(Vector3.ZERO,.016)
+	var stopped_phase := rowan.gait_time
+	rowan.pose(.016)
+	check(rowan.gait_time==stopped_phase,"Blocked feet stop cycling immediately while posture blends out")
+
 	# The fox retains its authored trot and only adds bounded tail follow-through.
 	var fox := make_actor("fox")
 	fox.configure_motion(Vector3(0,0,4.5),1.0/60);fox.play("Trot",true)

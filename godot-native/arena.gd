@@ -668,25 +668,25 @@ func update_player(dt: float) -> void:
 	var trigger := (auto_fire and is_instance_valid(target)) or bool(request.get("fire",false)) or (not OS.has_feature("web") and not gameplay_input_blocked() and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
 	if salvo_left>0:
 		salvo_left=maxf(0,salvo_left-dt)
+		player_unit.pose(dt)
 		if 1.1-salvo_left>=.625625 and not salvo_fired:
 			salvo_fired=true
 			var start := player_unit.socket("bowstring")
 			var shot_direction := (aim-start).normalized()
 			for i in 8:fire_arrow(start,shot_direction.rotated(Vector3.UP,(i-3.5)*.055),"player",1.4,true)
 			pulse(player_unit.position+Vector3.UP*.1,1.2,"d6eeb0",.6)
-		player_unit.pose(dt)
 	elif shooting:
 		shoot_time+=dt
-		var next_clip := "RunShoot" if movement.length()>.1 else "Shoot"
-		if player_unit.clip!=next_clip:
-			player_unit.play(next_clip);player_unit.anim_time=shoot_time*4*cadence
+		# One upper-body shot; measured movement independently drives the legs.
+		# Sample the release pose before reading the bowstring socket.
+		player_unit.pose(dt,4*cadence)
 		if shoot_time>=1.82/(4*cadence) and not shot_fired:
 			shot_fired=true
 			fire_arrow(player_unit.socket("bowstring"),(aim-player_unit.socket("bowstring")).normalized(),"player",1,false)
-		player_unit.pose(dt,4*cadence)
 		if shoot_time>=.8/cadence:shooting=false
 	elif trigger:
-		shooting=true;shoot_time=0;shot_fired=false;player_unit.play("RunShoot" if movement.length()>.1 else "Shoot",true)
+		shooting=true;shoot_time=0;shot_fired=false;player_unit.play("Shoot",true)
+		player_unit.pose(dt,4*cadence);shoot_time=dt
 	else:
 		player_unit.play("Run" if movement.length()>.1 else "Idle")
 		player_unit.pose(dt,2.7 if movement.length()>.1 else 1)

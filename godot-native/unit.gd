@@ -130,7 +130,8 @@ func pose(dt: float, rate := 1.0) -> void:
 		anim_time += dt*rate
 		var length := animation.get_animation(clip).length
 		var sample_time := fmod(anim_time,length) if clip in ["Idle","Run","RunShoot","Trot"] else minf(anim_time,length)
-		if motion_enabled and kind=="fox" and clip=="Trot":sample_time=fposmod(gait_time,length)
+		if motion_enabled and ((kind=="fox" and clip=="Trot") or (kind=="rowan" and clip=="Run")):
+			sample_time=fposmod(gait_time,length)
 		animation.seek(sample_time,true)
 		blend_elapsed = minf(BLEND_DURATION,blend_elapsed+dt)
 		if blend_elapsed<BLEND_DURATION and blend_from.size()==skeleton.get_bone_count():
@@ -193,7 +194,7 @@ func update_motion(dt: float) -> void:
 	gait_weight=lerpf(gait_weight,smoothstep(.06,1.1,actual_speed),1-exp(-dt*14))
 	motion_layer=minf(1,motion_layer+dt*8)
 	if kind=="rowan":
-		gait_time+=dt*actual_speed/RUN_STRIDE_SPEED*(-1 if backward else 1)
+		gait_time+=dt*motion_target.length()/RUN_STRIDE_SPEED*(-1 if backward else 1)
 	elif kind=="fox":
 		gait_time+=dt*clampf(actual_speed/1.9,.0,2.6)
 	var turn_rate := wrapf(rotation.y-last_facing,-PI,PI)/maxf(.001,dt)
