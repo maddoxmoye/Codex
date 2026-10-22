@@ -275,7 +275,14 @@ func build_shop(s: Dictionary) -> void:
 	stock.add_child(label("FOUR ITEMS. YOUR CHOICE.",11,MUTED))
 	var cards := GridContainer.new();cards.columns=2;cards.add_theme_constant_override("h_separation",12);cards.add_theme_constant_override("v_separation",12);stock.add_child(cards)
 	for item in s.build.offers:
-		if not bool(item.sold):cards.add_child(shop_card(item,s))
+		if bool(item.sold):
+			var empty_slot := Control.new()
+			empty_slot.custom_minimum_size=Vector2(275,220)
+			empty_slot.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			empty_slot.mouse_filter=Control.MOUSE_FILTER_IGNORE
+			cards.add_child(empty_slot)
+		else:
+			cards.add_child(shop_card(item,s))
 	var actions := row();stock.add_child(actions);var reroll := button("Reroll · ◉ %d"%int(s.build.rerollCost),_send.bind("reroll"));reroll.disabled=int(s.gold)<int(s.build.rerollCost);actions.add_child(reroll)
 	var note := paragraph("Price rises with each reroll and resets at the next camp.",11,MUTED);note.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(note)
 	stock.add_child(button("Enter wave %d%s   →"%[int(s.wave)+1," · The Briar King" if int(s.wave)==2 else ""],_send.bind("continue"),true))
