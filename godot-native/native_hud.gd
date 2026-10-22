@@ -132,7 +132,9 @@ func build_hud() -> void:
 	hud=Control.new();ui.add_child(hud);hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var top := anchored(hud,Control.PRESET_TOP_WIDE,Rect2(30,24,-60,50));var top_row := row();top.add_child(top_row);top_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var brand := column(2);brand.add_child(label("W I L D F A L L",18,GOLD,true));brand.add_child(label("T H E   E M B E R W O O D",8,MUTED));top_row.add_child(brand)
-	top_row.add_child(flex());gold_text=label("◉  0",25,GOLD,true);top_row.add_child(gold_text)
+	top_row.add_child(flex())
+	var gold_chip := row(6);top_row.add_child(gold_chip);gold_chip.add_child(coin_icon(30))
+	gold_text=label("0",25,GOLD,true);gold_chip.add_child(gold_text)
 	top_row.add_child(button("Pause  Ⅱ",func():_send("pause")))
 	var fullscreen := button("⛶",toggle_fullscreen);fullscreen.tooltip_text="Toggle fullscreen · F11";top_row.add_child(fullscreen)
 	var mission := anchored(hud,Control.PRESET_CENTER_TOP,Rect2(-260,24,520,88));var mission_column := column(3);mission.add_child(mission_column);mission_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -222,7 +224,7 @@ func refresh() -> void:
 	current_preset=str(game.get("graphics_preset"));current_volume=float(game.get("master_volume"))
 	var title: bool=bool(game.get("is_title"));var tour: bool=bool(game.get("tour_mode"))
 	title_layer.visible=title;hud.visible=not title
-	gold_text.text="◉  %d"%int(s.gold);hp_text.text="%d / %d"%[ceili(float(s.hp)),int(s.maxHp)];hp_bar.max_value=float(s.maxHp);hp_bar.value=float(s.hp)
+	gold_text.text=str(int(s.gold));hp_text.text="%d / %d"%[ceili(float(s.hp)),int(s.maxHp)];hp_bar.max_value=float(s.maxHp);hp_bar.value=float(s.hp)
 	xp_bar.max_value=float(s.xpNeeded);xp_bar.value=float(s.xp);xp_text.text="LEVEL %d · %d / %d XP"%[int(s.level),int(s.xp),int(s.xpNeeded)]
 	if not s.pendingLevels.is_empty():xp_text.text+=" · %d FREE PICK"%s.pendingLevels.size()
 	element_text.text="%s ARROWS · POWER %s"%[str(s.element).to_upper(),number(float(s.elementPower))];element_text.add_theme_color_override("font_color",ELEMENTS.get(s.element,GOLD))
@@ -265,20 +267,61 @@ func rebuild_modal(s: Dictionary, mode: String) -> void:
 		_:build_pause(s)
 	layout()
 
+func training_card_style(rarity: String, hovered: bool) -> StyleBoxFlat:
+	var base: Color=SHOP_RARITIES.get(rarity,Color("626873"))
+	var border: Color=SHOP_RARITY_BORDERS.get(rarity,Color("c7ccd2"))
+	var style := box_style(base.lightened(.06) if hovered else base,border.lightened(.10) if hovered else border,18,9)
+	style.border_width_top=5
+	style.shadow_color=Color(border,.34 if hovered else .16)
+	style.shadow_size=11 if hovered else 5
+	style.shadow_offset=Vector2(0,3)
+	return style
+
+func training_effect_text(item: Dictionary) -> Array[String]:
+	var lines: Array[String]=[]
+	var effects: Dictionary=item.get("effects",{})
+	for key in effects:
+		var value: float=float(effects[key])
+		match str(key):
+			"max_hp":
+				lines.append("+%s maximum health"%number(value))
+				lines.append("+%s health immediately"%number(value))
+			"damage":lines.append("+%s base arrow damage"%number(value))
+			"elemental_power":lines.append("+%s shared elemental power"%number(value))
+			"armor":lines.append("+%s armor"%number(value))
+			"speed_bonus":lines.append("+%d%% movement speed"%roundi(value*100))
+			_:lines.append(effect_delta_text(str(key),value))
+	return lines
+
 func build_training(s: Dictionary) -> void:
 	var level_number: int=int(s.pendingLevels[0]) if not s.pendingLevels.is_empty() else int(s.level)
-	var eyebrow := label("FIELD TRAINING / LEVEL %d"%level_number,12,Color("657366"));eyebrow.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(eyebrow)
-	var heading := label("Choose your edge.",42,INK,true);heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(heading)
-	var caption := label("One free choice for this level. Your gold stays yours.",15,Color("59665d"));caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(caption)
-	modal_content.add_child(divider(Color("b6bcad")))
-	var choices := HBoxContainer.new();choices.add_theme_constant_override("separation",16);modal_content.add_child(choices)
+	var eyebrow := label("FIELD TRAINING / LEVEL %d"%level_number,11,SHOP_GOLD);eyebrow.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(eyebrow)
+	var heading := label("Choose your edge.",40,SHOP_INK,true);heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(heading)
+	var caption := label("One free reward. Higher rarity means a stronger permanent boost.",14,SHOP_MUTED);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(caption)
+	modal_content.add_child(divider(SHOP_LINE))
+	var choices := HBoxContainer.new();choices.add_theme_constant_override("separation",14);choices.size_flags_horizontal=Control.SIZE_EXPAND_FILL;modal_content.add_child(choices)
 	for item in s.build.draft:
-		var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.custom_minimum_size.y=265;card.add_theme_stylebox_override("panel",box_style(Color("f8f5ed"),Color("b3bba9"),20,7));choices.add_child(card)
-		var contents := column(13);card.add_child(contents);contents.add_child(icon(str(item.icon),Color("476251"),58))
-		contents.add_child(label(str(item.name),21,INK,true));contents.add_child(paragraph(str(item.description),14,Color("47574e")))
+		var rarity: String=str(item.get("rarity","common"));var rarity_color: Color=SHOP_RARITY_BORDERS.get(rarity,Color("c7ccd2"))
+		var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.custom_minimum_size=Vector2(230,290);card.mouse_filter=Control.MOUSE_FILTER_PASS
+		card.add_theme_stylebox_override("panel",training_card_style(rarity,false))
+		card.mouse_entered.connect(func():card.add_theme_stylebox_override("panel",training_card_style(rarity,true)))
+		card.mouse_exited.connect(func():card.add_theme_stylebox_override("panel",training_card_style(rarity,false)))
+		choices.add_child(card)
+		var contents := column(9);card.add_child(contents)
+		var top := row(8);contents.add_child(top)
+		var emblem := PanelContainer.new();emblem.custom_minimum_size=Vector2(62,62);emblem.add_theme_stylebox_override("panel",box_style(Color("ffffff22"),rarity_color,8,31));top.add_child(emblem)
+		emblem.add_child(icon(str(item.icon),Color("ffffff"),46))
+		var names := column(2);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL;top.add_child(names)
+		names.add_child(label(rarity.to_upper(),9,rarity_color))
+		var title := paragraph(str(item.name),20,Color("ffffff"));title.add_theme_font_override("font",serif_font);names.add_child(title)
+		var divider_line := divider(Color(rarity_color,.55));contents.add_child(divider_line)
+		for line in training_effect_text(item):
+			var boost := paragraph("+  "+str(line).trim_prefix("+"),12,Color("b7f08a"));boost.name="TrainingBoost";contents.add_child(boost)
 		var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;contents.add_child(space)
-		var command: String="train:%d:%s"%[int(s.build.draftRevision),str(item.id)];contents.add_child(button("Choose   →",_send.bind(command),false,true))
-	var remaining := label("%d free choice%s remaining before the trader."%[s.pendingLevels.size(),"" if s.pendingLevels.size()==1 else "s"],14,Color("59665d"));remaining.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(remaining)
+		var command: String="train:%d:%s"%[int(s.build.draftRevision),str(item.id)]
+		var choose := button("Choose   →",_send.bind(command),false,true);choose.custom_minimum_size.y=44
+		choose.add_theme_stylebox_override("normal",box_style(Color("f3efe7"),Color("d8d2c7"),12,6));choose.add_theme_stylebox_override("hover",box_style(Color("ffffff"),rarity_color,12,6));choose.add_theme_color_override("font_color",SHOP_INK);choose.add_theme_color_override("font_hover_color",SHOP_INK);contents.add_child(choose)
+	var remaining := label("%d free choice%s remaining before the trader."%[s.pendingLevels.size(),"" if s.pendingLevels.size()==1 else "s"],13,SHOP_MUTED);remaining.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(remaining)
 
 func build_shop(s: Dictionary) -> void:
 	var header := row();modal_content.add_child(header)
@@ -288,7 +331,8 @@ func build_shop(s: Dictionary) -> void:
 	var recovered: Dictionary=s.get("settlement",{})
 	heading.add_child(paragraph("Recovered %d gold · %d XP · %s health · %d%% ground recovery"%[int(recovered.get("gold",0)),int(recovered.get("xp",0)),number(float(recovered.get("healed",0))),roundi(float(recovered.get("rate",.5))*100)],11,SHOP_MUTED))
 	var wallet := column(2);header.add_child(wallet)
-	var coins := label("◉ %d"%int(s.gold),30,SHOP_GOLD,true);coins.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;wallet.add_child(coins)
+	var coin_row := row(6);coin_row.alignment=BoxContainer.ALIGNMENT_END;wallet.add_child(coin_row);coin_row.add_child(coin_icon(34))
+	var coins := label(str(int(s.gold)),30,SHOP_GOLD,true);coins.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;coin_row.add_child(coins)
 	var level_line := label("LEVEL %d  ·  %s ARROWS"%[int(s.level),str(s.element).to_upper()],10,SHOP_MUTED);level_line.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;wallet.add_child(level_line)
 	modal_content.add_child(divider(SHOP_LINE))
 
@@ -299,7 +343,7 @@ func build_shop(s: Dictionary) -> void:
 	stock_header.add_child(flex())
 	var reroll := button("Reroll",_send.bind("reroll"));reroll.disabled=int(s.gold)<int(s.build.rerollCost);reroll.custom_minimum_size=Vector2(105,36)
 	reroll.add_theme_stylebox_override("normal",box_style(Color("efebe4"),Color("a7a199"),9,6));reroll.add_theme_stylebox_override("hover",box_style(Color("ffffff"),SHOP_GOLD,9,6));reroll.add_theme_color_override("font_color",SHOP_INK);reroll.add_theme_color_override("font_hover_color",SHOP_INK);stock_header.add_child(reroll)
-	stock_header.add_child(label("◉ %d"%int(s.build.rerollCost),12,SHOP_GOLD,true))
+	var reroll_cost := row(4);stock_header.add_child(reroll_cost);reroll_cost.add_child(coin_icon(20));reroll_cost.add_child(label(str(int(s.build.rerollCost)),12,SHOP_GOLD,true))
 
 	var cards := HBoxContainer.new();cards.add_theme_constant_override("separation",10);cards.size_flags_horizontal=Control.SIZE_EXPAND_FILL;stock.add_child(cards)
 	for item in s.build.offers:
@@ -498,17 +542,22 @@ func shop_card(item: Dictionary, s: Dictionary) -> Control:
 	var full: bool=str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp)
 	var sold: bool=bool(item.sold);var eligible: bool=bool(item.get("eligible",true));var affordable: bool=bool(item.affordable)
 
-	var purchase := HBoxContainer.new();purchase.add_theme_constant_override("separation",6);content.add_child(purchase)
-	var buy_caption: String="Packed" if sold else "Unavailable" if not eligible else "Health full" if full else "Buy"
-	var buy := button(buy_caption,_send.bind("buy:"+str(item.id)));buy.custom_minimum_size=Vector2(78,38);buy.disabled=sold or not eligible or not affordable or full
-	buy.add_theme_stylebox_override("normal",box_style(Color("ece8df"),Color("c7c1b7"),9,6));buy.add_theme_stylebox_override("hover",box_style(Color("ffffff"),Color("ffffff"),9,6));buy.add_theme_stylebox_override("pressed",box_style(Color("d8d3ca"),Color("ffffff"),9,6));buy.add_theme_stylebox_override("disabled",box_style(Color("d7d2ca"),Color("b4afa7"),9,6))
-	buy.add_theme_color_override("font_color",Color("2b2c2c"));buy.add_theme_color_override("font_hover_color",Color("111212"));buy.add_theme_color_override("font_pressed_color",Color("111212"));buy.add_theme_color_override("font_disabled_color",Color("7b7973"));purchase.add_child(buy)
-
-	var price_panel := PanelContainer.new();price_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;price_panel.add_theme_stylebox_override("panel",box_style(Color("2c2d2e"),Color("444547"),9,6));purchase.add_child(price_panel)
-	var price_text: String="◉ %d GOLD"%int(item.cost) if eligible and not full else "—"
-	var price := label(price_text,10,SHOP_GOLD,true);price.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;price.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;price_panel.add_child(price)
-	if sold or not eligible or full:price.modulate=Color(1,1,1,.38)
-
+	var affordable: bool=bool(item.affordable)
+	var unavailable: bool=sold or not eligible or full
+	var ribbon := Button.new();ribbon.name="ShopPurchase";ribbon.custom_minimum_size=Vector2(0,44);ribbon.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ribbon.mouse_filter=Control.MOUSE_FILTER_STOP
+	ribbon.disabled=unavailable or not affordable
+	var ribbon_normal := box_style(Color("2d3032"),Color("55595d"),10,7)
+	var ribbon_hover := box_style(Color("383c3f"),SHOP_GOLD,10,7)
+	var ribbon_pressed := box_style(Color("242729"),SHOP_GOLD,10,7)
+	var ribbon_disabled := box_style(Color("4a2224") if not affordable and not unavailable else Color("d7d2ca"),Color("d85f63") if not affordable and not unavailable else Color("aaa59f"),10,7)
+	if not affordable and not unavailable:
+		ribbon_disabled.shadow_color=Color("e44f55aa");ribbon_disabled.shadow_size=9
+	ribbon.add_theme_stylebox_override("normal",ribbon_normal);ribbon.add_theme_stylebox_override("hover",ribbon_hover);ribbon.add_theme_stylebox_override("pressed",ribbon_pressed);ribbon.add_theme_stylebox_override("disabled",ribbon_disabled)
+	ribbon.pressed.connect(_send.bind("buy:"+str(item.id)));content.add_child(ribbon)
+	var price_row := row(7);price_row.alignment=BoxContainer.ALIGNMENT_CENTER;price_row.mouse_filter=Control.MOUSE_FILTER_IGNORE;ribbon.add_child(price_row);price_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var coin := coin_icon(27);price_row.add_child(coin)
+	var price_color: Color=Color("ffffff") if affordable and not unavailable else Color("ff7a78") if not affordable and not unavailable else Color("76736d")
+	var price := label(str(int(item.cost)),14,price_color,true);price.name="ShopPrice";price_row.add_child(price)
 	var owned_text: String="ONE PER RUN" if str(item.id)=="heartwood" else "OWNED %d / %d"%[int(item.owned),int(item.cap)]
 	content.add_child(label(owned_text,8,Color("eeeae3")))
 	return card
@@ -564,6 +613,13 @@ func build_settings() -> void:
 	var auto_check := CheckButton.new();auto_check.text="Auto-aim and fire";auto_check.button_pressed=bool(current_state.get("auto",true));auto_check.toggled.connect(func(_value:bool):_send("auto"));modal_content.add_child(auto_check)
 	var actions := row();modal_content.add_child(actions);actions.add_child(button("Back   →",close_settings,true));actions.add_child(button("Toggle fullscreen",toggle_fullscreen))
 	modal_content.add_child(paragraph("F11 toggles fullscreen. Esc returns to the game menu.",12,MUTED))
+
+func coin_icon(dimensions:=24) -> TextureRect:
+	var node := TextureRect.new();node.custom_minimum_size=Vector2(dimensions,dimensions);node.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;node.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;node.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var path := "res://assets/ui/coin.svg"
+	if not texture_cache.has(path):texture_cache[path]=load(path)
+	node.texture=texture_cache[path]
+	return node
 
 func icon(name: String, color: Color=GOLD, dimensions:=48) -> TextureRect:
 	var node := TextureRect.new();node.custom_minimum_size=Vector2(dimensions,dimensions);node.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;node.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;node.mouse_filter=Control.MOUSE_FILTER_IGNORE
