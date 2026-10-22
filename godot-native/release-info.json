@@ -1,0 +1,28 @@
+{
+  "engine": "Godot 4.6.3",
+  "target": "macOS universal (arm64 + x86_64)",
+  "signing": "ad-hoc",
+  "notarized": false,
+  "macRuntimeTested": false,
+  "sourceRevision": "117c21d6f42d8a6d65408828b152bfa9dbc7d0ba",
+  "sourceDirty": false,
+  "builtAt": "2026-10-22T12:35:11.673Z",
+  "headlessChecks": [
+    "check_hunt.gd",
+    "check_animation.gd",
+    "check_run.gd",
+    "check_motion.gd",
+    "check_hud.gd",
+    "check_native.gd"
+  ],
+  "files": {
+    "Wildfall-Emberwood-macOS.zip": {
+      "bytes": 93878706,
+      "sha256": "44b5f7b7225d7c6b02b2ab313ad3b406a7c3cafc438ecb3480c70ef89efc2a45"
+    },
+    "Wildfall-Emberwood-source.zip": {
+      "bytes": 41279720,
+      "sha256": "2808c778a08023a64e3e08dc79e1b7a793ff00636087490b104582506c353547"
+    }
+  }
+}
