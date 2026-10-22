@@ -596,7 +596,6 @@ func finish_wave() -> void:
 
 func buy_item(id: String) -> bool:
 	if stage!="shop" or ended or paused:return false
-	if id=="bandages" and player_unit.hp>=player_unit.maximum:return false
 	var before: float=player_unit.maximum
 	var result := build.buy(id,gold,equipped)
 	if result.is_empty():return false
