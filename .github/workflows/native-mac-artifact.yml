@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'godot-native/**'
+      - 'scripts/build-native-demo.mjs'
+      - 'scripts/install-godot-native.sh'
+      - 'scripts/install-godot-web.sh'
       - '.github/workflows/native-mac-artifact.yml'
 
 permissions:
