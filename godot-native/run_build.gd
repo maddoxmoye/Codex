@@ -3,7 +3,7 @@ extends RefCounted
 const RARITY_WEIGHTS := {"common":50.0,"uncommon":30.0,"rare":12.0,"mythic":1.0}
 const TRAINING_RARITY_WEIGHTS := {"common":46.0,"uncommon":31.0,"rare":18.0,"mythic":5.0}
 const TRAINING_RARITY_MULTIPLIERS := {"common":1.0,"uncommon":1.35,"rare":1.75,"mythic":2.35}
-const BASE := {"max_hp":140.0,"damage":22.0,"damage_bonus":0.0,"elemental_power":8.0,"armor":0.0,"speed_bonus":0.0,"pickup_radius":2.0,"economy":0.0,"salvage":.5,"gold_bonus":0.0,"attack_speed":0.0,"pet_damage":1.0,"crit":0.0,"heal_kill":0.0,"regen":0.0,"haste":0.0,"revive":0.0,"burn_bonus":0.0,"venom_bonus":0.0,"duration":0.0,"element_bonus":0.0,"slow_bonus":0.0,"stacks":4.0}
+const BASE := {"max_hp":140.0,"damage":22.0,"damage_bonus":0.0,"elemental_power":8.0,"armor":0.0,"speed_bonus":0.0,"pickup_radius":2.0,"economy":0.0,"salvage":.5,"gold_bonus":0.0,"attack_speed":0.0,"pet_damage":1.0,"crit":0.0,"heal_kill":0.0,"regen":0.0,"mending":0.0,"haste":0.0,"revive":0.0,"burn_bonus":0.0,"venom_bonus":0.0,"duration":0.0,"element_bonus":0.0,"slow_bonus":0.0,"stacks":4.0}
 const TRAINING := [
 	{"id":"vitality","name":"Vitality","icon":"heart","description":"+18 maximum health and heal 18.","effects":{"max_hp":18}},
 	{"id":"power","name":"Marksmanship","icon":"arrow","description":"+3 base arrow damage.","effects":{"damage":3}},
