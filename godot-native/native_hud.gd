@@ -408,6 +408,7 @@ func add_shop_stats(parent: VBoxContainer, s: Dictionary) -> void:
 		["Cooldown reduction","%d%%"%roundi(float(p.haste)*100),Color("b8a8ff")],
 		["Regeneration","%.1f / sec"%float(p.regen),Color("8ee89e")]
 	]
+	if float(p.mending)>0:stats.append(["Mending","%d%% max HP/sec after 5s"%roundi(float(p.mending)*100),Color("a7e58a")])
 	if str(s.element)=="fire":stats.append(["Burn damage","%.1f / sec"%(float(p.elemental_power)*.75*(1+float(p.burn_bonus))),ELEMENTS.fire]);stats.append(["Burn duration","%.1f sec"%(3+float(p.duration)),ELEMENTS.fire])
 	elif str(s.element)=="ice":stats.append(["Ice slow","%d%%"%roundi(minf(.6,.35+float(p.slow_bonus))*100),ELEMENTS.ice]);stats.append(["Ice duration","%.1f sec"%(2.5+float(p.duration)),ELEMENTS.ice])
 	elif str(s.element)=="poison":stats.append(["Poison / stack","%.1f / sec"%(float(p.elemental_power)*.375*(1+float(p.venom_bonus))),ELEMENTS.poison]);stats.append(["Poison stacks",str(int(p.stacks)),ELEMENTS.poison])
@@ -476,6 +477,7 @@ func effect_display_name(key: String) -> String:
 		"crit":return "critical chance"
 		"heal_kill":return "health on kill"
 		"regen":return "health regeneration"
+		"mending":return "max health regeneration after 5 seconds safe"
 		"haste":return "ability cooldown reduction"
 		"revive":return "lethal-hit revive"
 		"burn_bonus":return "burn damage"
@@ -496,6 +498,8 @@ func effect_delta_text(key: String, value: float) -> String:
 			return "%s%.2fm %s"%[sign,magnitude,effect_display_name(key)]
 		"regen":
 			return "%s%.1f HP/sec %s"%[sign,magnitude,effect_display_name(key)]
+		"mending":
+			return "%s%d%% max HP/sec after 5 sec safe"%[sign,roundi(magnitude*100)]
 		"duration":
 			return "%s%.1f sec %s"%[sign,magnitude,effect_display_name(key)]
 		"heal":
@@ -537,12 +541,7 @@ func shop_card(item: Dictionary, s: Dictionary) -> Control:
 		var prefix: String="+ " if positive else "- "
 		var stat := paragraph(prefix+str(entry.text).trim_prefix("+").trim_prefix("−").trim_prefix("-"),9,stat_color)
 		stat.name="ShopStatLine";stats_box.add_child(stat)
-	if str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp):
-		var warning := paragraph("FULL HEALTH · HEALING WOULD BE WASTED",8,Color("ffd06e"))
-		warning.name="ShopFullHealthWarning";stats_box.add_child(warning)
-
 	var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(space)
-	var full: bool=str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp)
 	var sold: bool=bool(item.sold);var eligible: bool=bool(item.get("eligible",true));var affordable: bool=bool(item.affordable)
 	var unavailable: bool=sold or not eligible
 	var ribbon := Button.new();ribbon.name="ShopPurchase";ribbon.custom_minimum_size=Vector2(0,44);ribbon.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ribbon.mouse_filter=Control.MOUSE_FILTER_STOP
@@ -565,7 +564,7 @@ func shop_card(item: Dictionary, s: Dictionary) -> Control:
 
 func add_stats(parent: VBoxContainer, s: Dictionary, compact:=false) -> void:
 	var p: Dictionary=s.build.stats;var arrow: float=float(p.damage)*(1+float(p.damage_bonus))+(float(p.elemental_power)*(1+float(p.element_bonus)) if str(s.element)!="physical" else 0)
-	var stats: Array=[["Maximum health",number(float(p.max_hp))],["Arrow damage",number(arrow)],["Elemental power",number(float(p.elemental_power))],["Armor",number(float(p.armor))+" · %d%% reduction"%roundi(float(p.armor)/(20+float(p.armor))*100)],["Move speed","%.2f m/s"%(5*(1+float(p.speed_bonus)))],["Attack cadence","%.2f sec"%(.8/(1+float(p.attack_speed)))],["Pickup radius","%.2f m"%float(p.pickup_radius)],["Economy","%d%% savings"%int(p.economy)],["Gold earned","+%d%%"%roundi(float(p.gold_bonus)*100)],["Ground recovery","%d%%"%roundi(float(p.salvage)*100)],["Fox damage","%.2f×"%float(p.pet_damage)],["Critical chance","%d%%"%roundi(float(p.crit)*100)],["Cooldown reduction","%d%%"%roundi(float(p.haste)*100)],["Regeneration","%.1f / sec"%float(p.regen)]]
+	var stats: Array=[["Maximum health",number(float(p.max_hp))],["Arrow damage",number(arrow)],["Elemental power",number(float(p.elemental_power))],["Armor",number(float(p.armor))+" · %d%% reduction"%roundi(float(p.armor)/(20+float(p.armor))*100)],["Move speed","%.2f m/s"%(5*(1+float(p.speed_bonus)))],["Attack cadence","%.2f sec"%(.8/(1+float(p.attack_speed)))],["Pickup radius","%.2f m"%float(p.pickup_radius)],["Economy","%d%% savings"%int(p.economy)],["Gold earned","+%d%%"%roundi(float(p.gold_bonus)*100)],["Ground recovery","%d%%"%roundi(float(p.salvage)*100)],["Fox damage","%.2f×"%float(p.pet_damage)],["Critical chance","%d%%"%roundi(float(p.crit)*100)],["Cooldown reduction","%d%%"%roundi(float(p.haste)*100)],["Regeneration","%.1f / sec"%float(p.regen)],["Mending","%d%% max HP/sec after 5s"%roundi(float(p.mending)*100)]]
 	if str(s.element)=="fire":stats.append(["Burn damage","%.1f / sec"%(float(p.elemental_power)*.75*(1+float(p.burn_bonus)))]);stats.append(["Burn duration","%.1f sec"%(3+float(p.duration))])
 	elif str(s.element)=="ice":stats.append(["Ice slow","%d%%"%roundi(minf(.6,.35+float(p.slow_bonus))*100)]);stats.append(["Ice duration","%.1f sec"%(2.5+float(p.duration))])
 	elif str(s.element)=="poison":stats.append(["Poison / stack","%.1f / sec"%(float(p.elemental_power)*.375*(1+float(p.venom_bonus)))]);stats.append(["Poison stacks",str(int(p.stacks))])
