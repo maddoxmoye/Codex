@@ -34,6 +34,16 @@ func run() -> void:
 	check(game.choose_training(id,token) and game.stage=="shop","One free pick advances to shop")
 	check(not game.choose_training(id,token),"Same training reward cannot be claimed twice")
 	check(game.build.offers.size()==4,"Shop opens with exactly four items")
+	var quiver_def: Dictionary={}
+	for catalog_item in game.build.catalog:
+		if catalog_item.id=="quiver":quiver_def=catalog_item
+	var original_shop_wave: int=game.build.shop_wave
+	game.build.shop_wave=1;var wave1_price: int=game.build.price(quiver_def)
+	game.build.shop_wave=2;var wave2_price: int=game.build.price(quiver_def)
+	game.build.shop_wave=3;var wave3_price: int=game.build.price(quiver_def)
+	check(wave2_price>wave1_price and wave3_price>wave2_price,"Shop item prices tighten upward each completed wave")
+	check(is_equal_approx(game.build.wave_price_multiplier(),1.24),"Wave 3 shop pressure reaches 24 percent")
+	game.build.shop_wave=original_shop_wave
 	var time: float=game.clock;var health: float=game.player_unit.hp
 	advance(3)
 	check(game.clock==time and game.player_unit.hp==health,"Shop freezes combat, regen, timers and abilities")
