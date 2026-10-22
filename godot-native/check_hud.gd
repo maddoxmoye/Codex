@@ -74,11 +74,11 @@ func run() -> void:
 	check(hud.modal_panel.find_children("ShopStatLine","Label",true,false).size()>=4,"Shop shows direct stat deltas for each offer")
 	game.gold=500;hud.refresh();await settle()
 	var history_size: int=game.build.history.size()
-	var purchase_buttons:=hud.modal_panel.find_children("ShopPurchase","Button",true,false)
+	var purchase_buttons: Array[Node]=hud.modal_panel.find_children("ShopPurchase","Button",true,false)
 	check(not purchase_buttons.is_empty(),"Shop has purchasable price ribbons")
 	var cards_before: int=purchase_buttons.size()
 	if not purchase_buttons.is_empty():
-		var purchase: Button=purchase_buttons[0]
+		var purchase: Button=purchase_buttons[0] as Button
 		check(purchase.text=="","Purchase ribbon has no Buy text")
 		check(purchase.find_child("ShopPrice",true,false)!=null,"Purchase ribbon shows a numeric price")
 		purchase.pressed.emit()
