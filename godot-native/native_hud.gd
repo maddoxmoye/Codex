@@ -541,8 +541,6 @@ func shop_card(item: Dictionary, s: Dictionary) -> Control:
 	var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(space)
 	var full: bool=str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp)
 	var sold: bool=bool(item.sold);var eligible: bool=bool(item.get("eligible",true));var affordable: bool=bool(item.affordable)
-
-	var affordable: bool=bool(item.affordable)
 	var unavailable: bool=sold or not eligible or full
 	var ribbon := Button.new();ribbon.name="ShopPurchase";ribbon.custom_minimum_size=Vector2(0,44);ribbon.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ribbon.mouse_filter=Control.MOUSE_FILTER_STOP
 	ribbon.disabled=unavailable or not affordable
