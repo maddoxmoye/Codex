@@ -149,18 +149,22 @@ func run() -> void:
 		var choice: String=game.build.draft[0].id
 		check(game.choose_training(choice,game.build.draft_revision),"Queued level reward can be selected")
 	check(game.stage=="shop" and game.pending_levels.is_empty(),"All queued level rewards resolve before shop")
-	game.continue_run();check(game.wave==3 and game.wave_left==75,"Boss wave starts at 75 seconds")
-	var king: HuntUnit
-	for enemy in game.enemies:
-		if enemy.kind=="briar-king":king=enemy
-	check(is_equal_approx(king.maximum,2592),"Full-run King has the durability to test an upgraded build")
+	game.wave=4;game.continue_run();check(game.wave==5 and game.wave_left==75,"Boss wave starts at 75 seconds")
+	var king: HuntUnit=game.enemies.filter(func(e):return e.kind=="briar-king")[0]
 	game.damage_enemy(king,king.hp,"physical")
-	check(not game.ended,"Killing King early does not end the timed boss wave")
+	check(not game.ended and 5 in game.boss_kills,"Killing King records kill but keeps wave running")
 	game.wave_left=0;game.update_encounter(.016)
-	check(game.ended and game.victory and game.stage=="complete","Run ends after both King defeat and timer expiry")
-	game.start_run(false);game.wave=2;game.stage="shop";game.build.open_shop(2,"fire");game.continue_run()
+	check(not game.ended and game.stage in ["shop","training"],"Boss kill progresses through normal rewards")
+	game.start_run(false);game.wave=4;game.stage="shop";game.continue_run()
 	game.wave_left=0;game.update_encounter(.016)
-	check(not game.ended and game.stage=="boss","Living King causes overtime rather than disappearing")
+	check(not game.ended and game.stage=="shop" and game.boss_kills.is_empty(),"Surviving living King advances without a kill")
+	game.start_run(false);game.clear_combat();game.wave=19;game.stage="shop";game.continue_run()
+	check(game.wave==20 and game.enemies[0].kind=="gilded-colossus","Wave 20 selects final guardian")
+	game.wave_left=0;game.update_encounter(.016)
+	check(game.ended and not game.victory,"Final timer survival without Colossus kill is not victory")
+	game.start_run(false);game.clear_combat();game.wave=19;game.stage="shop";game.continue_run()
+	game.damage_enemy(game.enemies[0],100000,"physical");game.wave_left=0;game.update_encounter(.016)
+	check(game.ended and game.victory,"Final kill plus surviving timer grants victory")
 	# Seeded offer invariants over many rerolls.
 	for element in ["fire","ice","poison","physical"]:
 		for i in 50:

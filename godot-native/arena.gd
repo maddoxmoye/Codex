@@ -1,4 +1,6 @@
 extends Node3D
+const Campaign := preload("res://campaign.gd")
+var boss_kills: Array[int] = []
 const Archers := preload("res://archer_catalog.gd")
 var pets := preload("res://pet_director.gd").new()
 var abilities := preload("res://archer_abilities.gd").new()
@@ -314,7 +316,8 @@ func start_run(boss_only: bool) -> void:
 		for item in list:item.node.queue_free()
 		list.clear()
 	build.reset();equipped="physical";refresh_build()
-	practice=boss_only;wave=3 if boss_only else 1;wave_left=75 if boss_only else 45;wave_kills=0;pending_levels.clear();settlement={};gold_fraction=0;critical_hits=0
+	boss_kills.clear()
+	practice=boss_only;wave=5 if boss_only else 1;wave_left=75 if boss_only else 45;wave_kills=0;pending_levels.clear();settlement={};gold_fraction=0;critical_hits=0
 	player_unit.actor.rotation.z=0
 	player_unit.hp=player_unit.maximum;player_unit.position=Vector3(0,0,5);player_unit.clear_status();player_unit.play("Idle",true)
 	fox.position=Vector3(-1.7,0,6);fox.play("Idle",true)
@@ -333,26 +336,26 @@ func start_run(boss_only: bool) -> void:
 func spawn_enemy(id: String, point: Vector3) -> HuntUnit:
 	var enemy := make_unit(id,point)
 	if not practice and wave>1:
-		enemy.maximum*=1+.22*(wave-1);enemy.hp=enemy.maximum
-		if id=="briar-king":enemy.maximum*=1.5;enemy.hp=enemy.maximum
+		enemy.maximum*=Campaign.health_scale(wave);enemy.hp=enemy.maximum
+		if Campaign.is_boss(id):enemy.maximum*=1.5;enemy.hp=enemy.maximum
 		enemy.speed*=1+.06*(wave-1)
-		enemy.damage_scale=1+.18*(wave-1)
+		enemy.damage_scale=Campaign.damage_scale(wave)
 	enemy.cooldown=.5+rng.randf()*.8
 	enemies.append(enemy)
-	if id!="briar-king":spawned+=1
+	if not Campaign.is_boss(id):spawned+=1
 	return enemy
 
 func spawn_boss() -> void:
 	boss_spawned=true
 	var point := Vector3(0,0,-5.5)
 	if not practice:point=clamp_position(player_unit.position+Vector3(-sin(yaw),0,-cos(yaw))*9,1.0)
-	spawn_enemy("briar-king",point)
+	spawn_enemy(Campaign.BOSSES.get(wave,"briar-king"),point)
 	pulse(point+Vector3.UP*.04,3.0,"d7b778",1.0)
 
 func living_count() -> int:
 	var count := 0
 	for enemy in enemies:
-		if enemy.hp>0 and enemy.kind!="briar-king":count+=1
+		if enemy.hp>0 and not Campaign.is_boss(enemy.kind):count+=1
 	return count
 
 func nearest_enemy(point: Vector3, limit := 18.0) -> HuntUnit:
@@ -541,22 +544,17 @@ func update_encounter(dt: float) -> void:
 		return
 	if stage not in ["skirmish","boss"]:return
 	wave_left=maxf(0,wave_left-dt)
-	if wave_left<=0:
-		if wave<3:finish_wave();return
-		var king_alive := false
-		for enemy in enemies:
-			if enemy.kind=="briar-king" and enemy.hp>0:king_alive=true
-		if not king_alive:
-			finish_wave();return
-	if spawn_clock<=0 and living_count()<(5 if wave==3 else 6 if wave==1 else 8):
-		spawn_reinforcement()
-		spawn_clock=5.5 if wave==3 else 2.8 if wave==1 else 1.8
+	if wave_left<=0:finish_wave();return
+	var pressure := Campaign.pressure(wave)
+	if spawn_clock<=0 and living_count()<int(pressure.cap):
+		for i in mini(int(pressure.batch),int(pressure.cap)-living_count()):spawn_reinforcement()
+		spawn_clock=float(pressure.interval)
 
 func spawn_reinforcement() -> void:
 	var angle := rng.randf()*TAU
 	var point := clamp_position(player_unit.position+Vector3(sin(angle),0,cos(angle))*10,.7)
-	var ids := ["briarling","sporecaller","briarling","thornback"]
-	spawn_enemy(ids[spawned%4],point)
+	var ids := Campaign.composition(wave)
+	spawn_enemy(ids[spawned%ids.size()],point)
 
 func refresh_build() -> void:
 	run_stats=build.stats()
@@ -606,8 +604,8 @@ func finish_wave() -> void:
 	player_unit.hp+=heal
 	settlement={"wave":wave,"gold":gold-previous_gold,"xp":recovered_xp,"rate":float(run_stats.salvage),"bounty":bounty,"healed":snappedf(heal,.1),"kills":wave_kills}
 	clear_combat()
-	if wave==3:
-		ended=true;victory=true;stage="complete"
+	if wave==Campaign.WAVES:
+		ended=true;victory=not Campaign.REQUIRE_FINAL_KILL or wave in boss_kills;stage="complete"
 		return
 	build.open_shop(wave,equipped)
 	if not pending_levels.is_empty():stage="training";build.prepare_training()
@@ -643,10 +641,10 @@ func choose_training(id: String, token: int) -> bool:
 
 func continue_run() -> bool:
 	if stage!="shop" or ended or paused or not pending_levels.is_empty():return false
-	wave+=1;wave_left=75 if wave==3 else 45;wave_kills=0;stage_time=0
-	stage="boss" if wave==3 else "skirmish"
+	wave+=1;wave_left=Campaign.duration(wave);wave_kills=0;stage_time=0
+	stage="boss" if Campaign.BOSSES.has(wave) else "skirmish"
 	dash_cooldown=0;salvo_cooldown=0;invulnerable=1.5;spawn_clock=3
-	if wave==3:spawn_boss();spawn_clock=8
+	if Campaign.BOSSES.has(wave):spawn_boss();spawn_clock=3
 	else:
 		for i in 4:spawn_reinforcement()
 	return true
@@ -845,6 +843,7 @@ func damage_enemy(enemy: HuntUnit, amount: float, element: String, source := "ar
 		enemy.state="Dead";enemy.dead_time=0;enemy.clear_status();enemy.play("Death",true)
 		if is_instance_valid(enemy.warning):enemy.warning.visible=false
 		killed+=1;wave_kills+=1
+		if Campaign.is_boss(enemy.kind) and wave not in boss_kills:boss_kills.append(wave)
 		player_unit.hp=minf(player_unit.maximum,player_unit.hp+float(run_stats.heal_kill))
 		spawn_pickup(enemy.position,enemy.kind=="briar-king")
 		if enemy.kind=="briar-king" and practice:victory=true;ended=true
@@ -1068,9 +1067,9 @@ func snapshot() -> Dictionary:
 	var statuses := {"fire":0,"ice":0,"poison":0}
 	var enemy_states: Array = []
 	for enemy in enemies:
-		if enemy.kind=="briar-king" and enemy.hp>0:boss=enemy
+		if Campaign.is_boss(enemy.kind) and enemy.hp>0:boss=enemy
 		if enemy.fire_time>0:statuses.fire+=1
 		if enemy.ice_time>0:statuses.ice+=1
 		if enemy.poison_time>0:statuses.poison+=1
 		enemy_states.append({"kind":enemy.kind,"hp":snappedf(enemy.hp,.1),"state":enemy.state,"clip":enemy.clip,"time":snappedf(enemy.action_time,.01),"x":snappedf(enemy.position.x,.01),"z":snappedf(enemy.position.z,.01),"poison":enemy.poison_stacks})
-	return {"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}
+	return {"bossKills":boss_kills,"campaignWaves":Campaign.WAVES,"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}

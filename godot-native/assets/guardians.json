@@ -1,0 +1,455 @@
+{
+  "briar-king": {
+    "id": "briar-king",
+    "name": "The Briar King",
+    "subtitle": "Sovereign of the overgrowth",
+    "file": "assets/briar-king.glb",
+    "clips": {
+      "Idle": 3.6,
+      "Run": 1.2,
+      "Melee": 3.4,
+      "Ranged": 3.8,
+      "Hit": 0.9,
+      "Death": 3.0
+    },
+    "bones": 23,
+    "triangles": 6092,
+    "materials": 3,
+    "heightMeters": 3.8213789463043213,
+    "sockets": {
+      "muzzle": {
+        "bone": "cannon",
+        "local": [
+          1.2808249039153452e-07,
+          0.7099998593330383,
+          2.64940695160476e-07
+        ]
+      },
+      "breech": {
+        "bone": "cannon",
+        "local": [
+          1.2808249039153452e-07,
+          0.09999998658895493,
+          2.64940695160476e-07
+        ]
+      },
+      "knuckle": {
+        "bone": "hand.R",
+        "local": [
+          2.093229767297089e-08,
+          0.43287304043769836,
+          -0.07085730135440826
+        ]
+      },
+      "heart": {
+        "bone": "core",
+        "local": [
+          0.0,
+          0.059999942779541016,
+          0.1600000113248825
+        ]
+      }
+    },
+    "melee": {
+      "name": "Thronebreaker",
+      "contact": 1.55,
+      "warningStart": 0.12,
+      "warningEnd": 1.55,
+      "radius": 2.3,
+      "damage": 36,
+      "waveDuration": 0.6,
+      "recovery": 2.0
+    },
+    "ranged": {
+      "name": "Briar Decree",
+      "releases": [
+        1.2,
+        1.55,
+        1.9
+      ],
+      "warningStart": 0.18,
+      "speed": 8.0,
+      "damage": 16,
+      "recovery": 2.25,
+      "shotsPerVolley": 3
+    },
+    "health": 1200,
+    "arrowDamage": 120,
+    "hitCenter": 2.06,
+    "hitRadius": 0.55,
+    "healthBone": "crown",
+    "healthOffset": 0.95,
+    "notes": "Isolated original boss animation draft; damage and HP are demonstration values, not campaign balance. Bone cloth and baked analytical IK, no paid motion capture.",
+    "wave": 5,
+    "tier": 1,
+    "color": "d8bd7f",
+    "description": "The ironwood sovereign: a thorn crown, crushing root fist and living seed cannon.",
+    "meleeDetail": "36 impact damage. One ground warning and expanding shockwave.",
+    "rangedDetail": "3 \u00d7 3 thorns \u00b7 16 damage per hit. Marked firing lanes."
+  },
+  "frost-oracle": {
+    "name": "The Frost Oracle",
+    "subtitle": "Keeper of the white silence",
+    "wave": 10,
+    "tier": 2,
+    "color": "8ddbe8",
+    "health": 2100,
+    "arrowDamage": 175,
+    "melee": {
+      "name": "Crystal Prison",
+      "contact": 1.4,
+      "warningStart": 0.1,
+      "warningEnd": 1.4,
+      "radius": 2.8,
+      "damage": 52,
+      "waveDuration": 0.65,
+      "recovery": 2.35,
+      "events": [
+        1.4,
+        2.0
+      ],
+      "multipliers": [
+        1,
+        0.5
+      ],
+      "pattern": "prison"
+    },
+    "ranged": {
+      "name": "Avalanche Heart",
+      "releases": [
+        1.2
+      ],
+      "warningStart": 0.16,
+      "speed": 5.8,
+      "damage": 58,
+      "recovery": 2.4,
+      "shotsPerVolley": 1,
+      "style": "avalanche",
+      "radius": 0.95,
+      "blastRadius": 2.2,
+      "shardDamage": 18,
+      "targetPosts": 7
+    },
+    "description": "A floating ice seer with a split crystal mantle, star halo and forked staff.",
+    "meleeDetail": "Crystal Prison: 52 damage from rising ice, then 26 on detonation. Escape through the open wedge.",
+    "rangedDetail": "One enormous 1.9m ice heart: 58 direct / 29 blast damage. Bursts into eight 18-damage shards.",
+    "id": "frost-oracle",
+    "file": "assets/frost-oracle.glb",
+    "clips": {
+      "Idle": 3.6,
+      "Run": 1.2,
+      "Melee": 3.6,
+      "Ranged": 3.8,
+      "Hit": 0.9,
+      "Death": 3.0
+    },
+    "bones": 23,
+    "triangles": 3000,
+    "materials": 3,
+    "heightMeters": 4.162642478942871,
+    "sockets": {
+      "muzzle": {
+        "bone": "cannon",
+        "local": [
+          -2.8029333520862565e-07,
+          0.6588003039360046,
+          -6.645529992965749e-08
+        ]
+      },
+      "breech": {
+        "bone": "cannon",
+        "local": [
+          -2.802933636303351e-07,
+          0.1080000177025795,
+          -5.004016401244371e-08
+        ]
+      },
+      "knuckle": {
+        "bone": "hand.R",
+        "local": [
+          -1.4650839830210316e-07,
+          0.445241242647171,
+          0.006956865079700947
+        ]
+      },
+      "heart": {
+        "bone": "core",
+        "local": [
+          0.0,
+          0.06480002403259277,
+          0.1728000044822693
+        ]
+      },
+      "hatch": {
+        "bone": "chest",
+        "local": [
+          0.0,
+          0.37799978256225586,
+          0.7776000499725342
+        ]
+      },
+      "staffTip": {
+        "bone": "hand.R",
+        "local": [
+          -1.36070539724642e-07,
+          0.8563936352729797,
+          0.18366199731826782
+        ]
+      }
+    },
+    "hitCenter": 2.2464000000000004,
+    "hitRadius": 0.5940000000000001,
+    "healthBone": "crown",
+    "healthOffset": 1.08,
+    "notes": "Original Blender boss study. Damage and mechanics are proposed values for this preview, not campaign balance."
+  },
+  "hollow-monarch": {
+    "name": "The Hollow Monarch",
+    "subtitle": "A crown with nothing beneath",
+    "wave": 15,
+    "tier": 3,
+    "color": "bf9ce5",
+    "health": 3400,
+    "arrowDamage": 240,
+    "melee": {
+      "name": "Reaper\u2019s Crossing",
+      "contact": 1.15,
+      "warningStart": 0.1,
+      "warningEnd": 1.15,
+      "radius": 3.2,
+      "damage": 64,
+      "waveDuration": 0.55,
+      "recovery": 2.55,
+      "events": [
+        1.15,
+        1.95
+      ],
+      "multipliers": [
+        1,
+        0.5
+      ],
+      "pattern": "lunge"
+    },
+    "ranged": {
+      "name": "Widow\u2019s Orbit",
+      "releases": [
+        1.0
+      ],
+      "warningStart": 0.12,
+      "speed": 8.8,
+      "damage": 46,
+      "recovery": 2.35,
+      "shotsPerVolley": 1,
+      "style": "boomerang",
+      "radius": 0.85,
+      "flightDuration": 2.4,
+      "returnDamage": 23,
+      "targetPosts": 5
+    },
+    "description": "A hollow armored revenant with a spectral ribcage, torn mantle and a crescent scythe.",
+    "meleeDetail": "Two lunging scythe cuts: 64 + 32 damage. The revenant crosses the marked corridor.",
+    "rangedDetail": "A huge spinning scythe curves outward and returns along the opposite lane. 46 out / 23 back.",
+    "id": "hollow-monarch",
+    "file": "assets/hollow-monarch.glb",
+    "clips": {
+      "Idle": 3.6,
+      "Run": 1.2,
+      "Melee": 3.6,
+      "Ranged": 3.8,
+      "Hit": 0.9,
+      "Death": 3.0
+    },
+    "bones": 23,
+    "triangles": 3040,
+    "materials": 3,
+    "heightMeters": 4.48783016204834,
+    "sockets": {
+      "muzzle": {
+        "bone": "cannon",
+        "local": [
+          1.1056590665248223e-07,
+          0.7014997005462646,
+          1.7040940747392597e-07
+        ]
+      },
+      "breech": {
+        "bone": "cannon",
+        "local": [
+          1.1056590665248223e-07,
+          0.11499997228384018,
+          1.7040940747392597e-07
+        ]
+      },
+      "knuckle": {
+        "bone": "hand.R",
+        "local": [
+          2.572129460531869e-07,
+          0.47409889101982117,
+          0.0074077751487493515
+        ]
+      },
+      "heart": {
+        "bone": "core",
+        "local": [
+          0.0,
+          0.0690000057220459,
+          0.18400001525878906
+        ]
+      },
+      "hatch": {
+        "bone": "chest",
+        "local": [
+          0.0,
+          0.4024996757507324,
+          0.828000009059906
+        ]
+      },
+      "staffTip": {
+        "bone": "hand.R",
+        "local": [
+          2.458971550822753e-07,
+          0.9118996262550354,
+          0.1955658495426178
+        ]
+      }
+    },
+    "hitCenter": 2.392,
+    "hitRadius": 0.6325,
+    "healthBone": "crown",
+    "healthOffset": 1.15,
+    "notes": "Original Blender boss study. Damage and mechanics are proposed values for this preview, not campaign balance."
+  },
+  "gilded-colossus": {
+    "name": "The Gilded Colossus",
+    "subtitle": "The walking brood foundry",
+    "wave": 20,
+    "tier": 4,
+    "color": "efbb6c",
+    "health": 5200,
+    "arrowDamage": 325,
+    "melee": {
+      "name": "Iron Stampede",
+      "contact": 1.45,
+      "warningStart": 0.08,
+      "warningEnd": 1.45,
+      "radius": 3.6,
+      "damage": 88,
+      "waveDuration": 0.62,
+      "recovery": 2.55,
+      "events": [
+        1.45,
+        2.05
+      ],
+      "multipliers": [
+        1,
+        0.5
+      ],
+      "pattern": "charge"
+    },
+    "ranged": {
+      "name": "Daybreak Engine",
+      "releases": [
+        1.05
+      ],
+      "warningStart": 0.1,
+      "speed": 10.0,
+      "damage": 18,
+      "recovery": 2.25,
+      "shotsPerVolley": 0,
+      "style": "beam",
+      "duration": 1.9,
+      "halfWidth": 0.38,
+      "tickInterval": 0.45,
+      "sweepAngle": 0.65,
+      "targetPosts": 7
+    },
+    "summon": {
+      "name": "Brood Furnace",
+      "releases": [
+        1.1,
+        1.45,
+        1.8
+      ],
+      "perRelease": 2,
+      "maxAlive": 6,
+      "damage": 14,
+      "health": 60,
+      "contact": 0.56,
+      "attackInterval": 1.35,
+      "warningStart": 0.15
+    },
+    "description": "A towering gold-and-stone engine. Its chest opens into a living enemy foundry.",
+    "meleeDetail": "A forward bulldozer rush: 88 contact damage, then 44 from the trailing rupture. Dodge sideways.",
+    "rangedDetail": "A sustained sweeping sunbeam: 18 damage per contact tick. Sweeps across the arena while brood stays active.",
+    "id": "gilded-colossus",
+    "file": "assets/gilded-colossus.glb",
+    "clips": {
+      "Idle": 3.6,
+      "Run": 1.2,
+      "Melee": 3.6,
+      "Ranged": 3.8,
+      "Hit": 0.9,
+      "Death": 3.0,
+      "Summon": 4.6
+    },
+    "bones": 23,
+    "triangles": 6672,
+    "materials": 3,
+    "heightMeters": 4.938485145568848,
+    "sockets": {
+      "muzzle": {
+        "bone": "cannon",
+        "local": [
+          1.4418314719932823e-07,
+          0.7929997444152832,
+          1.450918460932371e-07
+        ]
+      },
+      "breech": {
+        "bone": "cannon",
+        "local": [
+          1.4418314719932823e-07,
+          0.12999992072582245,
+          1.5497131755637383e-07
+        ]
+      },
+      "knuckle": {
+        "bone": "hand.R",
+        "local": [
+          1.3258912190394767e-07,
+          0.5359382629394531,
+          0.008374059572815895
+        ]
+      },
+      "heart": {
+        "bone": "core",
+        "local": [
+          0.0,
+          0.07799983024597168,
+          0.20800000429153442
+        ]
+      },
+      "hatch": {
+        "bone": "chest",
+        "local": [
+          0.0,
+          0.4549999237060547,
+          0.9359999895095825
+        ]
+      },
+      "staffTip": {
+        "bone": "hand.R",
+        "local": [
+          1.2388863979140297e-07,
+          1.030843734741211,
+          0.22107446193695068
+        ]
+      }
+    },
+    "hitCenter": 2.704,
+    "hitRadius": 0.7150000000000001,
+    "healthBone": "crown",
+    "healthOffset": 1.3,
+    "notes": "Original Blender boss study. Damage and mechanics are proposed values for this preview, not campaign balance."
+  }
+}

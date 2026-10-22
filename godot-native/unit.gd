@@ -66,7 +66,7 @@ var tail_bones: Array[int] = []
 
 func configure(id: String) -> void:
 	kind = id
-	var file := id+"-motion.glb" if id!="briar-king" else "briar-king.glb"
+	var file := id+".glb" if preload("res://campaign.gd").is_boss(id) else id+"-motion.glb"
 	actor = load("res://assets/"+file).instantiate()
 	add_child(actor)
 	animation = actor.find_children("*","AnimationPlayer",true,false)[0]
@@ -77,6 +77,9 @@ func configure(id: String) -> void:
 		"rowan","ash","briar","nyx","pip":maximum=140;radius=.4;height=2.15;speed=5.0
 		"fox","wolf","beetle":maximum=1;radius=.25;height=.95;speed=4.5
 		"briar-king":maximum=1200;radius=1.0;height=4.05;speed=1.65
+		"frost-oracle":maximum=1200;radius=1.0;height=4.16;speed=1.65
+		"hollow-monarch":maximum=1200;radius=1.1;height=4.49;speed=2.0
+		"gilded-colossus":maximum=1200;radius=1.2;height=4.94;speed=1.4
 		"sporecaller":maximum=90;radius=.42;height=1.6;speed=1.35
 		"thornback":maximum=145;radius=.6;height=1.6;speed=1.8
 		_:maximum=70;radius=.38;height=1.55;speed=2.1

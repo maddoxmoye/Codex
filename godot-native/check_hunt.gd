@@ -109,7 +109,7 @@ func run() -> void:
 	advance(.1);check(game.stage=="shop","Timed wave opens camp shop")
 	check(game.continue_run() and game.wave==2,"Camp continues to stronger second wave")
 	game.wave_left=.01;advance(.1)
-	check(game.stage=="shop" and game.continue_run() and game.wave==3 and game.boss_spawned,"Second camp starts the King wave")
+	check(game.stage=="shop" and game.continue_run() and game.wave==3 and not game.boss_spawned,"Third wave remains a normal survival wave")
 	game.start_run(true);check(game.enemies.size()==1 and game.enemies[0].kind=="briar-king","Boss practice starts directly at King")
 	game.invulnerable=0;game.hurt_player(200,"test")
 	check(game.ended and not game.victory and game.player_unit.hp==0,"Player defeat ends the encounter")

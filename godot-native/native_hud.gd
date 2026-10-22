@@ -261,10 +261,10 @@ func refresh() -> void:
 	xp_bar.max_value=float(s.xpNeeded);xp_bar.value=float(s.xp);xp_text.text="LEVEL %d · %d / %d XP"%[int(s.level),int(s.xp),int(s.xpNeeded)]
 	if not s.pendingLevels.is_empty():xp_text.text+=" · %d FREE PICK"%s.pendingLevels.size()
 	element_text.text="%s ARROWS · POWER %s"%[str(s.element).to_upper(),number(float(s.elementPower))];element_text.add_theme_color_override("font_color",ELEMENTS.get(s.element,GOLD))
-	wave_text.text="EXPLORING / THE EMBERWOOD" if tour else "THE BRIAR KING / PRACTICE" if bool(s.practice) else "WAVE %d / 3"%int(s.wave)
-	var seconds: int=ceili(float(s.waveLeft));timer_text.text="THE RUINS" if tour else "THE CROWN AWAITS" if bool(s.practice) else "OVERTIME" if seconds<=0 and int(s.wave)==3 and float(s.bossHp)>0 else "%d:%02d"%[seconds/60,seconds%60]
+	wave_text.text="EXPLORING / THE EMBERWOOD" if tour else "THE BRIAR KING / PRACTICE" if bool(s.practice) else "WAVE %d / 20"%int(s.wave)
+	var seconds: int=ceili(float(s.waveLeft));timer_text.text="THE RUINS" if tour else "THE CROWN AWAITS" if bool(s.practice)  else "%d:%02d"%[seconds/60,seconds%60]
 	timer_text.add_theme_font_size_override("font_size",23 if tour or bool(s.practice) else 31)
-	objective_text.text="Wander, turn the camera and take in the light." if tour else "Read the warnings. Keep moving." if bool(s.practice) else "Defeat the King and survive the timer." if int(s.wave)==3 else "Survive until the camp opens."
+	objective_text.text="Wander, turn the camera and take in the light." if tour else "Read the warnings. Keep moving." if bool(s.practice) else "Defeat the guardian to earn a Mythic chest." if int(s.wave)%5==0 else "Survive until the camp opens."
 	boss_box.visible=not tour and str(s.stage)=="boss" and float(s.bossHp)>0
 	boss_bar.max_value=maxf(1,float(s.bossMax));boss_bar.value=float(s.bossHp);boss_text.text="%d / %d   ·   %s"%[ceili(float(s.bossHp)),int(s.bossMax),"THRONEBREAKER" if s.bossAction=="Melee" else "BRIAR DECREE" if s.bossAction=="Ranged" else "THE KING ADVANCES"]
 	dash_button.text="SPACE  "+s.archer.spaceName if float(s.dash)<=0 else s.archer.spaceName+" · %.1fs"%float(s.dash);dash_button.disabled=float(s.dash)>0
@@ -409,7 +409,7 @@ func build_shop(s: Dictionary) -> void:
 	var settings_button := button("Settings",open_settings);settings_button.add_theme_color_override("font_color",SHOP_INK);settings_button.add_theme_stylebox_override("normal",box_style(Color("e8e4dc"),Color("aaa59a"),12,6));footer.add_child(settings_button)
 	var leave_button := button("Leave run",_return_title);leave_button.add_theme_color_override("font_color",SHOP_INK);leave_button.add_theme_stylebox_override("normal",box_style(Color("e8e4dc"),Color("aaa59a"),12,6));footer.add_child(leave_button)
 	footer.add_child(flex())
-	var continue_button := button("Enter wave %d%s   →"%[int(s.wave)+1," · The Briar King" if int(s.wave)==2 else ""],_send.bind("continue"),true)
+	var continue_button := button("Enter wave %d%s   →"%[int(s.wave)+1," · Guardian encounter" if (int(s.wave)+1)%5==0 else ""],_send.bind("continue"),true)
 	continue_button.custom_minimum_size.x=330;continue_button.add_theme_stylebox_override("normal",box_style(Color("fffaf0"),Color("c8b78e"),14,7));continue_button.add_theme_stylebox_override("hover",box_style(Color("ffffff"),SHOP_GOLD,14,7));footer.add_child(continue_button)
 
 func armor_reduction(value: float) -> int:
