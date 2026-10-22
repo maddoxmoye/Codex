@@ -337,8 +337,8 @@ func spawn_enemy(id: String, point: Vector3) -> HuntUnit:
 	var enemy := make_unit(id,point)
 	if not practice and wave>1:
 		enemy.maximum*=Campaign.health_scale(wave);enemy.hp=enemy.maximum
-		if Campaign.is_boss(id):enemy.maximum*=1.5;enemy.hp=enemy.maximum
-		enemy.speed*=1+.06*(wave-1)
+		if Campaign.is_boss(id):enemy.maximum=650*Campaign.health_scale(wave)*(1+.2*(wave/5));enemy.hp=enemy.maximum
+		enemy.speed*=1+minf(.45,.025*(wave-1))
 		enemy.damage_scale=Campaign.damage_scale(wave)
 	enemy.cooldown=.5+rng.randf()*.8
 	enemies.append(enemy)
@@ -554,7 +554,12 @@ func spawn_reinforcement() -> void:
 	var angle := rng.randf()*TAU
 	var point := clamp_position(player_unit.position+Vector3(sin(angle),0,cos(angle))*10,.7)
 	var ids := Campaign.composition(wave)
-	spawn_enemy(ids[spawned%ids.size()],point)
+	var pressure := Campaign.pressure(wave)
+	var id: String=ids[spawned%ids.size()] if rng.randf()<float(pressure.special) else "briarling"
+	var enemy := spawn_enemy(id,point)
+	if rng.randf()<float(pressure.elite):
+		enemy.maximum*=1.65;enemy.hp=enemy.maximum;enemy.damage_scale*=1.3;enemy.actor.scale*=1.14;enemy.radius*=1.14
+		for mat in enemy.materials:mat.set_shader_parameter("base_metallic",.5)
 
 func refresh_build() -> void:
 	run_stats=build.stats()

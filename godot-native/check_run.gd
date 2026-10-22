@@ -165,6 +165,13 @@ func run() -> void:
 	game.start_run(false);game.clear_combat();game.wave=19;game.stage="shop";game.continue_run()
 	game.damage_enemy(game.enemies[0],100000,"physical");game.wave_left=0;game.update_encounter(.016)
 	check(game.ended and game.victory,"Final kill plus surviving timer grants victory")
+	for w in range(1,26):
+		check(is_equal_approx(game.Campaign.health_scale(w),1+.10*(w-1)+.012*pow(w-1,2)),"Exact nonlinear HP at wave "+str(w))
+		check(is_equal_approx(game.Campaign.damage_scale(w),1+.06*(w-1)+.015*pow(w-1,2)),"Exact nonlinear damage at wave "+str(w))
+		if w>1:
+			check(game.Campaign.pressure(w).cap>=game.Campaign.pressure(w-1).cap,"Living enemy cap never decreases")
+			check(game.Campaign.pressure(w).interval<=game.Campaign.pressure(w-1).interval,"Reinforcements accelerate")
+	check(game.Campaign.pressure(20).batch==5 and game.Campaign.pressure(20).cap==48,"Late waves pressure the player with five reinforcements and 48 living enemies")
 	# Seeded offer invariants over many rerolls.
 	for element in ["fire","ice","poison","physical"]:
 		for i in 50:
