@@ -26,6 +26,14 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+      - name: Require an unpublished release draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh release view emberwood-mac-v0.1.0 --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true || {
+            echo 'This version is already published. Create a new version instead of replacing verified downloads.'
+            exit 1
+          }
       - name: Cache official Godot editor and templates
         uses: actions/cache@v4
         with:

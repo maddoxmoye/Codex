@@ -18,7 +18,7 @@ npm run build:native
 
 Set `GODOT_BIN` if Godot is not on PATH. On Linux the repository's `scripts/install-godot-web.sh` installs the matching editor binary; the native installer fetches and verifies the official universal macOS export template. Outputs appear in `dist/native-demo/`. The builder checks both CPU architectures, ad-hoc executable signature hashes, the game pack, archive integrity and executable permissions. It does not notarize the app or run macOS.
 
-`npm run build:native:page` builds only the Pages download page from committed `release-info.json`, linking versioned GitHub Release assets. Changing a released app requires a new version/tag and updated metadata; the browser game deployment never replaces native downloads silently.
+`npm run build:native:page` builds only the Pages download page from committed `release-info.json`, linking versioned GitHub Release assets. The manual Mac release workflow builds and uploads through GitHub Actions. After publishing, copy the release's `build-info.json` to `godot-native/release-info.json` and commit it so the Pages checksums match the distributed app. Changing a released app requires a new version/tag and updated metadata; the browser game deployment never replaces native downloads silently.
 
 ## Rendering and motion
 
