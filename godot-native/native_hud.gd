@@ -6,6 +6,12 @@ const IVORY := Color("eee9dc")
 const GOLD := Color("dcc58b")
 const MUTED := Color("a0b0a6")
 const LINE := Color("405149")
+const SHOP_PANEL := Color("13201b")
+const SHOP_CARD := Color("192821")
+const SHOP_CARD_HOVER := Color("22352b")
+const SHOP_LINE := Color("4d6255")
+const SHOP_MUTED := Color("aab9ad")
+const SHOP_GOLD := Color("d7bd7a")
 const ELEMENTS := {"physical":Color("dfd4b3"),"fire":Color("f17960"),"ice":Color("78cce6"),"poison":Color("b189df")}
 const RARITIES := {"common":Color("acb9af"),"uncommon":Color("8dc4ad"),"rare":Color("bca8df"),"mythic":Color("f36862")}
 var game: Node3D
@@ -240,7 +246,9 @@ func refresh() -> void:
 func rebuild_modal(s: Dictionary, mode: String) -> void:
 	for child in modal_panel.get_children():modal_panel.remove_child(child);child.queue_free()
 	var light: bool=mode=="training"
-	modal_panel.add_theme_stylebox_override("panel",box_style(IVORY if light else PANEL,Color("d8d3c5") if light else LINE,28,10))
+	var modal_bg: Color=IVORY if light else SHOP_PANEL if mode=="shop" else PANEL
+	var modal_border: Color=Color("d8d3c5") if light else Color("667a6b") if mode=="shop" else LINE
+	modal_panel.add_theme_stylebox_override("panel",box_style(modal_bg,modal_border,28,10))
 	var scroll := ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;modal_panel.add_child(scroll)
 	modal_content=column(18);modal_content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(modal_content)
 	match mode:
@@ -267,12 +275,12 @@ func build_training(s: Dictionary) -> void:
 
 func build_shop(s: Dictionary) -> void:
 	var header := row();modal_content.add_child(header);var heading := column(6);header.add_child(heading);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	heading.add_child(label("CAMP / WAVE %d COMPLETE"%int(s.wave),11,GOLD));heading.add_child(label("The woodland trader.",35,IVORY,true))
-	var recovered: Dictionary=s.get("settlement",{});heading.add_child(paragraph("Recovered %d gold · %d XP · %s health. Ground gold recovery: %d%%."%[int(recovered.get("gold",0)),int(recovered.get("xp",0)),number(float(recovered.get("healed",0))),roundi(float(recovered.get("rate",.5))*100)],12,MUTED))
-	var wallet := column(5);header.add_child(wallet);wallet.add_child(label("◉ %d"%int(s.gold),32,GOLD,true));wallet.add_child(label("LEVEL %d / %s"%[int(s.level),str(s.element).to_upper()],11,MUTED))
-	modal_content.add_child(divider())
+	heading.add_child(label("CAMP / WAVE %d COMPLETE"%int(s.wave),11,SHOP_GOLD));heading.add_child(label("The woodland trader.",35,IVORY,true))
+	var recovered: Dictionary=s.get("settlement",{});heading.add_child(paragraph("Recovered %d gold · %d XP · %s health. Ground gold recovery: %d%%."%[int(recovered.get("gold",0)),int(recovered.get("xp",0)),number(float(recovered.get("healed",0))),roundi(float(recovered.get("rate",.5))*100)],12,SHOP_MUTED))
+	var wallet := column(5);header.add_child(wallet);wallet.add_child(label("◉ %d"%int(s.gold),32,SHOP_GOLD,true));wallet.add_child(label("LEVEL %d / %s"%[int(s.level),str(s.element).to_upper()],11,SHOP_MUTED))
+	modal_content.add_child(divider(Color("516659")))
 	var body := row(25);modal_content.add_child(body);var stock := column(13);stock.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(stock)
-	stock.add_child(label("FOUR ITEMS. YOUR CHOICE.",11,MUTED))
+	stock.add_child(label("TRADER STOCK / FOUR OFFERS",11,SHOP_MUTED))
 	var cards := GridContainer.new();cards.columns=2;cards.add_theme_constant_override("h_separation",12);cards.add_theme_constant_override("v_separation",12);stock.add_child(cards)
 	for item in s.build.offers:
 		if bool(item.sold):
@@ -284,29 +292,49 @@ func build_shop(s: Dictionary) -> void:
 		else:
 			cards.add_child(shop_card(item,s))
 	var actions := row();stock.add_child(actions);var reroll := button("Reroll · ◉ %d"%int(s.build.rerollCost),_send.bind("reroll"));reroll.disabled=int(s.gold)<int(s.build.rerollCost);actions.add_child(reroll)
-	var note := paragraph("Price rises with each reroll and resets at the next camp.",11,MUTED);note.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(note)
+	var note := paragraph("Price rises with each reroll and resets at the next camp.",11,SHOP_MUTED);note.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(note)
 	stock.add_child(button("Enter wave %d%s   →"%[int(s.wave)+1," · The Briar King" if int(s.wave)==2 else ""],_send.bind("continue"),true))
-	var sidebar := column(12);sidebar.custom_minimum_size.x=310;body.add_child(sidebar);sidebar.add_child(label("ROWAN / CURRENT BUILD",11,GOLD));sidebar.add_child(label("Know your equipment.",23,IVORY,true))
+	var sidebar := column(12);sidebar.custom_minimum_size.x=310;body.add_child(sidebar);sidebar.add_child(label("ROWAN / CURRENT BUILD",11,SHOP_GOLD));sidebar.add_child(label("Know your equipment.",23,IVORY,true))
 	add_stats(sidebar,s,true);sidebar.add_child(divider());var element_row := row(4);sidebar.add_child(element_row)
 	for element in ["physical","fire","ice","poison"]:
 		var b := button("Plain" if element=="physical" else str(element).capitalize(),_send.bind(element));b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.add_theme_font_size_override("font_size",11);b.add_theme_color_override("font_color",ELEMENTS[element] if element==s.element else MUTED);element_row.add_child(b)
 	sidebar.add_child(paragraph("Swapping discards the old element’s equipment. Shared power and general items stay.",11,MUTED));sidebar.add_child(label("PACKED & EQUIPPED",11,GOLD));add_inventory(sidebar,s,200)
 	var end_row := row();modal_content.add_child(end_row);end_row.add_child(button("Settings",open_settings));end_row.add_child(button("Leave run",_return_title))
 
+func shop_card_style(rarity_color: Color, hovered: bool, mythic: bool) -> StyleBoxFlat:
+	var border: Color=rarity_color.lerp(SHOP_GOLD,.28) if hovered else rarity_color.lerp(SHOP_LINE,.35)
+	var style := box_style(SHOP_CARD_HOVER if hovered else SHOP_CARD,border,17,8)
+	style.border_width_top=3
+	style.shadow_color=Color(rarity_color,.22 if hovered else .09)
+	style.shadow_size=8 if hovered else 3
+	style.shadow_offset=Vector2(0,2 if hovered else 1)
+	if mythic:
+		style.shadow_color=Color("f3686255") if hovered else Color("db4a3b33")
+		style.shadow_size=10 if hovered else 6
+	return style
+
 func shop_card(item: Dictionary, s: Dictionary) -> Control:
-	var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.custom_minimum_size=Vector2(275,220)
-	var rarity_color: Color=RARITIES.get(str(item.rarity),MUTED);var style := box_style(Color("1d2925"),rarity_color,17,7);style.border_width_top=3
-	if str(item.rarity)=="mythic":style.shadow_color=Color("db4a3b44");style.shadow_size=8
-	card.add_theme_stylebox_override("panel",style);var content := column(10);card.add_child(content)
+	var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.custom_minimum_size=Vector2(275,220);card.mouse_filter=Control.MOUSE_FILTER_PASS
+	var rarity_color: Color=RARITIES.get(str(item.rarity),SHOP_MUTED);var mythic: bool=str(item.rarity)=="mythic"
+	card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,false,mythic))
+	card.mouse_entered.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,true,mythic)))
+	card.mouse_exited.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,false,mythic)))
+	var content := column(10);card.add_child(content)
 	var item_heading := row();content.add_child(item_heading);var element: String=str(item.get("element",""));item_heading.add_child(icon(str(item.icon),ELEMENTS.get(element,rarity_color),52))
 	var names := column(5);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL;item_heading.add_child(names);names.add_child(label(str(item.rarity).to_upper()+(" / "+element.to_upper() if element!="" else ""),9,rarity_color));var title := paragraph(str(item.name),19,IVORY);title.add_theme_font_override("font",serif_font);names.add_child(title)
-	content.add_child(paragraph(str(item.description),12,Color("bac7ba")));var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(space)
+	content.add_child(paragraph(str(item.description),12,SHOP_MUTED));var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(space)
 	var full: bool=str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp)
 	var sold: bool=bool(item.sold);var eligible: bool=bool(item.get("eligible",true));var affordable: bool=bool(item.affordable)
 	var caption: String="Packed  ✓" if sold else "Unavailable" if not eligible else "Health full" if full else "Need more gold · ◉ %d"%int(item.cost) if not affordable else "Buy item · ◉ %d"%int(item.cost)
-	var buy := button(caption,_send.bind("buy:"+str(item.id)));buy.disabled=sold or not eligible or not affordable or full;content.add_child(buy)
-	content.add_child(label("ONE PER RUN" if str(item.id)=="heartwood" else "Owned %d / %d"%[int(item.owned),int(item.cap)],9,MUTED))
-	if sold:card.modulate=Color(1,1,1,.57)
+	var buy := button(caption,_send.bind("buy:"+str(item.id)))
+	buy.disabled=sold or not eligible or not affordable or full
+	buy.add_theme_stylebox_override("normal",box_style(Color("203229"),rarity_color.lerp(SHOP_LINE,.45),14,6))
+	buy.add_theme_stylebox_override("hover",box_style(Color("2d4437"),rarity_color.lerp(SHOP_GOLD,.42),14,6))
+	buy.add_theme_stylebox_override("pressed",box_style(Color("17261f"),SHOP_GOLD,14,6))
+	buy.add_theme_stylebox_override("disabled",box_style(Color("17231e"),Color("3d4c43"),14,6))
+	buy.add_theme_color_override("font_color",IVORY);buy.add_theme_color_override("font_hover_color",Color("fff5da"));buy.add_theme_color_override("font_pressed_color",IVORY);buy.add_theme_color_override("font_disabled_color",Color(SHOP_MUTED,.45))
+	content.add_child(buy)
+	content.add_child(label("ONE PER RUN" if str(item.id)=="heartwood" else "Owned %d / %d"%[int(item.owned),int(item.cap)],9,SHOP_MUTED))
 	return card
 
 func add_stats(parent: VBoxContainer, s: Dictionary, compact:=false) -> void:
