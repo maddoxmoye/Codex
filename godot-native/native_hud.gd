@@ -695,10 +695,23 @@ func toggle_fullscreen() -> void:
 func build_chest(s: Dictionary) -> void:
 	var reward: Dictionary=s.chests.current
 	if reward.is_empty():return
-	modal_content.add_child(label("MYTHIC CHEST" if reward.mythic else "WOODLAND CHEST",14,SHOP_INK))
-	modal_content.add_child(label(reward.item.name,36,SHOP_INK,true))
-	modal_content.add_child(paragraph(reward.item.description,16,SHOP_MUTED))
-	var choices := row();modal_content.add_child(choices)
-	choices.add_child(button("Take item",_send.bind("chest:take:"+str(reward.token)),true,true))
-	choices.add_child(button("Reroll · %d gold"%int(s.chests.rerollCost),_send.bind("chest:reroll:"+str(reward.token)),false,true))
-	choices.add_child(button("Sell · %d gold"%int(s.chests.sellPrice),_send.bind("chest:sell:"+str(reward.token)),false,true))
+	var item: Dictionary=reward.item
+	var accent: Color=SHOP_RARITY_BORDERS[item.rarity]
+	var eyebrow := label("GUARDIAN SPOILS / MYTHIC CHEST" if reward.mythic else "SPOILS OF THE EMBERWOOD",12,SHOP_GOLD);eyebrow.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(eyebrow)
+	var heading := label("A crown's ransom." if reward.mythic else "Something worth keeping.",36,SHOP_INK,true);heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(heading)
+	var body := row(24);modal_content.add_child(body)
+	var reveal=load("res://chest_reveal.gd").new();reveal.name="ChestReveal";body.add_child(reveal)
+	var image := icon(str(item.icon),accent,88)
+	reveal.setup(bool(reward.mythic),accent,image.texture)
+	var card := PanelContainer.new();card.name="ChestRewardCard";card.custom_minimum_size.x=350;card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(card);card.add_theme_stylebox_override("panel",shop_card_style(item.rarity,false))
+	var content := column(14);card.add_child(content);content.add_child(label(str(item.rarity).to_upper()+" / FOUND ITEM",12,accent));content.add_child(image);content.add_child(label(item.name,26,SHOP_CARD_TEXT,true));content.add_child(paragraph(item.description,15,SHOP_CARD_MUTED))
+	for line in shop_effect_lines(item):content.add_child(paragraph(line.text,15,SHOP_GAIN if line.positive else SHOP_LOSS))
+	card.modulate.a=0
+	var tween := create_tween();tween.tween_interval(float(reveal.timing.reward));tween.tween_property(card,"modulate:a",1.0,.3)
+	var caption := label("%d chest%s remaining · Level rewards and trader follow"%[int(s.chests.queued),"" if int(s.chests.queued)==1 else "s"],12,SHOP_MUTED);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(caption)
+	var choices := row();choices.alignment=BoxContainer.ALIGNMENT_CENTER;modal_content.add_child(choices)
+	var take := button("Take item",_send.bind("chest:take:"+str(reward.token)),true,true);choices.add_child(take)
+	var reroll := button("Reroll · %d gold"%int(s.chests.rerollCost),_send.bind("chest:reroll:"+str(reward.token)),false,true);choices.add_child(reroll)
+	var sell := button("Sell · %d gold"%int(s.chests.sellPrice),_send.bind("chest:sell:"+str(reward.token)),false,true);choices.add_child(sell)
+	for control in [take,reroll,sell]:control.disabled=true
+	reveal.completed.connect(func():take.disabled=false;sell.disabled=false;reroll.disabled=int(s.gold)<int(s.chests.rerollCost))

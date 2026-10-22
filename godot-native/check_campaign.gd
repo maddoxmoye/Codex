@@ -27,6 +27,12 @@ func run() -> void:
 	check(game.rewards.queue.size()==1,"Nearby earned chest collects manually")
 	game.gain_xp(60);game.wave_left=0;game.update_encounter(.016)
 	check(game.stage=="chest" and game.rewards.ground.is_empty() and game.rewards.queue.size()==2,"Wave auto-collects every chest and opens queue before levels")
+	game.native_hud.refresh()
+	var reveal=game.native_hud.modal_panel.find_child("ChestReveal",true,false)
+	check(reveal!=null and not reveal.finished,"Dedicated native reveal starts before claim buttons")
+	if reveal:
+		reveal.set_process(false);reveal.advance(2.1)
+		check(reveal.finished and reveal.lid.rotation.x< -1.8 and reveal.treasure.visible,"Native chest opens and reward rises before completion")
 	for i in 3:
 		var token: int=game.rewards.current.token
 		check(game.rewards.resolve("take",token),"Sequential chest can be claimed")
