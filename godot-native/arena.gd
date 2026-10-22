@@ -28,7 +28,7 @@ var obstacles: Array[Dictionary] = []
 var materials := {}
 var shapes := {}
 var request := {}
-var equipped := "fire"
+var equipped := "physical"
 var elemental_power := 8.0
 var auto_fire := true
 var running := false
@@ -311,7 +311,7 @@ func start_run(boss_only: bool) -> void:
 	for list in [projectiles,effects,hazards,pickups]:
 		for item in list:item.node.queue_free()
 		list.clear()
-	build.reset();refresh_build()
+	build.reset();equipped="physical";refresh_build()
 	practice=boss_only;wave=3 if boss_only else 1;wave_left=75 if boss_only else 45;wave_kills=0;pending_levels.clear();settlement={};gold_fraction=0;critical_hits=0
 	player_unit.actor.rotation.z=0
 	player_unit.hp=player_unit.maximum;player_unit.position=Vector3(0,0,5);player_unit.clear_status();player_unit.play("Idle",true)
@@ -429,7 +429,6 @@ func consume_command(command: String) -> void:
 		"dash":cast_dash()
 		"salvo":cast_salvo()
 		"auto":auto_fire=not auto_fire
-		"physical","fire","ice","poison":set_element(command)
 
 func read_controls() -> void:
 	if not OS.has_feature("web"):return
@@ -471,10 +470,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_E:cast_salvo()
 			KEY_P,KEY_ESCAPE:consume_command("pause")
 			KEY_F:consume_command("auto")
-			KEY_0:set_element("physical")
-			KEY_1:set_element("fire")
-			KEY_2:set_element("ice")
-			KEY_3:set_element("poison")
 	if gameplay_input_blocked():return
 	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_RIGHT:native_drag=event.pressed
@@ -621,6 +616,7 @@ func buy_item(id: String) -> bool:
 	var result := build.buy(id,gold,equipped)
 	if result.is_empty():return false
 	gold-=int(result.cost)
+	if result.item.has("arrow_type"):set_element(str(result.item.arrow_type))
 	refresh_build()
 	player_unit.hp=minf(player_unit.maximum,player_unit.hp+maxf(0,player_unit.maximum-before)+float(result.item.effects.get("heal",0))*player_unit.maximum)
 	return true

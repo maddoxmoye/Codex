@@ -376,5 +376,44 @@
     "cap": 3,
     "element": "poison",
     "category": "element"
+  },
+  {
+    "id": "fire-quiver",
+    "name": "Ember Quiver",
+    "icon": "quiver",
+    "description": "Equip fire arrows. Replaces your current arrow type and discards its elemental fittings; shared power stays.",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {},
+    "cap": 1,
+    "element": "",
+    "category": "utility",
+    "arrow_type": "fire"
+  },
+  {
+    "id": "ice-quiver",
+    "name": "Rime Quiver",
+    "icon": "quiver",
+    "description": "Equip ice arrows. Replaces your current arrow type and discards its elemental fittings; shared power stays.",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {},
+    "cap": 1,
+    "element": "",
+    "category": "utility",
+    "arrow_type": "ice"
+  },
+  {
+    "id": "poison-quiver",
+    "name": "Nightshade Quiver",
+    "icon": "quiver",
+    "description": "Equip poison arrows. Replaces your current arrow type and discards its elemental fittings; shared power stays.",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {},
+    "cap": 1,
+    "element": "",
+    "category": "utility",
+    "arrow_type": "poison"
   }
 ]

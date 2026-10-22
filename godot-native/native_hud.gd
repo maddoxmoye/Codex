@@ -150,9 +150,6 @@ func build_hud() -> void:
 	xp_bar=make_bar(Color("73b7a5"),4);vitals.add_child(xp_bar);xp_text=label("LEVEL 1 · 0 / 60 XP",10,MUTED);vitals.add_child(xp_text)
 	var skills_anchor := anchored(hud,Control.PRESET_BOTTOM_RIGHT,Rect2(-395,-173,365,132));var skills_column := column(8);skills_anchor.add_child(skills_column);skills_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var skills_row := row(8);skills_column.add_child(skills_row);dash_button=button("SPACE  Windskip",func():_send("dash"));dash_button.custom_minimum_size=Vector2(176,54);skills_row.add_child(dash_button);salvo_button=button("E  Flock & Awe",func():_send("salvo"));salvo_button.custom_minimum_size=Vector2(176,54);skills_row.add_child(salvo_button)
-	var element_row := row(5);skills_column.add_child(element_row)
-	for element in ["physical","fire","ice","poison"]:
-		var b := button("Plain" if element=="physical" else str(element).capitalize(),_send.bind(element));b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=38;b.add_theme_font_size_override("font_size",12);element_row.add_child(b);element_buttons[element]=b
 	fps_text=label("",10,MUTED);fps_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;skills_column.add_child(fps_text)
 	var footer := anchored(hud,Control.PRESET_BOTTOM_WIDE,Rect2(30,-29,-60,22));controls_text=label("WASD Move    Space Dash    E Salvo    Right-drag Orbit    Scroll Zoom    Esc Pause",11,Color("afc0ad"));footer.add_child(controls_text);controls_text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);controls_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	var tour_anchor := anchored(hud,Control.PRESET_CENTER_BOTTOM,Rect2(-250,-104,500,48));tour_buttons=row();tour_anchor.add_child(tour_buttons);tour_buttons.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);tour_buttons.alignment=BoxContainer.ALIGNMENT_CENTER
@@ -401,20 +398,12 @@ func build_shop(s: Dictionary) -> void:
 
 	var sidebar_panel := PanelContainer.new();sidebar_panel.custom_minimum_size.x=260;sidebar_panel.add_theme_stylebox_override("panel",box_style(SHOP_STATS_PANEL,Color("565b61"),16,9));body.add_child(sidebar_panel)
 	var sidebar := column(8);sidebar_panel.add_child(sidebar)
-	sidebar.add_child(label("ROWAN / STATS",11,SHOP_GOLD));sidebar.add_child(label("Current build",22,Color("f4f1e9"),true))
+	sidebar.add_child(label(str(s.archer.name).to_upper()+" / STATS",11,SHOP_GOLD));sidebar.add_child(label("Current build",22,Color("f4f1e9"),true))
 	add_shop_stats(sidebar,s)
 	sidebar.add_child(divider(SHOP_STATS_LINE))
 	sidebar.add_child(label("ARROW ELEMENT",10,Color("aeb4b8")))
-	var element_row := GridContainer.new();element_row.columns=2;element_row.add_theme_constant_override("h_separation",5);element_row.add_theme_constant_override("v_separation",5);sidebar.add_child(element_row)
-	for element in ["physical","fire","ice","poison"]:
-		var active: bool=element==s.element
-		var b := button("Plain" if element=="physical" else str(element).capitalize(),_send.bind(element))
-		b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=35;b.add_theme_font_size_override("font_size",10)
-		var accent: Color=ELEMENTS[element]
-		b.add_theme_stylebox_override("normal",box_style(Color(accent,.23) if active else Color("31363a"),accent if active else Color("555b60"),8,5))
-		b.add_theme_stylebox_override("hover",box_style(Color(accent,.34),accent,8,5))
-		b.add_theme_color_override("font_color",accent if active else Color("c2c6c9"));b.add_theme_color_override("font_hover_color",accent.lightened(.14));element_row.add_child(b)
-	sidebar.add_child(paragraph("Element gear follows the equipped arrow type. Shared gear stays with Rowan.",10,Color("aeb4b8")))
+	sidebar.add_child(label(str(s.element).capitalize()+" arrows",17,ELEMENTS[s.element]))
+	sidebar.add_child(paragraph("Purchase a quiver to change arrows. Old elemental fittings are discarded; shared gear stays.",10,Color("aeb4b8")))
 
 	var footer := row(10);modal_content.add_child(footer)
 	var settings_button := button("Settings",open_settings);settings_button.add_theme_color_override("font_color",SHOP_INK);settings_button.add_theme_stylebox_override("normal",box_style(Color("e8e4dc"),Color("aaa59a"),12,6));footer.add_child(settings_button)
@@ -546,6 +535,7 @@ func effect_delta_text(key: String, value: float) -> String:
 			return "%s%d%% %s"%[sign,roundi(magnitude*100),effect_display_name(key)]
 
 func shop_effect_lines(item: Dictionary) -> Array[Dictionary]:
+	if item.has("arrow_type"):return [{"text":"Equip "+str(item.arrow_type).capitalize()+" arrows","positive":true}]
 	var lines: Array[Dictionary]=[]
 	var effects: Dictionary=item.get("effects",{})
 	for key in effects:

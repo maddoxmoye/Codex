@@ -48,6 +48,7 @@ func stats() -> Dictionary:
 	return result
 
 func eligible(item: Dictionary, element: String) -> bool:
+	if item.get("arrow_type","")==element:return false
 	if item.element!="" and item.element!=element:return false
 	if int(ranks.get(item.id,0))>=int(item.cap):return false
 	var s := stats()
@@ -172,7 +173,7 @@ func choose_training(id: String, token: int) -> Dictionary:
 
 func discard_element(element: String, next: String) -> void:
 	for entry in history:
-		if entry.get("element","")==element and entry.status=="active":
+		if (entry.get("element","")==element or entry.get("arrow_type","")==element) and entry.status=="active":
 			entry.status="discarded";ranks.erase(entry.id)
 	# Keep the same slots and cache each variant until a paid reroll/new camp.
 	# Plain arrows (or exhausted elemental stock) receive a general-item fallback.

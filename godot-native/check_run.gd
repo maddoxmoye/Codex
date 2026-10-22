@@ -17,6 +17,8 @@ func advance(seconds: float) -> void:
 func run() -> void:
 	game=load("res://arena.tscn").instantiate();root.add_child(game);game.set_process(false);game.manual_test=true
 	game.start_run(false);game.auto_fire=false
+	check(game.equipped=="physical" and game.native_hud.element_buttons.is_empty(),"Start with basic arrows and no element selector")
+	game.consume_command("fire");check(game.equipped=="physical","Commands cannot grant free elemental arrows")
 	check(game.wave==1 and game.wave_left==45,"Normal run begins at 45 seconds")
 	check(not game.buy_item("quiver") and not game.reroll_shop() and not game.continue_run(),"Combat cannot access shop actions")
 	game.gold=10;game.player_unit.hp=100
@@ -80,6 +82,10 @@ func run() -> void:
 	game.gold=0;var revision: int=game.build.revision
 	check(not game.reroll_shop() and game.build.revision==revision,"Unaffordable reroll cannot alter inventory")
 	# Element-specific purchases are discarded on swap; shared power survives.
+	game.gold=200;stock(["fire-quiver","ice-quiver"])
+	check(game.buy_item("fire-quiver") and game.equipped=="fire","Buying Ember Quiver equips fire")
+	check(game.buy_item("ice-quiver") and game.equipped=="ice","Buying Rime Quiver swaps equipped arrows")
+	check(game.build.history.any(func(item):return item.id=="fire-quiver" and item.status=="discarded"),"Replaced quiver is visibly discarded in inventory")
 	game.set_element("fire");game.gold=100;stock(["ember-vial","cinder","coalglass","heartwood"])
 	check(game.buy_item("ember-vial") and game.run_stats.burn_bonus>.3,"Fire vial improves actual burn multiplier")
 	var shared: float=game.elemental_power
