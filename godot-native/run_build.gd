@@ -3,7 +3,8 @@ extends RefCounted
 const RARITY_WEIGHTS := {"common":50.0,"uncommon":30.0,"rare":12.0,"mythic":1.0}
 const TRAINING_RARITY_WEIGHTS := {"common":46.0,"uncommon":31.0,"rare":18.0,"mythic":5.0}
 const TRAINING_RARITY_MULTIPLIERS := {"common":1.0,"uncommon":1.35,"rare":1.75,"mythic":2.35}
-const SHOP_WAVE_PRICE_STEP := 0.12
+const SHOP_RARITY_PRICE_MULTIPLIERS := {"common":1.0,"uncommon":1.10,"rare":1.20,"mythic":1.35}
+const SHOP_REPEAT_PRICE_STEP := 0.10
 const BASE := {"max_hp":140.0,"damage":22.0,"damage_bonus":0.0,"elemental_power":8.0,"armor":0.0,"speed_bonus":0.0,"pickup_radius":2.0,"economy":0.0,"salvage":.5,"gold_bonus":0.0,"attack_speed":0.0,"pet_damage":1.0,"crit":0.0,"heal_kill":0.0,"regen":0.0,"mending":0.0,"haste":0.0,"revive":0.0,"burn_bonus":0.0,"venom_bonus":0.0,"duration":0.0,"element_bonus":0.0,"slow_bonus":0.0,"stacks":4.0}
 const TRAINING := [
 	{"id":"vitality","name":"Vitality","icon":"heart","description":"+18 maximum health and heal 18.","effects":{"max_hp":18}},
@@ -38,7 +39,7 @@ func stats() -> Dictionary:
 		if entry.status!="active":continue
 		for key in entry.effects:
 			if result.has(key):result[key]+=float(entry.effects[key])
-	result.economy=minf(50,result.economy)
+	result.economy=minf(40,result.economy)
 	result.haste=minf(.45,result.haste)
 	result.crit=minf(.6,result.crit)
 	result.salvage=minf(.75,result.salvage)
@@ -48,7 +49,7 @@ func eligible(item: Dictionary, element: String) -> bool:
 	if item.element!="" and item.element!=element:return false
 	if int(ranks.get(item.id,0))>=int(item.cap):return false
 	var s := stats()
-	if item.id=="seal" and s.economy>=50:return false
+	if item.id=="seal" and s.economy>=40:return false
 	if item.id=="watch" and s.haste>=.45:return false
 	return true
 
@@ -86,14 +87,20 @@ func roll(element: String, varied := false) -> void:
 func open_shop(wave: int, element: String) -> void:
 	shop_wave=wave;rerolls=0;roll(element,true)
 
-func wave_price_multiplier() -> float:
-	return 1.0+SHOP_WAVE_PRICE_STEP*maxi(0,shop_wave-1)
+func raw_wave_price(item: Dictionary) -> float:
+	var base: float=float(item.price)
+	var wave_number: float=float(maxi(1,shop_wave))
+	return base+wave_number+(base*.10*wave_number)
+
+func rarity_price_multiplier(item: Dictionary) -> float:
+	return float(SHOP_RARITY_PRICE_MULTIPLIERS.get(str(item.get("rarity","common")),1.0))
 
 func price(item: Dictionary) -> int:
-	var rank_pressure := 1.0+.15*int(ranks.get(item.id,0))
-	var wave_pressure := wave_price_multiplier()
-	var base := float(item.price)*rank_pressure*wave_pressure
-	return maxi(1,int(ceil(base*(1-float(stats().economy)/100)-1e-9)))
+	var raw: float=raw_wave_price(item)
+	var rarity_pressure: float=rarity_price_multiplier(item)
+	var repeat_pressure: float=1.0+SHOP_REPEAT_PRICE_STEP*int(ranks.get(item.id,0))
+	var economy_discount: float=1.0-float(stats().economy)/100.0
+	return maxi(1,int(ceil(raw*rarity_pressure*repeat_pressure*economy_discount-1e-9)))
 
 func reroll_price() -> int:
 	return maxi(1,int(ceil((5+(shop_wave-1)*2+rerolls*5)*(1-float(stats().economy)/100)-1e-9)))
