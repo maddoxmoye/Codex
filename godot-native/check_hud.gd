@@ -70,9 +70,10 @@ func run() -> void:
 	var history_size: int=game.build.history.size()
 	var purchase_buttons:=buttons(hud.modal_panel,"Buy item")
 	check(not purchase_buttons.is_empty(),"Shop has purchasable stock")
+	var cards_before: int=buttons(hud.modal_panel,"Buy item").size()
 	if not purchase_buttons.is_empty():purchase_buttons[0].pressed.emit()
 	await settle();check(game.gold<500 and game.build.history.size()==history_size+1,"Purchase button charges coins and equips an item")
-	check(buttons(hud.modal_panel,"Packed").size()==1,"Purchased slot remains visibly sold")
+	check(buttons(hud.modal_panel,"Buy item").size()==cards_before-1,"Purchased item disappears from shop")
 	var before_reroll: int=game.build.reroll_price();click("Reroll");await settle()
 	check(game.build.reroll_price()>before_reroll,"Reroll button increases this visit's price")
 	# The canvas scales to the window; validate at both supported desktop sizes.
