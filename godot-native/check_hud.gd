@@ -63,18 +63,27 @@ func run() -> void:
 	hud._return_title();await settle();click("Visit the trader");await settle()
 	check(game.stage=="training" and hud.current_modal=="training","Trader preview starts with its own level reward screen")
 	check(buttons(hud.modal_panel,"Choose").size()==4,"Level reward presents four independent choices")
+	check(hud.modal_panel.find_children("TrainingBoost","Label",true,false).size()>=4,"Level rewards show boosted stat values")
+	var rarity_count := 0
+	for item in game.build.draft:
+		if str(item.get("rarity","")) in ["common","uncommon","rare","mythic"]:rarity_count+=1
+	check(rarity_count==4,"Level rewards carry explicit rarities")
 	var coins: int=game.gold
 	click("Choose");await settle();check(game.stage=="shop" and game.gold==coins,"Free choice advances to shop without spending gold")
 	check(hud.current_modal=="shop" and buttons(hud.modal_panel,"Choose").is_empty(),"Shop replaces the separate reward menu")
 	check(hud.modal_panel.find_children("ShopStatLine","Label",true,false).size()>=4,"Shop shows direct stat deltas for each offer")
 	game.gold=500;hud.refresh();await settle()
 	var history_size: int=game.build.history.size()
-	var purchase_buttons:=buttons(hud.modal_panel,"Buy")
-	check(not purchase_buttons.is_empty(),"Shop has purchasable stock")
-	var cards_before: int=buttons(hud.modal_panel,"Buy").size()
-	if not purchase_buttons.is_empty():purchase_buttons[0].pressed.emit()
-	await settle();check(game.gold<500 and game.build.history.size()==history_size+1,"Purchase button charges coins and equips an item")
-	check(buttons(hud.modal_panel,"Buy").size()==cards_before-1,"Purchased item disappears from shop")
+	var purchase_buttons:=hud.modal_panel.find_children("ShopPurchase","Button",true,false)
+	check(not purchase_buttons.is_empty(),"Shop has purchasable price ribbons")
+	var cards_before: int=purchase_buttons.size()
+	if not purchase_buttons.is_empty():
+		var purchase: Button=purchase_buttons[0]
+		check(purchase.text=="","Purchase ribbon has no Buy text")
+		check(purchase.find_child("ShopPrice",true,false)!=null,"Purchase ribbon shows a numeric price")
+		purchase.pressed.emit()
+	await settle();check(game.gold<500 and game.build.history.size()==history_size+1,"Purchase ribbon charges coins and equips an item")
+	check(hud.modal_panel.find_children("ShopPurchase","Button",true,false).size()==cards_before-1,"Purchased item disappears from shop")
 	check(hud.modal_panel.find_children("OwnedItemTile","PanelContainer",true,false).size()>0,"Purchased and trained items appear in owned inventory")
 	var before_reroll: int=game.build.reroll_price();click("Reroll");await settle()
 	check(game.build.reroll_price()>before_reroll,"Reroll button increases this visit's price")
