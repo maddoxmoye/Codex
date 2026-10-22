@@ -126,16 +126,16 @@
     "category": "utility"
   },
   {
-    "id": "bandages",
-    "name": "Field Bandages",
-    "icon": "bandage",
-    "description": "A fresh dressing for the trail. Restore 35% of maximum health now.",
-    "price": 12,
+    "id": "mending-moss",
+    "name": "Mending Moss",
+    "icon": "sprig",
+    "description": "A soft woodland poultice that knits wounds once danger passes. After 5 seconds without taking damage, regenerate 1% maximum health per second.",
+    "price": 16,
     "rarity": "common",
     "effects": {
-      "heal": 0.35
+      "mending": 0.01
     },
-    "cap": 8,
+    "cap": 3,
     "element": "",
     "category": "utility"
   },
