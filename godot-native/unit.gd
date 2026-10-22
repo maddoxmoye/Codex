@@ -40,7 +40,8 @@ const BLEND_DURATION := .08
 static var shader: Shader
 static var gait_cache := {}
 const LOWER_BODY := ["hips","thigh.L","shin.L","foot.L","thigh.R","shin.R","foot.R"]
-const AIMING_CLIPS := ["Idle","Run","Shoot","RunShoot","Salvo"]
+const ARCHERS := ["rowan","ash","briar","nyx","pip"]
+const AIMING_CLIPS := ["Idle","Run","Shoot","RunShoot","Salvo","Arrowpalooza","Quiverquake","HuntersMoon","Gearstorm","HareTrigger","Shell","Bramble","BorrowedTime"]
 const RUN_STRIDE_SPEED := 2.27272727
 var motion_enabled := false
 var motion_target := Vector3.ZERO
@@ -71,7 +72,7 @@ func configure(id: String) -> void:
 	animation.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	for name in animation.get_animation_list():animation.get_animation(name).loop_mode = Animation.LOOP_NONE
 	match id:
-		"rowan":maximum=140;radius=.4;height=2.15;speed=5.0
+		"rowan","ash","briar","nyx","pip":maximum=140;radius=.4;height=2.15;speed=5.0
 		"fox":maximum=1;radius=.25;height=.95;speed=4.5
 		"briar-king":maximum=1200;radius=1.0;height=4.05;speed=1.65
 		"sporecaller":maximum=90;radius=.42;height=1.6;speed=1.35
@@ -93,7 +94,7 @@ func configure(id: String) -> void:
 				mat.set_shader_parameter("surface_kind",1.0 if id=="fox" else 2.0 if id in ["briarling","briar-king"] else 0.0)
 				mesh.set_surface_override_material(i,mat)
 				materials.append(mat)
-	if id=="rowan":
+	if id in ARCHERS:
 		play("Shoot")
 		animation.seek(1.75,true)
 		var direction := socket("bow")+Vector3.UP*.08-socket("bowstring")
@@ -109,7 +110,7 @@ func configure(id: String) -> void:
 func play(name: String, restart := false) -> void:
 	if clip==name and not restart and animation.current_animation==name:return
 	if not animation.has_animation(name):name="Idle"
-	if motion_enabled and kind=="rowan" and clip not in AIMING_CLIPS and name in AIMING_CLIPS:motion_layer=0.0
+	if motion_enabled and kind in ARCHERS and clip not in AIMING_CLIPS and name in AIMING_CLIPS:motion_layer=0.0
 	# AnimationPlayer's own crossfade clock does not progress through seek().
 	# Sample unblended authored poses, then blend local bones on our simulation clock.
 	blend_from.clear()
@@ -130,7 +131,7 @@ func pose(dt: float, rate := 1.0) -> void:
 		anim_time += dt*rate
 		var length := animation.get_animation(clip).length
 		var sample_time := fmod(anim_time,length) if clip in ["Idle","Run","RunShoot","Trot"] else minf(anim_time,length)
-		if motion_enabled and ((kind=="fox" and clip=="Trot") or (kind=="rowan" and clip=="Run")):
+		if motion_enabled and ((kind=="fox" and clip=="Trot") or (kind in ARCHERS and clip=="Run")):
 			sample_time=fposmod(gait_time,length)
 		animation.seek(sample_time,true)
 		blend_elapsed = minf(BLEND_DURATION,blend_elapsed+dt)
@@ -138,7 +139,7 @@ func pose(dt: float, rate := 1.0) -> void:
 			var weight := smoothstep(0,BLEND_DURATION,blend_elapsed)
 			for i in skeleton.get_bone_count():
 				skeleton.set_bone_pose(i,blend_from[i].interpolate_with(skeleton.get_bone_pose(i),weight))
-		if motion_enabled and kind=="rowan" and clip in AIMING_CLIPS:layer_gait()
+		if motion_enabled and kind in ARCHERS and clip in AIMING_CLIPS:layer_gait()
 		if motion_enabled and kind=="fox":layer_fox_turn()
 	flash = maxf(0,flash-dt)
 	var tint := Color("ef564e") if fire_time>0 else Color("61c9ee") if ice_time>0 else Color("b16de5")
@@ -165,6 +166,17 @@ func reset_motion() -> void:
 func prepare_gait() -> void:
 	for name in LOWER_BODY:gait_bones.append(skeleton.find_bone(name))
 	spine_bone=skeleton.find_bone("spine");bow_bone=skeleton.find_bone("bow");cape_bone=skeleton.find_bone("cape")
+	if kind!="rowan":
+		var reference: Node3D=load("res://assets/rowan-motion.glb").instantiate()
+		var player: AnimationPlayer=reference.find_children("*","AnimationPlayer",true,false)[0]
+		var path := str(animation.get_animation("Run").track_get_path(0)).split(":")[0]
+		var run: Animation=player.get_animation("Run").duplicate()
+		for track in run.get_track_count():
+			var bone := str(run.track_get_path(track)).split(":")[1]
+			run.track_set_path(track,NodePath(path+":"+bone))
+		animation.get_animation_library("").remove_animation("Run")
+		animation.get_animation_library("").add_animation("Run",run)
+		reference.free()
 	gait_length=animation.get_animation("Run").length
 	if not gait_cache.has(kind):
 		var frames: Array=[]
@@ -193,7 +205,7 @@ func update_motion(dt: float) -> void:
 	gait_yaw=lerp_angle(gait_yaw,clampf(angle,-1.30,1.30),1-exp(-dt*12))
 	gait_weight=lerpf(gait_weight,smoothstep(.06,1.1,actual_speed),1-exp(-dt*14))
 	motion_layer=minf(1,motion_layer+dt*8)
-	if kind=="rowan":
+	if kind in ARCHERS:
 		gait_time+=dt*motion_target.length()/RUN_STRIDE_SPEED*(-1 if backward else 1)
 	elif kind=="fox":
 		gait_time+=dt*clampf(actual_speed/1.9,.0,2.6)
@@ -243,7 +255,7 @@ func socket(bone: String, offset := Vector3.ZERO) -> Vector3:
 func face(point: Vector3, dt: float, turn := 14.0) -> void:
 	var delta := point-global_position
 	if Vector2(delta.x,delta.z).length()<.02:return
-	rotation.y = rotate_toward(rotation.y,atan2(delta.x,delta.z)-(base_aim if kind=="rowan" else 0.0),dt*turn)
+	rotation.y = rotate_toward(rotation.y,atan2(delta.x,delta.z)-(base_aim if kind in ARCHERS else 0.0),dt*turn)
 
 func clear_status() -> void:
 	fire_time=0;poison_time=0;poison_stacks=0;ice_time=0;dot_clock=0

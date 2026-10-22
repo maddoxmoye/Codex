@@ -13,6 +13,7 @@ const TRAINING := [
 	{"id":"guard","name":"Resilience","icon":"shield","description":"+1 armor. Reduce damage from every attack.","effects":{"armor":1}},
 	{"id":"stride","name":"Footwork","icon":"boots","description":"+5% movement speed.","effects":{"speed_bonus":.05}}
 ]
+var character_base := {}
 var catalog: Array = []
 var history: Array[Dictionary] = []
 var ranks := {}
@@ -35,6 +36,7 @@ func reset() -> void:
 
 func stats() -> Dictionary:
 	var result := BASE.duplicate()
+	result.merge(character_base,true)
 	for entry in history:
 		if entry.status!="active":continue
 		for key in entry.effects:

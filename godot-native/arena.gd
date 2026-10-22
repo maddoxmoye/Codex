@@ -1,4 +1,7 @@
 extends Node3D
+const Archers := preload("res://archer_catalog.gd")
+var selected_archer := "rowan"
+var archer: Dictionary = Archers.get_archer("rowan")
 const Build := preload("res://run_build.gd")
 const Unit := preload("res://unit.gd")
 const COLORS := {"physical":"e8d8a8","fire":"f35e51","ice":"66ccec","poison":"b071e4"}
@@ -282,7 +285,19 @@ func make_unit(id: String, at: Vector3) -> HuntUnit:
 		unit.hp_fill = mesh_part(box(Vector3(.70,.045,.030)),material("dfae78" if id!="rowan" else "a7d7a1"),unit.hp_bar,Vector3(0,0,.02))
 	return unit
 
+func select_archer(id: String) -> bool:
+	if not is_title or not Archers.unlocked(id):return false
+	selected_archer=id;archer=Archers.get_archer(id)
+	return true
+
+func load_selected_archer() -> void:
+	if player_unit.kind==selected_archer:return
+	var point := player_unit.position
+	player_unit.free();player_unit=make_unit(selected_archer,point)
+
 func start_run(boss_only: bool) -> void:
+	load_selected_archer()
+	build.character_base=archer.base.duplicate()
 	is_title=false;tour_mode=false;smoothed_move=Vector3.ZERO;camera_kick=0
 	player_unit.reset_motion();fox.reset_motion()
 	if native_fx:native_fx.clear_transients()
@@ -360,7 +375,7 @@ func clamp_position(point: Vector3, radius: float) -> Vector3:
 func move_actor(unit: HuntUnit, delta: Vector3) -> void:
 	var before := unit.position
 	unit.position=clamp_position(unit.position+delta,unit.radius)
-	if unit.has_method("configure_motion") and unit.kind in ["rowan","fox"]:
+	if unit.has_method("configure_motion") and (unit.kind in Archers.IDS or unit.kind=="fox"):
 		unit.configure_motion((unit.position-before)/maxf(.001,simulation_step),simulation_step)
 
 func set_element(name: String) -> bool:
@@ -1074,4 +1089,4 @@ func snapshot() -> Dictionary:
 		if enemy.ice_time>0:statuses.ice+=1
 		if enemy.poison_time>0:statuses.poison+=1
 		enemy_states.append({"kind":enemy.kind,"hp":snappedf(enemy.hp,.1),"state":enemy.state,"clip":enemy.clip,"time":snappedf(enemy.action_time,.01),"x":snappedf(enemy.position.x,.01),"z":snappedf(enemy.position.z,.01),"poison":enemy.poison_stacks})
-	return {"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}
+	return {"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}

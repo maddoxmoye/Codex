@@ -145,7 +145,7 @@ func build_hud() -> void:
 	var boss_name := label("THE BRIAR KING",16,IVORY,true);boss_name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;boss_box.add_child(boss_name)
 	boss_bar=make_bar(Color("c9ac75"),7);boss_box.add_child(boss_bar);boss_text=label("A crown of thorns",9,MUTED);boss_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;boss_box.add_child(boss_text)
 	var vitals_anchor := anchored(hud,Control.PRESET_BOTTOM_LEFT,Rect2(30,-173,335,132));var vitals_panel := PanelContainer.new();vitals_anchor.add_child(vitals_panel);vitals_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);vitals_panel.add_theme_stylebox_override("panel",box_style(Color("101c17e8"),Color("67725877"),18,8));vitals_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var vitals := column(6);vitals_panel.add_child(vitals);var name_row := row();vitals.add_child(name_row);name_row.add_child(label("Rowan",24,IVORY,true));name_row.add_child(flex());hp_text=label("140 / 140",13,IVORY);name_row.add_child(hp_text)
+	var vitals := column(6);vitals_panel.add_child(vitals);var name_row := row();vitals.add_child(name_row);player_name=label("Rowan",24,IVORY,true);name_row.add_child(player_name);name_row.add_child(flex());hp_text=label("140 / 140",13,IVORY);name_row.add_child(hp_text)
 	hp_bar=make_bar(Color("a5c694"),9);vitals.add_child(hp_bar);element_text=label("FIRE ARROWS · POWER 8",10,GOLD);vitals.add_child(element_text)
 	xp_bar=make_bar(Color("73b7a5"),4);vitals.add_child(xp_bar);xp_text=label("LEVEL 1 · 0 / 60 XP",10,MUTED);vitals.add_child(xp_text)
 	var skills_anchor := anchored(hud,Control.PRESET_BOTTOM_RIGHT,Rect2(-395,-173,365,132));var skills_column := column(8);skills_anchor.add_child(skills_column);skills_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -158,25 +158,61 @@ func build_hud() -> void:
 	var tour_anchor := anchored(hud,Control.PRESET_CENTER_BOTTOM,Rect2(-250,-104,500,48));tour_buttons=row();tour_anchor.add_child(tour_buttons);tour_buttons.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);tour_buttons.alignment=BoxContainer.ALIGNMENT_CENTER
 	tour_buttons.add_child(button("Face the King",_begin.bind("boss"),true));tour_buttons.add_child(button("Return to title",_return_title))
 
+var selection_detail: VBoxContainer
+var selection_buttons := {}
+var player_name: Label
+
+func archer_portrait(id: String, parent: Control) -> SubViewportContainer:
+	var holder := SubViewportContainer.new();holder.custom_minimum_size=Vector2(120,170);holder.stretch=true
+	holder.mouse_filter=Control.MOUSE_FILTER_IGNORE;holder.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	parent.add_child(holder)
+	var viewport := SubViewport.new();viewport.size=Vector2i(220,220);viewport.transparent_bg=true
+	viewport.own_world_3d=true;viewport.render_target_update_mode=SubViewport.UPDATE_ONCE;holder.add_child(viewport)
+	var actor := HuntUnit.new();viewport.add_child(actor);actor.configure(id);actor.pose(.4);actor.rotation.y=-.25
+	var light := DirectionalLight3D.new();light.rotation_degrees=Vector3(-35,-25,0);light.light_energy=1.4;viewport.add_child(light)
+	var fill := WorldEnvironment.new();fill.environment=Environment.new();fill.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;fill.environment.ambient_light_color=Color("fff1d6");fill.environment.ambient_light_energy=.7;viewport.add_child(fill)
+	var camera := Camera3D.new();viewport.add_child(camera);camera.position=Vector3(0,1.35,3.8);camera.look_at(Vector3(0,1.05,0));camera.fov=34
+	return holder
+
 func build_title() -> void:
-	title_layer=Control.new();ui.add_child(title_layer);title_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);title_layer.mouse_filter=Control.MOUSE_FILTER_STOP
-	var gradient := Gradient.new();gradient.colors=PackedColorArray([Color("06100ee8"),Color("07100b96"),Color("06100c00")]);gradient.offsets=PackedFloat32Array([0,.47,1])
-	var texture := GradientTexture2D.new();texture.gradient=gradient;texture.fill_from=Vector2.ZERO;texture.fill_to=Vector2.RIGHT
-	var shade := TextureRect.new();shade.texture=texture;shade.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;title_layer.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	title_box=column(15);title_layer.add_child(title_box)
-	title_box.add_child(label("C H A P T E R   I",13,GOLD))
-	title_box.add_child(label("Wildfall",76,IVORY,true))
-	title_box.add_child(label("T H E   E M B E R W O O D",17,GOLD))
-	title_box.add_child(divider(Color("bdad7b66")))
-	title_box.add_child(paragraph("A forgotten crown. A forest that remembers.\nTake Rowan and the Forest Fox into the ruins.",17,Color("c4ccba")))
-	var spacer := Control.new();spacer.custom_minimum_size.y=10;title_box.add_child(spacer)
-	title_box.add_child(button("Face the Briar King   →",_begin.bind("boss"),true))
-	title_box.add_child(button("Play the three-wave hunt",_begin.bind("start")))
-	var options := row();title_box.add_child(options)
-	for pair in [["Explore the ruins","tour"],["Visit the trader","camp"]]:
-		var b := button(pair[0],_begin.bind(pair[1]));b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;options.add_child(b)
-	var lower := row();title_box.add_child(lower);lower.add_child(button("Settings",open_settings));lower.add_child(button("Quit",func():get_tree().quit()))
-	title_footer=label("WASD move  ·  Space dash  ·  E salvo\nRight-drag orbit  ·  F11 fullscreen",12,MUTED);title_box.add_child(title_footer)
+	title_layer=Control.new();ui.add_child(title_layer);title_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade := ColorRect.new();shade.color=SHOP_PANEL;title_layer.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var scroll := ScrollContainer.new();title_layer.add_child(scroll);scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);scroll.offset_left=40;scroll.offset_right=-40;scroll.offset_top=24;scroll.offset_bottom=-24;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	title_box=column(14);title_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(title_box)
+	var heading := row();title_box.add_child(heading);heading.add_child(label("Wildfall",40,SHOP_INK,true));heading.add_child(flex());heading.add_child(label("THE EMBERWOOD   /   CHOOSE YOUR ARCHER",12,SHOP_MUTED))
+	title_box.add_child(divider(SHOP_LINE))
+	var cards := row(14);title_box.add_child(cards)
+	for id in game.Archers.IDS:
+		var info: Dictionary=game.Archers.get_archer(id)
+		var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.size_flags_stretch_ratio=1;cards.add_child(card)
+		card.add_theme_stylebox_override("panel",box_style(Color("e7e2d8"),Color(info.color),12,9))
+		var stack := column(5);card.add_child(stack);archer_portrait(id,stack)
+		var select := button(info.name,select_character.bind(id),false,true);select.name="Select_"+id;select.add_theme_font_size_override("font_size",21);stack.add_child(select);selection_buttons[id]=select
+		var role := label(info.role,12,SHOP_MUTED);role.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;stack.add_child(role)
+	selection_detail=column(12);title_box.add_child(selection_detail);update_character_detail()
+	var controls := row();title_box.add_child(controls)
+	var start := button("Start Run",_begin.bind("start"),true,true);start.custom_minimum_size.x=250;controls.add_child(start);controls.add_child(flex())
+	for pair in [["Explore the ruins","tour"],["Visit the trader","camp"],["Face the Briar King","boss"]]:controls.add_child(button(pair[0],_begin.bind(pair[1]),false,true))
+	controls.add_child(button("Settings",open_settings,false,true));controls.add_child(button("Quit",func():get_tree().quit(),false,true))
+	title_footer=label("WASD move   ·   Space defense   ·   E special   ·   Right-drag orbit   ·   F11 fullscreen",12,SHOP_MUTED);title_box.add_child(title_footer)
+
+func select_character(id: String) -> void:
+	if game.select_archer(id):update_character_detail()
+
+func update_character_detail() -> void:
+	for child in selection_detail.get_children():selection_detail.remove_child(child);child.queue_free()
+	var info: Dictionary=game.archer
+	for id in selection_buttons:
+		selection_buttons[id].text=("✓  " if id==game.selected_archer else "")+game.Archers.get_archer(id).name
+		selection_buttons[id].add_theme_stylebox_override("normal",box_style(Color(info.color) if id==game.selected_archer else Color("e2ded3"),Color("55554d"),12,6))
+	var detail := row(24);selection_detail.add_child(detail)
+	var identity := column(5);identity.size_flags_horizontal=Control.SIZE_EXPAND_FILL;detail.add_child(identity)
+	identity.add_child(label(info.name+"  /  "+info.role,24,SHOP_INK,true));identity.add_child(paragraph(info.description,14,SHOP_MUTED))
+	identity.add_child(paragraph("Basic arrows · No companion yet. Discover elemental quivers and pets at the trader.",13,SHOP_MUTED))
+	for slot in ["space","attack"]:
+		var ability := column(6);ability.custom_minimum_size.x=280;ability.size_flags_horizontal=Control.SIZE_EXPAND_FILL;detail.add_child(ability)
+		ability.add_child(label(("SPACE  /  " if slot=="space" else "E  /  ")+info[slot+"Name"],17,SHOP_INK,true))
+		ability.add_child(paragraph(info[slot+"Detail"],14,SHOP_MUTED));ability.add_child(label("%s second cooldown"%number(info[slot+"Cooldown"]),12,SHOP_MUTED))
 
 func build_modal_root() -> void:
 	modal_layer=Control.new();ui.add_child(modal_layer);modal_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal_layer.mouse_filter=Control.MOUSE_FILTER_STOP
@@ -187,8 +223,7 @@ func build_modal_root() -> void:
 func layout() -> void:
 	if not is_instance_valid(title_box):return
 	var viewport: Vector2=get_viewport().get_visible_rect().size
-	title_box.position=Vector2(maxf(50,viewport.x*.075),maxf(35,(viewport.y-650)*.5))
-	title_box.size=Vector2(minf(540,viewport.x*.43),650)
+	title_box.custom_minimum_size.x=maxf(0,viewport.x-100)
 	if is_instance_valid(modal_panel):
 		var width: float=minf(1320,viewport.x-72) if current_modal=="shop" else minf(1140,viewport.x-72) if current_modal=="training" else minf(990,viewport.x-72)
 		var height: float=minf(790,viewport.y-64) if current_modal=="shop" else minf(650,viewport.y-64)
@@ -224,6 +259,7 @@ func refresh() -> void:
 	current_preset=str(game.get("graphics_preset"));current_volume=float(game.get("master_volume"))
 	var title: bool=bool(game.get("is_title"));var tour: bool=bool(game.get("tour_mode"))
 	title_layer.visible=title;hud.visible=not title
+	player_name.text=s.archer.name
 	gold_text.text=str(int(s.gold));hp_text.text="%d / %d"%[ceili(float(s.hp)),int(s.maxHp)];hp_bar.max_value=float(s.maxHp);hp_bar.value=float(s.hp)
 	xp_bar.max_value=float(s.xpNeeded);xp_bar.value=float(s.xp);xp_text.text="LEVEL %d · %d / %d XP"%[int(s.level),int(s.xp),int(s.xpNeeded)]
 	if not s.pendingLevels.is_empty():xp_text.text+=" · %d FREE PICK"%s.pendingLevels.size()

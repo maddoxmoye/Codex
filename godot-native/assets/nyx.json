@@ -1,0 +1,33 @@
+{
+  "space": "Bramble",
+  "attack": "HuntersMoon",
+  "spaceName": "Bramble Bouncer",
+  "attackName": "Hunter\u2019s Moon",
+  "spaceDuration": 1.5,
+  "attackDuration": 4.0,
+  "spaceCooldown": 9.0,
+  "attackCooldown": 14.0,
+  "color": "b69ce6",
+  "damage": 15.0,
+  "description": "A warding open-hand sweep and a crescent-lit empowered draw.",
+  "spaceDetail": "Pushes enemies away, clears hostile shots, blocks damage for 1.5s.",
+  "attackDetail": "Double physical and elemental arrow impact damage for 4s.",
+  "id": "nyx",
+  "name": "Nyx",
+  "role": "Moonstring",
+  "file": "nyx-motion.glb",
+  "clips": {
+    "Idle": 3.2,
+    "Run": 0.8,
+    "Shoot": 3.2,
+    "Bramble": 1.5,
+    "HuntersMoon": 4.4
+  },
+  "bones": 22,
+  "triangles": 6134,
+  "anchorTime": 1.75,
+  "releaseTime": 1.82,
+  "attackCycle": 1.6,
+  "burstReleaseTime": 0.35,
+  "notes": "Review choreography uses readable windups and slower base archery. Existing gameplay values are unchanged."
+}

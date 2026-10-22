@@ -1,0 +1,33 @@
+{
+  "space": "Shell",
+  "attack": "Quiverquake",
+  "spaceName": "Shell Yeah!",
+  "attackName": "Quiverquake",
+  "spaceDuration": 3.0,
+  "attackDuration": 0.0,
+  "spaceCooldown": 12.0,
+  "attackCooldown": 8.0,
+  "color": "83becb",
+  "damage": 16.0,
+  "description": "A planted armored brace and a heavy twelve-arrow ground burst.",
+  "spaceDetail": "Blocks all damage for 3s.",
+  "attackDetail": "Close-range blast plus 12 arrows in a ring.",
+  "id": "briar",
+  "name": "Briar",
+  "role": "Ironwarden",
+  "file": "briar-motion.glb",
+  "clips": {
+    "Idle": 3.2,
+    "Run": 0.8,
+    "Shoot": 3.2,
+    "Shell": 3.0,
+    "Quiverquake": 1.2
+  },
+  "bones": 22,
+  "triangles": 6346,
+  "anchorTime": 1.75,
+  "releaseTime": 1.82,
+  "attackCycle": 1.2,
+  "burstReleaseTime": 0.35,
+  "notes": "Review choreography uses readable windups and slower base archery. Existing gameplay values are unchanged."
+}
