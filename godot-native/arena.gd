@@ -1,5 +1,6 @@
 extends Node3D
 const Archers := preload("res://archer_catalog.gd")
+var pets := preload("res://pet_director.gd").new()
 var abilities := preload("res://archer_abilities.gd").new()
 var selected_archer := "rowan"
 var archer: Dictionary = Archers.get_archer("rowan")
@@ -144,7 +145,7 @@ func ring(radius: float, color: String, alpha := .6) -> MeshInstance3D:
 
 func _ready() -> void:
 	Engine.max_fps = 60
-	abilities.setup(self)
+	abilities.setup(self);pets.setup(self)
 	rng.seed = 8237
 	world = WorldEnvironment.new()
 	world.environment = Environment.new()
@@ -164,7 +165,7 @@ func _ready() -> void:
 	add_child(sun)
 	build_world()
 	player_unit = make_unit("rowan",Vector3(0,0,5))
-	fox = make_unit("fox",Vector3(-1.7,0,6))
+	fox = make_unit("fox",Vector3(-1.7,0,6));fox.hide()
 	camera = Camera3D.new()
 	camera.fov = 52
 	camera.near = .08
@@ -207,6 +208,7 @@ func begin_mode(mode: String) -> void:
 	sync_mouse_mode()
 
 func return_to_title() -> void:
+	pets.reset()
 	clear_combat()
 	for item in pickups:item.node.queue_free()
 	pickups.clear()
@@ -299,7 +301,7 @@ func load_selected_archer() -> void:
 
 func start_run(boss_only: bool) -> void:
 	load_selected_archer()
-	abilities.reset()
+	abilities.reset();pets.reset()
 	build.character_base=archer.base.duplicate()
 	is_title=false;tour_mode=false;smoothed_move=Vector3.ZERO;camera_kick=0
 	player_unit.reset_motion();fox.reset_motion()
@@ -558,6 +560,7 @@ func spawn_reinforcement() -> void:
 
 func refresh_build() -> void:
 	run_stats=build.stats()
+	pets.sync_build()
 	elemental_power=float(run_stats.elemental_power)
 	if is_instance_valid(player_unit):
 		player_unit.maximum=float(run_stats.max_hp)
@@ -722,7 +725,8 @@ func update_enemy(enemy: HuntUnit, dt: float) -> void:
 		enemy.dead_time+=dt
 		enemy.pose(dt)
 		return
-	dt*=abilities.slow_at(enemy.position)
+	enemy.slow_time=maxf(0,enemy.slow_time-dt)
+	dt*=abilities.slow_at(enemy.position)*(1-enemy.slow_amount if enemy.slow_time>0 else 1.0)
 	update_status(enemy,dt)
 	if enemy.hp<=0:return
 	enemy.cooldown=maxf(0,enemy.cooldown-dt)
@@ -877,37 +881,7 @@ func hurt_player(amount: float, _source: String) -> bool:
 	return true
 
 func update_fox(dt: float) -> void:
-	fox_cooldown=maxf(0,fox_cooldown-dt)
-	if fox_attacking:
-		if fox.has_method("configure_motion"):fox.configure_motion(Vector3.ZERO,dt)
-		fox_clock+=dt
-		if is_instance_valid(fox_target) and fox_target.hp>0:fox.face(fox_target.position,dt,7)
-		if fox_clock>=.32 and not fox_fired:
-			fox_fired=true
-			if is_instance_valid(fox_target) and fox_target.hp>0:
-				var start := fox.socket("head",Vector3(0,.321,.014))
-				var direction := (fox_target.position+Vector3.UP*fox_target.height*.47-start).normalized()
-				for side in [-1,0,1]:spawn_bolt(start,direction.rotated(Vector3.UP,side*.08),"pet",6,"dart")
-		fox.pose(dt)
-		if fox_clock>=.85:fox_attacking=false;fox_cooldown=1.1
-		return
-	var target := nearest_enemy(player_unit.position,8)
-	var goal := player_unit.position+Vector3(sin(clock*.2)*2,0,cos(clock*.2)*2)
-	if is_instance_valid(target):
-		goal=target.position+(player_unit.position-target.position).normalized()*3.5+Vector3(-1.2,0,0)
-		var offset := goal-player_unit.position
-		if offset.length()>6:goal=player_unit.position+offset.normalized()*6
-	if fox.position.distance_to(player_unit.position)>9:goal=player_unit.position+Vector3(-1.5,0,1.5)
-	if fox.position.distance_to(goal)>.45:
-		var delta := goal-fox.position
-		move_actor(fox,delta.normalized()*minf(fox.speed*dt,delta.length()))
-		fox.face(goal,dt,5)
-		fox.play("Trot");fox.pose(dt,2)
-	else:
-		if fox.has_method("configure_motion"):fox.configure_motion(Vector3.ZERO,dt)
-		fox.play("Idle");fox.pose(dt)
-	if is_instance_valid(target) and fox.position.distance_to(target.position)<8 and fox.position.distance_to(player_unit.position)<8 and fox_cooldown<=0:
-		fox_target=target;fox_attacking=true;fox_clock=0;fox_fired=false;fox.play("Attack",true)
+	pets.update(dt)
 
 func arrow_mesh(element: String, special: bool) -> Node3D:
 	var node := Node3D.new()
@@ -1054,6 +1028,11 @@ func spawn_pickup(point: Vector3, boss := false) -> void:
 	mesh_part(sphere(.08),material("8bd4bb",.35),node,Vector3(.23,0,0))
 	pickups.append({"node":node,"gold":25 if boss else 6,"xp":50 if boss else 12})
 
+func collect_pickup(index: int) -> void:
+	if index<0 or index>=pickups.size():return
+	var item: Dictionary=pickups[index]
+	earn_gold(float(item.gold));gain_xp(float(item.xp));item.node.queue_free();pickups.remove_at(index)
+
 func update_pickups(dt: float) -> void:
 	for i in range(pickups.size()-1,-1,-1):
 		var item := pickups[i]
@@ -1061,9 +1040,8 @@ func update_pickups(dt: float) -> void:
 		if item.node.position.distance_to(player_unit.position)<float(run_stats.pickup_radius):
 			item.node.position=item.node.position.move_toward(player_unit.position+Vector3.UP*.65,dt*9)
 			if item.node.position.distance_to(player_unit.position+Vector3.UP*.65)<.3:
-				earn_gold(float(item.gold));gain_xp(float(item.xp))
+				collect_pickup(i)
 				if native_fx:native_fx.play_sound("chime",-8)
-				item.node.queue_free();pickups.remove_at(i)
 
 func update_camera(dt: float) -> void:
 	var view_yaw := yaw

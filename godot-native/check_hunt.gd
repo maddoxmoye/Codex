@@ -98,6 +98,7 @@ func run() -> void:
 	game.update_hazards(.8)
 	check(game.taken==10,"Moving out of spore pool avoids its ticks")
 	empty_arena();game.fox_cooldown=0;game.set_element("poison")
+	game.build.record({"id":"fox-test","effects":{"fox":1}},"shop");game.refresh_build()
 	var target=game.spawn_enemy("thornback",Vector3(0,0,4));target.cooldown=100
 	game.fox.position=Vector3(-1,0,1)
 	for i in 200:

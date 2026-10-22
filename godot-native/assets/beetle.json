@@ -1,0 +1,16 @@
+{
+  "id": "beetle",
+  "name": "Lantern Beetle",
+  "file": "beetle-motion.glb",
+  "clips": {
+    "Idle": 3.2,
+    "Crawl": 0.8,
+    "Fly": 0.4,
+    "Collect": 1.0,
+    "Deliver": 1.0
+  },
+  "bones": 14,
+  "triangles": 2332,
+  "collectTime": 0.48,
+  "notes": "Non-combat collector. Visual flight, pickup and delivery; does not create or award saved currency."
+}

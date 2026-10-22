@@ -428,7 +428,7 @@ func add_shop_stats(parent: VBoxContainer, s: Dictionary) -> void:
 		["Economy","%d%%"%int(p.economy),SHOP_GOLD],
 		["Gold earned","+%d%%"%roundi(float(p.gold_bonus)*100),SHOP_GOLD],
 		["Ground recovery","%d%%"%roundi(float(p.salvage)*100),SHOP_GOLD],
-		["Fox damage","%.2f×"%float(p.pet_damage),Color("d4b07c")],
+		["Pet damage","%.2f×"%float(p.pet_damage),Color("d4b07c")],
 		["Critical chance","%d%%"%roundi(float(p.crit)*100),Color("f0a6c6")],
 		["Cooldown reduction","%d%%"%roundi(float(p.haste)*100),Color("b8a8ff")],
 		["Regeneration","%.1f / sec"%float(p.regen),Color("8ee89e")]
@@ -535,6 +535,7 @@ func effect_delta_text(key: String, value: float) -> String:
 			return "%s%d%% %s"%[sign,roundi(magnitude*100),effect_display_name(key)]
 
 func shop_effect_lines(item: Dictionary) -> Array[Dictionary]:
+	if item.effects.has("fox") or item.effects.has("wolf") or item.effects.has("beetle"):return [{"text":"Recruit companion","positive":true}]
 	if item.has("arrow_type"):return [{"text":"Equip "+str(item.arrow_type).capitalize()+" arrows","positive":true}]
 	var lines: Array[Dictionary]=[]
 	var effects: Dictionary=item.get("effects",{})
@@ -590,7 +591,7 @@ func shop_card(item: Dictionary, s: Dictionary) -> Control:
 
 func add_stats(parent: VBoxContainer, s: Dictionary, compact:=false) -> void:
 	var p: Dictionary=s.build.stats;var arrow: float=float(p.damage)*(1+float(p.damage_bonus))+(float(p.elemental_power)*(1+float(p.element_bonus)) if str(s.element)!="physical" else 0)
-	var stats: Array=[["Maximum health",number(float(p.max_hp))],["Arrow damage",number(arrow)],["Elemental power",number(float(p.elemental_power))],["Armor",number(float(p.armor))+" · %d%% reduction"%roundi(float(p.armor)/(20+float(p.armor))*100)],["Move speed","%.2f m/s"%(5*(1+float(p.speed_bonus)))],["Attack cadence","%.2f sec"%(.8/(1+float(p.attack_speed)))],["Pickup radius","%.2f m"%float(p.pickup_radius)],["Economy","%d%% savings"%int(p.economy)],["Gold earned","+%d%%"%roundi(float(p.gold_bonus)*100)],["Ground recovery","%d%%"%roundi(float(p.salvage)*100)],["Fox damage","%.2f×"%float(p.pet_damage)],["Critical chance","%d%%"%roundi(float(p.crit)*100)],["Cooldown reduction","%d%%"%roundi(float(p.haste)*100)],["Regeneration","%.1f / sec"%float(p.regen)],["Mending","%d%% max HP/sec after 5s"%roundi(float(p.mending)*100)]]
+	var stats: Array=[["Maximum health",number(float(p.max_hp))],["Arrow damage",number(arrow)],["Elemental power",number(float(p.elemental_power))],["Armor",number(float(p.armor))+" · %d%% reduction"%roundi(float(p.armor)/(20+float(p.armor))*100)],["Move speed","%.2f m/s"%(5*(1+float(p.speed_bonus)))],["Attack cadence","%.2f sec"%(.8/(1+float(p.attack_speed)))],["Pickup radius","%.2f m"%float(p.pickup_radius)],["Economy","%d%% savings"%int(p.economy)],["Gold earned","+%d%%"%roundi(float(p.gold_bonus)*100)],["Ground recovery","%d%%"%roundi(float(p.salvage)*100)],["Pet damage","%.2f×"%float(p.pet_damage)],["Critical chance","%d%%"%roundi(float(p.crit)*100)],["Cooldown reduction","%d%%"%roundi(float(p.haste)*100)],["Regeneration","%.1f / sec"%float(p.regen)],["Mending","%d%% max HP/sec after 5s"%roundi(float(p.mending)*100)]]
 	if str(s.element)=="fire":stats.append(["Burn damage","%.1f / sec"%(float(p.elemental_power)*.75*(1+float(p.burn_bonus)))]);stats.append(["Burn duration","%.1f sec"%(3+float(p.duration))])
 	elif str(s.element)=="ice":stats.append(["Ice slow","%d%%"%roundi(minf(.6,.35+float(p.slow_bonus))*100)]);stats.append(["Ice duration","%.1f sec"%(2.5+float(p.duration))])
 	elif str(s.element)=="poison":stats.append(["Poison / stack","%.1f / sec"%(float(p.elemental_power)*.375*(1+float(p.venom_bonus)))]);stats.append(["Poison stacks",str(int(p.stacks))])

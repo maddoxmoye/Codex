@@ -155,9 +155,9 @@
   },
   {
     "id": "fox-charm",
-    "name": "Fox Charm",
+    "name": "Companion Charm",
     "icon": "paw",
-    "description": "A carved tribute to your companion. +25% fox dart damage; darts stay physical.",
+    "description": "A carved tribute to your allies. +25% fox and wolf damage; independent of arrow element.",
     "price": 22,
     "rarity": "uncommon",
     "effects": {
@@ -165,7 +165,11 @@
     },
     "cap": 3,
     "element": "",
-    "category": "gear"
+    "category": "gear",
+    "pet_required": [
+      "fox",
+      "wolf"
+    ]
   },
   {
     "id": "lodestone",
@@ -415,5 +419,82 @@
     "element": "",
     "category": "utility",
     "arrow_type": "poison"
+  },
+  {
+    "id": "fox-companion",
+    "name": "Forest Fox Whistle",
+    "description": "Call an independent fox that fires three physical darts.",
+    "icon": "paw",
+    "price": 28,
+    "rarity": "uncommon",
+    "effects": {
+      "fox": 1
+    },
+    "cap": 1,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "wolf-companion",
+    "name": "Wild Wolf Whistle",
+    "description": "Call a wolf with a powerful physical bite and a slowing howl.",
+    "icon": "paw",
+    "price": 28,
+    "rarity": "uncommon",
+    "effects": {
+      "wolf": 1
+    },
+    "cap": 1,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "beetle-companion",
+    "name": "Lantern Beetle Brooch",
+    "description": "Call a gentle collector that retrieves nearby gold and experience.",
+    "icon": "brooch",
+    "price": 28,
+    "rarity": "uncommon",
+    "effects": {
+      "beetle": 1
+    },
+    "cap": 1,
+    "element": "",
+    "category": "utility"
+  },
+  {
+    "id": "pet-bell",
+    "name": "Fleetpaw Bell",
+    "description": "A tiny silver bell. Companion attack and howl recovery is 15% faster.",
+    "icon": "bell",
+    "price": 24,
+    "rarity": "uncommon",
+    "effects": {
+      "pet_haste": 0.15
+    },
+    "pet_required": [
+      "fox",
+      "wolf"
+    ],
+    "cap": 3,
+    "element": "",
+    "category": "gear"
+  },
+  {
+    "id": "beetle-lantern",
+    "name": "Farseeing Lantern",
+    "description": "A brighter lamp for your collector. +2m beetle collection range.",
+    "icon": "lantern",
+    "price": 20,
+    "rarity": "uncommon",
+    "effects": {
+      "collector_radius": 2
+    },
+    "pet_required": [
+      "beetle"
+    ],
+    "cap": 3,
+    "element": "",
+    "category": "utility"
   }
 ]

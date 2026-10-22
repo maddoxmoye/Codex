@@ -17,6 +17,7 @@ func advance(seconds: float) -> void:
 func run() -> void:
 	game=load("res://arena.tscn").instantiate();root.add_child(game);game.set_process(false);game.manual_test=true
 	game.start_run(false);game.auto_fire=false
+	check(game.pets.actors.is_empty(),"Run starts without a companion")
 	check(game.equipped=="physical" and game.native_hud.element_buttons.is_empty(),"Start with basic arrows and no element selector")
 	game.consume_command("fire");check(game.equipped=="physical","Commands cannot grant free elemental arrows")
 	check(game.wave==1 and game.wave_left==45,"Normal run begins at 45 seconds")
@@ -81,6 +82,13 @@ func run() -> void:
 	check(game.build.reroll_price()>first and game.build.offers.size()==4,"Reroll price increases within visit and produces four fresh items")
 	game.gold=0;var revision: int=game.build.revision
 	check(not game.reroll_shop() and game.build.revision==revision,"Unaffordable reroll cannot alter inventory")
+	# Pet purchases activate companions; upgrade eligibility follows ownership.
+	game.gold=1000;stock(["fox-companion","wolf-companion","beetle-companion","fox-charm"])
+	check(not game.build.eligible(game.build.offers[3],game.equipped),"Pet damage upgrades excluded before owning combat pets")
+	for pet_id in ["fox","wolf","beetle"]:
+		check(game.buy_item(pet_id+"-companion"),"Pet can be purchased: "+pet_id)
+		check(game.pets.actors.any(func(actor):return actor.kind==pet_id),"Purchased pet appears: "+pet_id)
+	check(game.buy_item("fox-charm") and game.run_stats.pet_damage>1,"Relevant companion upgrade improves damage")
 	# Element-specific purchases are discarded on swap; shared power survives.
 	game.gold=200;stock(["fire-quiver","ice-quiver"])
 	check(game.buy_item("fire-quiver") and game.equipped=="fire","Buying Ember Quiver equips fire")

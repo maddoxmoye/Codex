@@ -1,0 +1,19 @@
+{
+  "id": "wolf",
+  "name": "Wild Wolf",
+  "file": "wolf-motion.glb",
+  "clips": {
+    "Idle": 3.2,
+    "Trot": 0.72,
+    "Bite": 0.8,
+    "Howl": 1.7
+  },
+  "bones": 22,
+  "triangles": 3590,
+  "biteContact": 0.29,
+  "biteCooldown": 0.8,
+  "howlCooldown": 6.0,
+  "slowDuration": 2.0,
+  "damageMultiplier": 1.3,
+  "notes": "Companion animation study; independent of player element."
+}

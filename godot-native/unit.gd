@@ -29,6 +29,8 @@ var ice_time := 0.0
 var dot_clock := 0.0
 var flash := 0.0
 var dead_time := 0.0
+var slow_time := 0.0
+var slow_amount := 0.0
 var materials: Array[ShaderMaterial] = []
 var hp_bar: Node3D
 var hp_fill: MeshInstance3D
@@ -73,7 +75,7 @@ func configure(id: String) -> void:
 	for name in animation.get_animation_list():animation.get_animation(name).loop_mode = Animation.LOOP_NONE
 	match id:
 		"rowan","ash","briar","nyx","pip":maximum=140;radius=.4;height=2.15;speed=5.0
-		"fox":maximum=1;radius=.25;height=.95;speed=4.5
+		"fox","wolf","beetle":maximum=1;radius=.25;height=.95;speed=4.5
 		"briar-king":maximum=1200;radius=1.0;height=4.05;speed=1.65
 		"sporecaller":maximum=90;radius=.42;height=1.6;speed=1.35
 		"thornback":maximum=145;radius=.6;height=1.6;speed=1.8
