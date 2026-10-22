@@ -297,7 +297,7 @@ func build_shop(s: Dictionary) -> void:
 	var stock_header := row(8);stock.add_child(stock_header)
 	stock_header.add_child(label("TRADER STOCK",11,SHOP_INK))
 	stock_header.add_child(flex())
-	var reroll := button("REROLL",_send.bind("reroll"));reroll.disabled=int(s.gold)<int(s.build.rerollCost);reroll.custom_minimum_size=Vector2(105,36)
+	var reroll := button("Reroll",_send.bind("reroll"));reroll.disabled=int(s.gold)<int(s.build.rerollCost);reroll.custom_minimum_size=Vector2(105,36)
 	reroll.add_theme_stylebox_override("normal",box_style(Color("efebe4"),Color("a7a199"),9,6));reroll.add_theme_stylebox_override("hover",box_style(Color("ffffff"),SHOP_GOLD,9,6));reroll.add_theme_color_override("font_color",SHOP_INK);reroll.add_theme_color_override("font_hover_color",SHOP_INK);stock_header.add_child(reroll)
 	stock_header.add_child(label("◉ %d"%int(s.build.rerollCost),12,SHOP_GOLD,true))
 
