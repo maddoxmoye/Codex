@@ -52,6 +52,7 @@ var dash_cooldown := 0.0
 var salvo_cooldown := 0.0
 var dash_left := 0.0
 var invulnerable := 0.0
+var mending_safe_time := 99.0
 var dash_direction := Vector3.FORWARD
 var movement := Vector3.ZERO
 var facing := Vector3.FORWARD
@@ -300,7 +301,7 @@ func start_run(boss_only: bool) -> void:
 	running=true;paused=false;ended=false;victory=false;end_time=0;clock=0;stage_time=0;spawned=0;killed=0;boss_spawned=false
 	stage="boss" if boss_only else "skirmish"
 	gold=0;experience=0;level=1;shots=0;hits=0;dealt=0;taken=0;pet_hits=0;dot_ticks=0;status_ticks={"fire":0,"poison":0}
-	dash_cooldown=0;salvo_cooldown=0;dash_left=0;invulnerable=1.5;shooting=false;shoot_time=0;salvo_left=0;fox_attacking=false;fox_cooldown=0;spawn_clock=0
+	dash_cooldown=0;salvo_cooldown=0;dash_left=0;invulnerable=1.5;mending_safe_time=99.0;shooting=false;shoot_time=0;salvo_left=0;fox_attacking=false;fox_cooldown=0;spawn_clock=0
 	camera_focus=player_unit.position+Vector3.UP
 	if boss_only:
 		spawn_clock=8
@@ -493,7 +494,7 @@ func simulate(dt: float) -> void:
 	if not running or paused or ended or stage in ["shop","training"]:return
 	simulation_step=dt
 	clock+=dt;stage_time+=dt
-	dash_cooldown=maxf(0,dash_cooldown-dt);salvo_cooldown=maxf(0,salvo_cooldown-dt);invulnerable=maxf(0,invulnerable-dt)
+	dash_cooldown=maxf(0,dash_cooldown-dt);salvo_cooldown=maxf(0,salvo_cooldown-dt);invulnerable=maxf(0,invulnerable-dt);mending_safe_time+=dt
 	var desired := input_move() if manual_test or not movement_input_blocked() else Vector3.ZERO
 	smoothed_move=smoothed_move.lerp(desired,1-exp(-dt*(22 if desired.length()<.1 else 14)))
 	movement=smoothed_move
@@ -632,7 +633,10 @@ func continue_run() -> bool:
 	return true
 
 func update_player(dt: float) -> void:
-	player_unit.hp=minf(player_unit.maximum,player_unit.hp+float(run_stats.regen)*dt)
+	var healing_per_second: float=float(run_stats.regen)
+	if mending_safe_time>=5.0:
+		healing_per_second+=player_unit.maximum*float(run_stats.mending)
+	player_unit.hp=minf(player_unit.maximum,player_unit.hp+healing_per_second*dt)
 	var cadence := 1+float(run_stats.attack_speed)
 	var target := nearest_enemy(player_unit.position,20)
 	var mouse: Array = request.get("mouse",[native_mouse.x,native_mouse.y])
@@ -837,6 +841,7 @@ func update_status(enemy: HuntUnit, dt: float) -> void:
 
 func hurt_player(amount: float, _source: String) -> bool:
 	if invulnerable>0 or ended or not running or stage in ["shop","training"]:return false
+	mending_safe_time=0.0
 	amount*=20/(20+float(run_stats.armor))
 	taken+=amount;player_unit.flash=.15;camera_kick=.07
 	if native_fx:native_fx.play_sound("hurt")
