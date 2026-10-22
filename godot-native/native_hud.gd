@@ -13,6 +13,7 @@ const SHOP_LINE := Color("4d6255")
 const SHOP_MUTED := Color("aab9ad")
 const SHOP_GOLD := Color("d7bd7a")
 const SHOP_GAIN := Color("8fd39c")
+const SHOP_LOSS := Color("e47d74")
 const SHOP_TILE := Color("17251f")
 const ELEMENTS := {"physical":Color("dfd4b3"),"fire":Color("f17960"),"ice":Color("78cce6"),"poison":Color("b189df")}
 const RARITIES := {"common":Color("acb9af"),"uncommon":Color("8dc4ad"),"rare":Color("bca8df"),"mythic":Color("f36862")}
@@ -353,7 +354,8 @@ func add_shop_inventory(parent: VBoxContainer, s: Dictionary, height:=120) -> vo
 	for value in grouped.values():
 		var item: Dictionary=value.item;var rarity_color: Color=RARITIES.get(str(item.get("rarity","common")),SHOP_LINE)
 		var tile := PanelContainer.new();tile.name="OwnedItemTile";tile.custom_minimum_size=Vector2(155,52);tile.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		tile.add_theme_stylebox_override("panel",box_style(SHOP_TILE,rarity_color.lerp(SHOP_LINE,.5),8,6));tile.tooltip_text=str(item.get("description",""))
+		var tile_bg: Color=SHOP_TILE.lerp(rarity_color,.11)
+		tile.add_theme_stylebox_override("panel",box_style(tile_bg,rarity_color,8,6));tile.tooltip_text=str(item.get("description",""))
 		grid.add_child(tile)
 		var item_row := row(7);tile.add_child(item_row);item_row.add_child(icon(str(item.get("icon","gem")),ELEMENTS.get(str(item.get("element","")),rarity_color),28))
 		var item_text := column(1);item_text.size_flags_horizontal=Control.SIZE_EXPAND_FILL;item_row.add_child(item_text)
@@ -364,98 +366,110 @@ func add_shop_inventory(parent: VBoxContainer, s: Dictionary, height:=120) -> vo
 		if value.state=="used":tile.modulate=Color(1,1,1,.52)
 
 func shop_card_style(rarity_color: Color, hovered: bool, mythic: bool) -> StyleBoxFlat:
-	var border: Color=rarity_color.lerp(SHOP_GOLD,.28) if hovered else rarity_color.lerp(SHOP_LINE,.35)
-	var style := box_style(SHOP_CARD_HOVER if hovered else SHOP_CARD,border,13,8)
-	style.border_width_top=3
-	style.shadow_color=Color(rarity_color,.22 if hovered else .09)
-	style.shadow_size=8 if hovered else 3
+	var base: Color=SHOP_CARD.lerp(rarity_color,.17 if hovered else .09)
+	var border: Color=rarity_color.lightened(.10 if hovered else 0.0)
+	var style := box_style(base,border,13,8)
+	style.border_width_top=4
+	style.shadow_color=Color(rarity_color,.24 if hovered else .08)
+	style.shadow_size=8 if hovered else 2
 	style.shadow_offset=Vector2(0,2 if hovered else 1)
 	if mythic:
-		style.shadow_color=Color("f3686255") if hovered else Color("db4a3b33")
-		style.shadow_size=10 if hovered else 6
+		style.shadow_color=Color("f3686266") if hovered else Color("db4a3b38")
+		style.shadow_size=11 if hovered else 6
 	return style
 
-func projected_stats(item: Dictionary, s: Dictionary) -> Dictionary:
-	var result: Dictionary=s.build.stats.duplicate(true)
+func effect_display_name(key: String) -> String:
+	match key:
+		"damage":return "base arrow damage"
+		"damage_bonus":return "physical arrow damage"
+		"max_hp":return "maximum health"
+		"armor":return "armor"
+		"speed_bonus":return "movement speed"
+		"pickup_radius":return "pickup radius"
+		"economy":return "shop savings"
+		"salvage":return "ground gold recovery"
+		"gold_bonus":return "gold earned"
+		"heal":return "maximum health restored now"
+		"attack_speed":return "attack speed"
+		"pet_damage":return "fox dart damage"
+		"elemental_power":return "elemental power"
+		"crit":return "critical chance"
+		"heal_kill":return "health on kill"
+		"regen":return "health regeneration"
+		"haste":return "ability cooldown reduction"
+		"revive":return "lethal-hit revive"
+		"burn_bonus":return "burn damage"
+		"venom_bonus":return "poison tick damage"
+		"duration":return "status duration"
+		"element_bonus":return "element impact damage"
+		"slow_bonus":return "ice slow"
+		"stacks":return "maximum poison stack"
+		_:return key.replace("_"," ")
+
+func effect_delta_text(key: String, value: float) -> String:
+	var sign: String="+" if value>=0 else "−"
+	var magnitude: float=absf(value)
+	match key:
+		"damage","max_hp","armor","economy","heal_kill","elemental_power","stacks":
+			return "%s%s %s"%[sign,number(magnitude),effect_display_name(key)]
+		"pickup_radius":
+			return "%s%.2fm %s"%[sign,magnitude,effect_display_name(key)]
+		"regen":
+			return "%s%.1f HP/sec %s"%[sign,magnitude,effect_display_name(key)]
+		"duration":
+			return "%s%.1f sec %s"%[sign,magnitude,effect_display_name(key)]
+		"heal":
+			return "%s%d%% %s"%[sign,roundi(magnitude*100),effect_display_name(key)]
+		"revive":
+			return "Survive one lethal hit"
+		_:
+			return "%s%d%% %s"%[sign,roundi(magnitude*100),effect_display_name(key)]
+
+func shop_effect_lines(item: Dictionary) -> Array[Dictionary]:
+	var lines: Array[Dictionary]=[]
 	var effects: Dictionary=item.get("effects",{})
 	for key in effects:
-		if result.has(key):result[key]=float(result[key])+float(effects[key])
-	result.economy=minf(50,float(result.economy));result.haste=minf(.45,float(result.haste));result.crit=minf(.6,float(result.crit));result.salvage=minf(.75,float(result.salvage))
-	return result
-
-func arrow_damage_for(p: Dictionary, element: String) -> float:
-	return float(p.damage)*(1+float(p.damage_bonus))+(float(p.elemental_power)*(1+float(p.element_bonus)) if element!="physical" else 0)
-
-func armor_reduction(value: float) -> int:
-	return roundi(value/(20+value)*100) if value>0 else 0
-
-func shop_payoffs(item: Dictionary, s: Dictionary) -> Array[String]:
-	var lines: Array[String]=[]
-	var before: Dictionary=s.build.stats;var after: Dictionary=projected_stats(item,s);var effects: Dictionary=item.get("effects",{});var element: String=str(s.element)
-	if effects.has("damage") or effects.has("damage_bonus") or effects.has("elemental_power") or effects.has("element_bonus"):
-		lines.append("Arrow damage  %s → %s"%[number(arrow_damage_for(before,element)),number(arrow_damage_for(after,element))])
-	if effects.has("elemental_power"):lines.append("Elemental power  %s → %s"%[number(float(before.elemental_power)),number(float(after.elemental_power))])
-	if effects.has("max_hp"):
-		lines.append("Max health  %s → %s"%[number(float(before.max_hp)),number(float(after.max_hp))])
-		lines.append("Heal now  +%s"%number(float(after.max_hp)-float(before.max_hp)))
-	if effects.has("armor"):lines.append("Armor  %s → %s  ·  %d%% → %d%% reduction"%[number(float(before.armor)),number(float(after.armor)),armor_reduction(float(before.armor)),armor_reduction(float(after.armor))])
-	if effects.has("speed_bonus"):lines.append("Move speed  %.2f → %.2f m/s"%[5*(1+float(before.speed_bonus)),5*(1+float(after.speed_bonus))])
-	if effects.has("pickup_radius"):lines.append("Pickup radius  %.2f → %.2f m"%[float(before.pickup_radius),float(after.pickup_radius)])
-	if effects.has("economy"):lines.append("Shop savings  %d%% → %d%%"%[int(before.economy),int(after.economy)])
-	if effects.has("salvage"):lines.append("Ground recovery  %d%% → %d%%"%[roundi(float(before.salvage)*100),roundi(float(after.salvage)*100)])
-	if effects.has("gold_bonus"):lines.append("Gold earned  +%d%% → +%d%%"%[roundi(float(before.gold_bonus)*100),roundi(float(after.gold_bonus)*100)])
-	if effects.has("heal"):lines.append("Restore now  +%d HP"%roundi(float(effects.heal)*float(s.maxHp)))
-	if effects.has("attack_speed"):lines.append("Attack cadence  %.2f → %.2f sec"%[.8/(1+float(before.attack_speed)),.8/(1+float(after.attack_speed))])
-	if effects.has("pet_damage"):lines.append("Fox damage  %.2f× → %.2f×"%[float(before.pet_damage),float(after.pet_damage)])
-	if effects.has("crit"):lines.append("Critical chance  %d%% → %d%%"%[roundi(float(before.crit)*100),roundi(float(after.crit)*100)])
-	if effects.has("heal_kill"):lines.append("Heal on kill  %s → %s HP"%[number(float(before.heal_kill)),number(float(after.heal_kill))])
-	if effects.has("regen"):lines.append("Regeneration  %.1f → %.1f HP/sec"%[float(before.regen),float(after.regen)])
-	if effects.has("haste"):lines.append("Cooldown reduction  %d%% → %d%%"%[roundi(float(before.haste)*100),roundi(float(after.haste)*100)])
-	if effects.has("revive"):lines.append("Survive one lethal hit this run");lines.append("Revive with 35% maximum health")
-	if effects.has("burn_bonus"):
-		var before_burn: float=float(before.elemental_power)*.75*(1+float(before.burn_bonus));var after_burn: float=float(after.elemental_power)*.75*(1+float(after.burn_bonus))
-		lines.append("Burn damage  %.1f → %.1f / sec"%[before_burn,after_burn])
-	if effects.has("venom_bonus"):
-		var before_poison: float=float(before.elemental_power)*.375*(1+float(before.venom_bonus));var after_poison: float=float(after.elemental_power)*.375*(1+float(after.venom_bonus))
-		lines.append("Poison / stack  %.1f → %.1f / sec"%[before_poison,after_poison])
-	if effects.has("slow_bonus"):lines.append("Ice slow  %d%% → %d%%"%[roundi(minf(.6,.35+float(before.slow_bonus))*100),roundi(minf(.6,.35+float(after.slow_bonus))*100)])
-	if effects.has("stacks"):lines.append("Poison stacks  %d → %d"%[int(before.stacks),int(after.stacks)])
-	if effects.has("duration"):
-		var base_duration: float=3 if element=="fire" else 2.5 if element=="ice" else 4
-		lines.append("%s duration  %.1f → %.1f sec"%["Burn" if element=="fire" else "Ice slow" if element=="ice" else "Poison",base_duration+float(before.duration),base_duration+float(after.duration)])
-	if lines.is_empty():lines.append(str(item.get("description","Upgrade your current build.")))
+		var value: float=float(effects[key])
+		lines.append({"text":effect_delta_text(str(key),value),"positive":value>=0})
+	if str(item.get("element",""))!="":
+		lines.append({"text":"Discarded if arrow element changes","positive":false})
 	return lines
 
 func shop_card(item: Dictionary, s: Dictionary) -> Control:
 	var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.custom_minimum_size=Vector2(195,275);card.mouse_filter=Control.MOUSE_FILTER_PASS
-	var rarity_color: Color=RARITIES.get(str(item.rarity),SHOP_MUTED);var mythic: bool=str(item.rarity)=="mythic"
+	var rarity: String=str(item.rarity);var rarity_color: Color=RARITIES.get(rarity,SHOP_MUTED);var mythic: bool=rarity=="mythic"
 	card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,false,mythic))
 	card.mouse_entered.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,true,mythic)))
 	card.mouse_exited.connect(func():card.add_theme_stylebox_override("panel",shop_card_style(rarity_color,false,mythic)))
 	var content := column(7);card.add_child(content)
+
 	var item_heading := row(7);content.add_child(item_heading);var element: String=str(item.get("element",""));item_heading.add_child(icon(str(item.icon),ELEMENTS.get(element,rarity_color),42))
 	var names := column(2);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL;item_heading.add_child(names)
-	names.add_child(label(str(item.rarity).to_upper()+(" / "+element.to_upper() if element!="" else ""),8,rarity_color))
-	var title := paragraph(str(item.name),15,IVORY);title.add_theme_font_override("font",serif_font);names.add_child(title)
-	var description := paragraph(str(item.description),9,SHOP_MUTED);description.custom_minimum_size.y=32;content.add_child(description)
-	var payoff_panel := PanelContainer.new();payoff_panel.add_theme_stylebox_override("panel",box_style(Color("101d17"),Color("355044"),8,5));content.add_child(payoff_panel)
-	var payoff_box := column(2);payoff_panel.add_child(payoff_box);payoff_box.add_child(label("PAYOFF",8,SHOP_GAIN))
-	for payoff in shop_payoffs(item,s):
-		var payoff_label := paragraph("＋  "+payoff,9,SHOP_GAIN);payoff_label.name="ShopPayoff";payoff_box.add_child(payoff_label)
+	var rarity_label := label(rarity.to_upper()+(" / "+element.to_upper() if element!="" else ""),8,rarity_color);rarity_label.name="ShopRarity";names.add_child(rarity_label)
+	var title := paragraph(str(item.name),15,rarity_color.lightened(.16));title.add_theme_font_override("font",serif_font);names.add_child(title)
+
+	var description := paragraph(str(item.description),9,Color("c2cbc4"));description.custom_minimum_size.y=36;content.add_child(description)
+
+	var stats_box := column(2);content.add_child(stats_box)
+	for entry in shop_effect_lines(item):
+		var stat_color: Color=SHOP_GAIN if bool(entry.positive) else SHOP_LOSS
+		var stat := paragraph(("＋ " if bool(entry.positive) else "− ")+str(entry.text).trim_prefix("+").trim_prefix("−"),9,stat_color)
+		stat.name="ShopStatLine";stats_box.add_child(stat)
+
 	var space := Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(space)
 	var full: bool=str(item.id)=="bandages" and float(s.hp)>=float(s.maxHp)
 	var sold: bool=bool(item.sold);var eligible: bool=bool(item.get("eligible",true));var affordable: bool=bool(item.affordable)
-	var caption: String="Packed  ✓" if sold else "Unavailable" if not eligible else "Health full" if full else "Need ◉ %d"%int(item.cost) if not affordable else "Buy · ◉ %d"%int(item.cost)
+	var caption: String="Packed  ✓" if sold else "Unavailable" if not eligible else "Health full" if full else "Need ◉ %d GOLD"%int(item.cost) if not affordable else "Buy  ·  ◉ %d GOLD"%int(item.cost)
 	var buy := button(caption,_send.bind("buy:"+str(item.id)));buy.custom_minimum_size.y=38
 	buy.disabled=sold or not eligible or not affordable or full
-	buy.add_theme_stylebox_override("normal",box_style(Color("203229"),rarity_color.lerp(SHOP_LINE,.45),10,6))
-	buy.add_theme_stylebox_override("hover",box_style(Color("2d4437"),rarity_color.lerp(SHOP_GOLD,.42),10,6))
-	buy.add_theme_stylebox_override("pressed",box_style(Color("17261f"),SHOP_GOLD,10,6))
-	buy.add_theme_stylebox_override("disabled",box_style(Color("17231e"),Color("3d4c43"),10,6))
-	buy.add_theme_color_override("font_color",IVORY);buy.add_theme_color_override("font_hover_color",Color("fff5da"));buy.add_theme_color_override("font_pressed_color",IVORY);buy.add_theme_color_override("font_disabled_color",Color(SHOP_MUTED,.45))
+	buy.add_theme_stylebox_override("normal",box_style(Color("292c2b"),Color("696e6b"),10,6))
+	buy.add_theme_stylebox_override("hover",box_style(Color("363a38"),Color("989d99"),10,6))
+	buy.add_theme_stylebox_override("pressed",box_style(Color("202322"),Color("b9bdb9"),10,6))
+	buy.add_theme_stylebox_override("disabled",box_style(Color("222524"),Color("4a4e4c"),10,6))
+	buy.add_theme_color_override("font_color",SHOP_GOLD);buy.add_theme_color_override("font_hover_color",SHOP_GOLD.lightened(.12));buy.add_theme_color_override("font_pressed_color",SHOP_GOLD);buy.add_theme_color_override("font_disabled_color",Color(SHOP_GOLD,.34))
 	content.add_child(buy)
 	var owned_text: String="ONE PER RUN" if str(item.id)=="heartwood" else "OWNED %d / %d"%[int(item.owned),int(item.cap)]
-	content.add_child(label(owned_text,8,SHOP_MUTED))
+	content.add_child(label(owned_text,8,Color("aeb5b0")))
 	return card
 
 func add_stats(parent: VBoxContainer, s: Dictionary, compact:=false) -> void:
