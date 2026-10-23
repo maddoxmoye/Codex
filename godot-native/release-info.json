@@ -1,28 +1,30 @@
 {
+  "releaseTag": "emberwood-mac-v0.2.0",
   "engine": "Godot 4.6.3",
   "target": "macOS universal (arm64 + x86_64)",
   "signing": "ad-hoc",
   "notarized": false,
   "macRuntimeTested": false,
-  "sourceRevision": "117c21d6f42d8a6d65408828b152bfa9dbc7d0ba",
+  "sourceRevision": "67f826b35d4bb5194fd17af17322e6163da22cc6",
   "sourceDirty": false,
-  "builtAt": "2026-10-22T12:43:41.666Z",
+  "builtAt": "2026-10-23T03:51:39.748Z",
   "headlessChecks": [
     "check_hunt.gd",
     "check_animation.gd",
     "check_run.gd",
     "check_motion.gd",
     "check_hud.gd",
-    "check_native.gd"
+    "check_native.gd",
+    "check_campaign.gd"
   ],
   "files": {
     "Wildfall-Emberwood-macOS.zip": {
-      "bytes": 93878516,
-      "sha256": "73b7ef4e140850e7eb3de9dc41fcbca9030a722fb10086c8e67602ffa2865b25"
+      "bytes": 95560806,
+      "sha256": "70422ae690c015c0d8cd5c7e5253ecb03b8a6babfc2da93015a7cbcb5aa824f7"
     },
     "Wildfall-Emberwood-source.zip": {
-      "bytes": 41279720,
-      "sha256": "2808c778a08023a64e3e08dc79e1b7a793ff00636087490b104582506c353547"
+      "bytes": 44645795,
+      "sha256": "f1ebb5770dd8127c7d25bb423640c61be9fe265e29cf694436d7dd3eb6b225ba"
     }
   }
 }
