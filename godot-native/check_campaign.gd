@@ -52,6 +52,54 @@ func run() -> void:
 			else:check(game.rewards.current.is_empty() and game.rewards.queue.is_empty(),"Timer survival awards no Mythic chest")
 			if wave==20:check(game.victory==killed_boss and game.ended,"Final victory requires actual kill and resolves final rewards first")
 			else:check(not game.ended and game.stage in ["shop","training"],"Living or defeated guardian permits campaign progression")
+	# Pet choreography and collection run independently of player arrows.
+	game.start_run(false);game.clear_combat();game.stage="test";game.player_unit.position=Vector3.ZERO;game.obstacles.clear()
+	game.build.record({"id":"pet-test","effects":{"wolf":1,"beetle":1}},"shop");game.refresh_build()
+	var target: HuntUnit=game.spawn_enemy("thornback",Vector3(2,0,0));target.maximum=10000;target.hp=10000
+	game.spawn_pickup(Vector3(3,0,2))
+	for frame in 720:
+		game.pets.update(1.0/60)
+		for actor in game.pets.actors:check(actor.position.is_finite() and actor.position.distance_to(game.player_unit.position)<12,"Pet motion stays finite and leashed")
+	check(game.pets.states[0].bites>0 and game.pets.states[0].howls>0 and target.hp<10000,"Wolf bites and howls using its independent physical kit")
+	check(game.pets.states[1].collected==1 and game.pickups.is_empty() and game.gold==2 and game.experience==12,"Beetle collection credits real loot exactly once")
+	for i in 100:
+		var reward: Dictionary=game.rewards.draw(false)
+		check(not reward.has("arrow_type") and not reward.effects.has("fox") and not reward.effects.has("wolf") and not reward.effects.has("beetle"),"Arrow types and pet recruitment remain trader acquisitions")
+	# Entire 20-wave state machine, including alternating boss-survival outcomes.
+	game.start_run(false)
+	for wave in range(1,21):
+		check(game.wave==wave and game.wave_left==game.Campaign.duration(wave),"Correct timer at campaign wave "+str(wave))
+		var guardians: Array=game.enemies.filter(func(unit):return game.Campaign.is_boss(unit.kind))
+		check(guardians.size()==(1 if wave%5==0 else 0),"Boss schedule exact at wave "+str(wave))
+		if wave in [5,15,20]:game.damage_enemy(guardians[0],1000000,"physical")
+		game.wave_left=0;game.update_encounter(.016)
+		var limit := 0
+		while game.stage in ["chest","training"] and limit<30:
+			if game.stage=="chest":game.rewards.resolve("take",game.rewards.current.token)
+			else:game.choose_training(game.build.draft[0].id,game.build.draft_revision)
+			limit+=1
+		check(limit<30,"Reward queue terminates at wave "+str(wave))
+		if wave<20:check(game.continue_run(),"Can enter next wave "+str(wave+1))
+	check(game.ended and game.victory and game.boss_kills==[5,15,20],"Full campaign records actual kills, survives Oracle, and wins only after Colossus")
+	# Closed-form price checks protect the current trader formula at late waves.
+	game.build.reset();game.build.character_base={}
+	for wave in [1,5,10,20,25]:
+		game.build.shop_wave=wave
+		for rarity in ["common","uncommon","rare","mythic"]:
+			var item := {"id":"price-probe","price":20,"rarity":rarity}
+			game.build.ranks[item.id]=2
+			game.build.history.clear();game.build.history.append({"status":"active","effects":{"economy":60}})
+			var expected := ceili((20+wave+20*.1*wave)*float(game.build.SHOP_RARITY_PRICE_MULTIPLIERS[rarity])*1.2*.6-1e-9)
+			check(game.build.price(item)==expected,"Exact rarity / copy / capped Economy price "+rarity+" wave "+str(wave))
+	# Defensive investment matters without flattening late damage.
+	game.start_run(false);game.clear_combat();game.stage="test";game.invulnerable=0
+	var strike: float=24*game.Campaign.damage_scale(20)
+	game.hurt_player(strike,"Late thornback")
+	check(game.ended,"Unarmored base build dies to a late heavy attack")
+	game.start_run(false);game.clear_combat();game.stage="test";game.invulnerable=0
+	game.build.record({"id":"defense-test","effects":{"max_hp":100,"armor":16}},"shop");game.refresh_build();game.player_unit.hp=game.player_unit.maximum
+	game.hurt_player(strike,"Late thornback")
+	check(not game.ended and game.player_unit.hp>130,"Health and armor investment survives the same late attack")
 	game.free();await create_timer(.15).timeout
 	if failures.is_empty():print("EMBERWOOD_CAMPAIGN_OK: ",assertions," guardian choreography, release and cleanup assertions")
 	else:print("EMBERWOOD_CAMPAIGN_FAILED: ",failures)

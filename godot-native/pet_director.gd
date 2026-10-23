@@ -50,7 +50,7 @@ func update(dt: float) -> void:
 		state.howl=maxf(0,float(state.howl)-dt)
 		state.roam_left=maxf(0,float(state.roam_left)-dt)
 		# Only an emergency recall interrupts a committed animation.
-		if unit.position.distance_to(game.player_unit.position)>RECALL and state.phase not in ["Return","Roam"]:
+		if unit.position.distance_to(game.player_unit.position)>(maxf(RECALL,float(game.run_stats.collector_radius)+2) if state.kind=="beetle" else RECALL) and state.phase not in ["Return","Roam"]:
 			enter(state,"Return")
 		match state.kind:
 			"fox":update_fox(state,dt)

@@ -27,7 +27,7 @@ func run() -> void:
 	game.gain_xp(48)
 	game.wave_left=0;game.update_encounter(.016)
 	check(game.stage=="training" and game.level==2 and game.pending_levels.size()==1,"Ground XP is fully absorbed and opens a separate level reward before shop")
-	check(game.gold==36 and game.experience==12,"50% of twelve ground gold plus twenty bounty is awarded once")
+	check(game.gold==24 and game.experience==12,"50% of four ground gold plus twelve bounty is awarded once")
 	check(game.player_unit.hp==125 and game.pickups.is_empty() and game.enemies.is_empty(),"Camp recovery and combat cleanup happen once")
 	var previous_gold: int=game.gold;game.finish_wave();check(game.gold==previous_gold,"Wave cannot be settled twice")
 	check(game.build.draft.size()==4 and not game.buy_item("quiver") and not game.continue_run(),"Four distinct free training options gate the shop")
@@ -187,6 +187,6 @@ func run() -> void:
 	game.free()
 	# Let the audio mix thread finish its scheduled stop/fade before engine exit.
 	await create_timer(.15).timeout
-	if failures.is_empty():print("THREE_WAVE_RUN_OK: timed waves, settlement, level drafts, four-item shop, purchase effects, rerolls, economy, elements, mythic uniqueness, boss timing and reset")
-	else:print("THREE_WAVE_RUN_FAILED: ",failures)
+	if failures.is_empty():print("EMBERWOOD_RUN_OK: timed waves, settlement, level drafts, four-item shop, purchase effects, rerolls, economy, elements, mythic uniqueness, boss timing and reset")
+	else:print("EMBERWOOD_RUN_FAILED: ",failures)
 	quit(0 if failures.is_empty() else 1)

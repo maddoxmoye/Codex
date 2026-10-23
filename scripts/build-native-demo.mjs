@@ -12,7 +12,7 @@ const app = path.join(exportsDir, 'Wildfall Emberwood.app');
 const skipChecks = process.argv.includes('--skip-checks');
 const landingOnly = process.argv.includes('--landing-only');
 const releaseLinks = landingOnly || process.argv.includes('--release-links');
-const releaseBase = 'https://github.com/maddoxmoye/Codex/releases/download/emberwood-mac-v0.1.0/';
+const releaseTag = 'emberwood-mac-v0.2.0';
 const exists = async p => access(p).then(() => true, () => false);
 const env = {
   ...process.env,
@@ -37,7 +37,7 @@ if (!skipChecks && !await exists(path.join(project, 'check_native.gd'))) {
   throw new Error('Native integration validation is not ready: godot-native/check_native.gd is required.');
 }
 function run(binary, args, extra = {}) {
-  const result = spawnSync(binary, args, {cwd: root, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...extra});
+  const result = spawnSync(binary, args, {cwd: root, env, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024, ...extra});
   process.stdout.write(result.stdout || '');
   process.stderr.write(result.stderr || '');
   if (result.error || result.status !== 0 || /SCRIPT ERROR:|Parse Error:|\bERROR:|Failed to export project|_FAILED:/.test((result.stdout || '') + (result.stderr || ''))) {
@@ -160,7 +160,7 @@ for (const name of releaseFiles) {
 }
 const git = args => spawnSync('git', args, {cwd: root, encoding: 'utf8'}).stdout.trim();
 const metadata = {
-  engine: 'Godot 4.6.3', target: 'macOS universal (arm64 + x86_64)',
+  releaseTag, engine: 'Godot 4.6.3', target: 'macOS universal (arm64 + x86_64)',
   signing: 'ad-hoc', notarized: false, macRuntimeTested: false,
   sourceRevision: git(['rev-parse', 'HEAD']), sourceDirty: Boolean(git(['status', '--porcelain'])),
   builtAt: new Date().toISOString(), headlessChecks: checks, files,
@@ -176,6 +176,7 @@ for (const name of releaseFiles) {
 }
 await writeFile(path.join(out, 'build-info.json'), JSON.stringify(metadata, null, 2) + '\n');
 await writeFile(path.join(out, 'SHA256SUMS.txt'), releaseFiles.map(name => `${files[name].sha256}  ${name}`).join('\n') + '\n');
+const releaseBase = 'https://github.com/maddoxmoye/Codex/releases/download/' + (metadata.releaseTag || 'emberwood-mac-v0.1.0') + '/';
 const download = name => (releaseLinks ? releaseBase : '') + name;
 await copyFile(path.join(project, 'MAC_README.md'), path.join(out, 'MAC_README.md'));
 const heroCandidates = ['preview/emberwood.jpg', 'preview/emberwood.png', 'assets/emberwood-preview.jpg'];
@@ -189,9 +190,13 @@ for (const relative of heroCandidates) {
 }
 const hasMotion = await exists(path.join(project, 'preview/emberwood-motion.mp4'));
 if (hasMotion) await copyFile(path.join(project, 'preview/emberwood-motion.mp4'), path.join(out, 'emberwood-motion.mp4'));
+for (const name of ['characters.png','mythic-chest.png','woodland-chest.png','trader.png','chest-reveal.mp4']) {
+  if (await exists(path.join(project,'preview',name))) await copyFile(path.join(project,'preview',name),path.join(out,name));
+}
+const hasRewards = await exists(path.join(out,'chest-reveal.mp4'));
 const size = Math.ceil(files[releaseFiles[0]].bytes / 1024 / 1024);
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111c1e"><title>Wildfall · The Emberwood for Mac</title><style>
 *{box-sizing:border-box}body{margin:0;background:#101a1c;color:#ede7d8;font-family:system-ui,-apple-system,sans-serif;line-height:1.65}main{width:min(1000px,100% - 44px);margin:56px auto}.eyebrow{font-size:11px;letter-spacing:4px;color:#c7b17a}h1{font:clamp(44px,7vw,78px)/1.04 Georgia,serif;font-weight:400;margin:22px 0}p{max-width:690px;color:#b7c7c1}a{color:#e6cc8d}.download{display:inline-block;padding:16px 24px;background:#e8dfc7;color:#192723;text-decoration:none;border-radius:6px;font-weight:650;margin:18px 0 8px}.meta{font-size:12px;color:#9cb1a7}img,video{width:100%;border:1px solid #63766b45;border-radius:10px;margin:30px 0;display:block}section{border-top:1px solid #d9d9c42b;margin-top:34px;padding-top:24px}h2{font:27px Georgia,serif;font-weight:400}ol{padding-left:24px;max-width:760px;color:#c3d0c8}li{padding:7px 0}.links{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;margin-top:24px}footer{margin:42px 0;color:#8fa399;font-size:12px}a:focus-visible{outline:3px solid #efcf7d;outline-offset:5px}
-</style></head><body><main><div class="eyebrow">WILDFALL / NATIVE MAC STUDY</div><h1>The Emberwood.</h1><p>Step into a woodland ruin with Rowan, the Forest Fox and the Briar King. A downloadable combat and graphics study with native controls, lighting and quality settings.</p><a class="download" href="${download('Wildfall-Emberwood-macOS.zip')}" download>Download for Mac ↓</a><div class="meta">Apple Silicon + Intel · ${size} MB · Godot included · Tuned for M1 / 8 GB</div>${hasMotion ? `<video controls playsinline muted loop preload="metadata" poster="${hero}" aria-label="Native combat animation preview"><source src="emberwood-motion.mp4" type="video/mp4"></video><p class="meta">Animation preview rendered frame by frame from the native project. This is a visual preview, not a Mac performance recording.</p>` : hero ? `<img src="${hero}" alt="The Emberwood woodland ruin combat scene">` : ''}<section><h2>Your first visit.</h2><ol><li>Download and unzip, then open <strong>Wildfall Emberwood.app</strong>. You can move it to Applications.</li><li>This test app is ad-hoc signed and has not been notarized by Apple. If macOS blocks it, use <strong>System Settings → Privacy & Security → Open Anyway</strong> for Wildfall Emberwood, then confirm Open.</li><li>Start with <strong>Balanced</strong> graphics. For a lighter rendering fallback, use the included <strong>Launch in Compatibility Mode.command</strong> beside the app.</li></ol><p>The app contains both Mac processor versions. The default Metal renderer targets your M1 Mac with macOS 15.3.2. The app bundle and gameplay are checked during the build; Mac frame rate still needs to be measured on your machine.</p></section><div class="links"><a href="MAC_README.md">Mac setup & controls</a><a href="${download('Wildfall-Emberwood-source.zip')}" download>Editable Godot project</a><a href="SHA256SUMS.txt">Download checksums</a><a href="../arena-demo/">Browser combat demo</a></div><footer>WASD move · Space dash · E salvo · Right-drag camera · P / Escape pause<br>Engine and third-party licenses are included in the download.</footer></main></body></html>`;
+</style></head><body><main><div class="eyebrow">WILDFALL / NATIVE SURVIVAL CAMPAIGN</div><h1>The Emberwood.</h1><p>Choose Rowan, Ash, Briar, Nyx or Pip. Survive twenty increasingly dangerous waves, recruit companions, discover elemental quivers and claim the spoils of four guardians. All five archers are unlocked in this testing build.</p><a class="download" href="${download('Wildfall-Emberwood-macOS.zip')}" download>Download for Mac ↓</a><div class="meta">Apple Silicon + Intel · ${size} MB · Godot included · Tuned for M1 / 8 GB</div>${hasMotion ? `<video controls playsinline muted loop preload="metadata" poster="${hero}" aria-label="Native combat animation preview"><source src="emberwood-motion.mp4" type="video/mp4"></video><p class="meta">Animation preview rendered frame by frame from the native project. This is a visual preview, not a Mac performance recording.</p>` : hero ? `<img src="${hero}" alt="The Emberwood woodland ruin combat scene">` : ''}${hasRewards ? `<section><h2>Choose your archer. Claim your spoils.</h2><img src="characters.png" alt="Five unlocked archers in the native selection screen"><video controls playsinline muted loop preload="metadata" poster="mythic-chest.png"><source src="chest-reveal.mp4" type="video/mp4"></video><p class="meta">Native reward animation captured frame by frame; this is not a Mac performance benchmark.</p></section>` : ''}<section><h2>Your first visit.</h2><ol><li>Download and unzip, then open <strong>Wildfall Emberwood.app</strong>. You can move it to Applications.</li><li>This test app is ad-hoc signed and has not been notarized by Apple. If macOS blocks it, use <strong>System Settings → Privacy & Security → Open Anyway</strong> for Wildfall Emberwood, then confirm Open.</li><li>Start with <strong>Balanced</strong> graphics. For a lighter rendering fallback, use the included <strong>Launch in Compatibility Mode.command</strong> beside the app.</li></ol><p>The app contains both Mac processor versions. The default Metal renderer targets your M1 Mac with macOS 15.3.2. The app bundle and gameplay are checked during the build; Mac frame rate still needs to be measured on your machine.</p></section><div class="links"><a href="MAC_README.md">Mac setup & controls</a><a href="${download('Wildfall-Emberwood-source.zip')}" download>Editable Godot project</a><a href="SHA256SUMS.txt">Download checksums</a><a href="../arena-demo/">Browser combat demo</a></div><footer>WASD move · Space defense · E special · Right-drag camera · P / Escape pause<br>Engine and third-party licenses are included in the download.</footer></main></body></html>`;
 await writeFile(path.join(out, 'index.html'), html);
 }

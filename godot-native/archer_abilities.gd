@@ -32,6 +32,10 @@ func speed_multiplier() -> float:
 func slow_at(point: Vector3) -> float:
 	var info: Dictionary=game.archer.get("defense",{})
 	return 1-float(info.get("slow",0)) if defense_left>0 and point.distance_to(game.player_unit.position)<float(info.get("radius",0)) else 1.0
+func attack_cycle() -> float:
+	var info: Dictionary=game.archer
+	var cycle: float=float(info.get("offense",{}).get("cycle",0))
+	return cycle/(1+float(game.run_stats.attack_speed)) if info.id in ["ash","nyx"] else cycle
 func update(dt: float, aim: Vector3) -> bool:
 	if game.selected_archer=="rowan":return false
 	var info: Dictionary=game.archer
@@ -49,10 +53,20 @@ func update(dt: float, aim: Vector3) -> bool:
 					if shot.owner=="enemy" and shot.node.position.distance_to(game.player_unit.position)<radius:shot.node.queue_free();game.projectiles.remove_at(i)
 			game.pulse(game.player_unit.position+Vector3.UP*.05,maxf(radius,1.5),info.color,.5)
 		if int(defense_elapsed*10)!=int((defense_elapsed-dt)*10):game.pulse(game.player_unit.position+Vector3.UP*.07,.65,info.color,.18)
+	# Defensive gestures take presentation priority. The offensive buff still ages;
+	# shots missed during that gesture are skipped rather than released out of pose.
+	if had_defense and defense_elapsed<.4:
+		if offense_left>0:
+			offense_left=maxf(0,offense_left-dt);offense_elapsed+=dt
+			var cycle := attack_cycle()
+			if cycle>0:
+				while release_index*cycle+cycle*float(info.releaseTime)/float(info.clips.Shoot)<=offense_elapsed:release_index+=1
+		game.player_unit.play(info.space);game.player_unit.anim_time=maxf(0,defense_elapsed-dt);game.player_unit.pose(dt)
+		return true
 	if offense_left>0:
 		offense_left=maxf(0,offense_left-dt);offense_elapsed+=dt
 		var profile: Dictionary=info.offense
-		var cycle: float=float(profile.cycle)
+		var cycle := attack_cycle()
 		var rate: float=float(info.attackCycle)/cycle if cycle>0 else 1.0
 		game.player_unit.play(info.attack)
 		# Repeating skills reuse the authored draw cycle without restarting blends.

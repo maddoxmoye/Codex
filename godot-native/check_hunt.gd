@@ -121,7 +121,7 @@ func run() -> void:
 	check(game.gold==0,"Distant pickups are not collected")
 	game.player_unit.position=Vector3(5,0,0)
 	for i in 30:game.update_pickups(.016)
-	check(game.gold==6 and game.experience==12,"Pickup radius collects nearby gold and XP")
+	check(game.gold==2 and game.experience==12,"Pickup radius collects nearby gold and XP")
 	game.free()
 	# Let the audio mix thread finish its scheduled stop/fade before engine exit.
 	await create_timer(.15).timeout

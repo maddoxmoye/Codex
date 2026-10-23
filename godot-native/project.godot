@@ -4,7 +4,7 @@ config_version=5
 config/name="Wildfall — The Emberwood"
 run/main_scene="res://arena.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/description="A native woodland ruin combat study."
+config/description="A twenty-wave woodland survival campaign with five archers and four guardians."
 
 [display]
 window/size/viewport_width=1600

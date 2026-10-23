@@ -1,14 +1,68 @@
-# The Emberwood — native Godot study
+# Wildfall — The Emberwood · native campaign 0.2.0
 
-A separate, playable Mac graphics and combat trial. It uses Godot 4.6.3 Forward+ with Metal on macOS, the approved Rowan/Forest Fox/Briar King rigs, an original Blender ruin, textured slate/bark/soil, local brazier light, environment-only baked reflections, bounded particles and original synthesized sound. No browser runtime is involved. The default is fullscreen with a native in-game interface.
+The existing production Godot 4.6.3 game, expanded in place from main `a277452`. Native Forward+ / Metal on Mac, fullscreen by default, with the original Emberwood environment and approved trader preserved.
 
-The title opens four modes: Briar King practice, a three-wave hunt, peaceful exploration, and a funded trader visit. The hunt retains 45-second ordinary waves and a 75-second final wave, separate four-choice level rewards, four-item shop stock, increasing within-visit rerolls, equipment stats, mutually exclusive elements, gold recovery and complete XP recovery. This focused study contains Rowan and Forest Fox; the full campaign, all characters/bosses/pets, chest rewards, persistent campaign saves and redesigned item illustrations remain future integration work.
+All five archers are unlocked for testing. Choose an archer and **Start Run**. Everyone begins with basic physical arrows and no pet. Elemental quivers and companions are purchased at the trader; the arrow readout cannot switch equipment for free.
 
-## Run and build
+| Archer | Identity | Space | E |
+|---|---|---|---|
+| Rowan | Wildwood Ranger | Windskip | Flock & Awe |
+| Ash | Cinder Scout | Hare Trigger | Arrowpalooza |
+| Briar | Ironwarden | Shell Yeah! | Quiverquake |
+| Nyx | Moonstring | Bramble Bouncer | Hunter's Moon |
+| Pip | Gearwing | Borrowed Time | Gear Expectations / Gearstorm |
 
-Install Godot 4.6.3. Open `project.godot` in the editor or run `godot --path godot-native` from the repository root. Blender is only needed to edit/re-author the supplied models; `.gdignore` keeps the editable `.blend` source out of Godot imports.
+The approved GLB clips animate each action. Shared grounded locomotion continues underneath bow animations, and projectile events use the authored release markers. Defensive gestures take priority when abilities overlap; missed offensive releases do not burst out during an unrelated pose. Ash and Nyx's offensive cadence respects purchased attack-speed bonuses; Pip retains the defined 0.6-second gear fan.
 
-From the repository root:
+![All five archers](preview/characters.png)
+
+## Campaign and rewards
+
+Twenty waves: ordinary waves last 45 seconds, guardian waves last 75. Guardians occur only at 5 (Briar King), 10 (Frost Oracle), 15 (Hollow Monarch), and 20 (Gilded Colossus). Their existing rigs, socket data, release timings and distinct attack designs are reused. The Colossus summons up to six living brood, in pairs from its animated chest hatch.
+
+The wave timer determines completion. Killing a boss early does not skip the remainder of the wave. Surviving waves 5, 10 or 15 without a kill advances the campaign, but earns no Mythic chest. Wave 20 requires an actual Colossus kill for victory; surviving without it receives an explicit guardian-undefeated outcome.
+
+Normal chests drop from non-brood monsters with 3.5% probability. All earned chests can be collected manually, and all remaining earned chests automatically collect at the boundary. Normal chests open first, followed by earned Mythic chests, then each queued level reward, then the trader. Final-wave rewards resolve before the outcome screen.
+
+Chests use a native 3D bounce/shake/lid/rays/sparks/reward-rise sequence. Green woodland chests and red/gold Mythic chests sit in the trader's warm neutral visual language; reward cards use its exact rarity colors. Take the item, pay for a separate escalating chest reroll, or sell it. Mythic chests come **only from boss deaths**; their premium table guarantees an eligible Mythic while one remains, then falls back to eligible rare gear. Mythics cannot be acquired twice, including through different reward sources. Recruitment and arrow-type items remain trader acquisitions.
+
+![Mythic reward](preview/mythic-chest.png)
+
+[Native chest reveal video](preview/chest-reveal.mp4) is captured frame by frame, not a Mac performance benchmark.
+
+## Trader and pets
+
+The current warm page, gray/green/purple/red-orange cards, direct stat deltas, price-only purchase ribbons, red unaffordable state, hover treatment, archer coin, right stats panel and compact owned inventory remain. Bought cards leave their layout slots empty. Level reward styling and Mending Moss are preserved.
+
+Prices are exactly `(Base + Wave + Base × .10 × Wave) × rarity × (1 + .10 × owned copies) × (1 − Economy / 100)`, rounded up once at the end. Rarity factors: 1 / 1.10 / 1.20 / 1.35. Economy caps at 40%; Merchant's Seal caps at four. Free chest copies count toward ownership and repeat pricing.
+
+Forest Fox fires physical darts; Wild Wolf bites and slows nearby enemies with its howl; Lantern Beetle collects real ground loot and returns to the player. They act independently within a player-centered leash. Damage/cooldown upgrades require a combat pet; collection range upgrades require the beetle. Arrow swaps discard previous elemental fittings and the previous quiver while preserving shared elemental power.
+
+Gold is deliberately limited: ordinary drops carry 2 gold and 12 XP; bosses carry 20 gold and 50 XP. Wave bounty is `12 + 2 × (wave − 1)`. Ground XP recovers fully; ground gold recovers at the build's salvage percentage. Mending Moss regenerates 1% maximum HP/second/stack only after five damage-free seconds.
+
+## Difficulty
+
+For `n = wave − 1`, health scales by `1 + .10n + .012n²`; damage by `1 + .06n + .015n²`. The formulas continue beyond wave 20 for future tuning, though this release ends at 20.
+
+| Wave | HP | Damage | Living cap | Reinforcement interval | Batch |
+|---|---:|---:|---:|---:|---:|
+| 1 | 1.00× | 1.00× | 10 | 2.69s | 1 |
+| 5 | 1.59× | 1.48× | 18 | 2.25s | 2 |
+| 10 | 2.87× | 2.76× | 28 | 1.70s | 3 |
+| 15 | 4.75× | 4.78× | 38 | 1.15s | 4 |
+| 20 | 7.23× | 7.56× | 48 | .60s | 5 |
+
+Elite frequency rises to 25.5% at wave 20; elites have 1.65× additional HP and 1.3× damage. Special compositions become more frequent. Boss HP uses `650 × wave HP curve × (1 + .2 × tier)`; their authored attack damage uses the wave curve with tier adjustments 1 / .9 / .8 / .7, rather than blindly multiplying demonstration HP. Armor, max HP, regeneration and avoidance remain meaningful against this steep damage curve.
+
+## Architecture and animation diagnosis
+
+`arena.gd` still owns the production run and combat. New focused modules are `archer_catalog.gd` / `assets/archers.json`, `archer_abilities.gd`, `pet_director.gd`, `campaign.gd`, `boss_director.gd`, `chest_rewards.gd`, and `chest_reveal.gd`. There are no five copied player controllers or twenty isolated wave scripts.
+
+Rowan's torso ran at a fixed 2.7× animation speed while his feet advanced at travel speed / 2.2727 (2.2× at normal speed), producing a visible beat. A second velocity filter drove the feet after physical movement had already been smoothed, causing sliding. Crossing the movement threshold also switched Shoot/RunShoot and restarted crossfades mid-draw. Release sockets were sampled one step before the animation advanced.
+
+The fix synchronizes Run with the continuous measured-distance phase, removes the extra foot-distance filter while preserving posture blending, keeps a single upper-body shot state through movement changes, and samples the release pose before projectile sockets. Approved release timestamps and Rowan's cooldowns are retained.
+
+## Build and verification
 
 ```sh
 npm run check:native
@@ -16,18 +70,8 @@ bash scripts/install-godot-native.sh
 npm run build:native
 ```
 
-Set `GODOT_BIN` if Godot is not on PATH. On Linux the repository's `scripts/install-godot-web.sh` installs the matching editor binary; the native installer fetches and verifies the official universal macOS export template. Outputs appear in `dist/native-demo/`. The builder checks both CPU architectures, ad-hoc executable signature hashes, the game pack, archive integrity and executable permissions. It does not notarize the app or run macOS.
+Seven headless suites cover combat, all archer clips/release markers, run/economy/Mending Moss, motion, native settings/input, actual menu callbacks/layout, and the full campaign/reward/boss/pet integration. Validation subprocesses have timeouts so runtime script failures cannot hang the build forever. The campaign suite includes a complete 20-wave progression, both outcomes for all four guardians, stale chest claims, exact late-wave pricing, and weak-versus-defended damage checks.
 
-`npm run build:native:page` builds only the Pages download page from committed `release-info.json`, linking versioned GitHub Release assets. The manual Mac release workflow builds and uploads through GitHub Actions. After publishing, copy the release's `build-info.json` to `godot-native/release-info.json` and commit it so the Pages checksums match the distributed app. Changing a released app requires a new version/tag and updated metadata; the browser game deployment never replaces native downloads silently.
+`build-native-demo.mjs` exports a universal `.app` and checks both arm64 and x86_64 Mach-O slices, ad-hoc signature page hashes, the game pack, archive integrity and executable permissions. Release assets are published under a new immutable version, not over the old trial.
 
-## Rendering and motion
-
-Balanced limits the 3D buffer to 1.44 million pixels, High to 2.304 million and Performance to 0.8 million, independently of the full-resolution interface. The scale updates on window/fullscreen changes; a 16:10 Retina screen therefore does not force a 2560×1600 scene. Balanced uses 2×MSAA, ambient occlusion and glow. High adds screen-space reflections and volumetric fog; Performance reduces effects and disables MSAA. Six local fire lights are shadowless; only the sun casts directional shadows. Reflection capture excludes moving actors. F11 or the fullscreen button switches window mode. macOS may require Fn–F11.
-
-Rowan's lower-body stride advances from actual travel while the upper body keeps its authored bow draw and release. Shooting does not restart the stride; backwards movement reverses it and strafing turns the hips. Forest Fox keeps its authored trot with bounded tail follow-through. The motion layer never moves collision bodies. All other approved attack clips and release timings are preserved.
-
-## Validation
-
-Six headless suites exercise movement/collision, first-hit projectiles, elemental ticks/swaps, boss/pet attacks, damage/pause/restart, timed progression, rewards/purchases/rerolls/economy, all skeletal clips, continuous aim/gait and native mode/menu/input flows. The HUD suite drives actual button callbacks and checks desktop layout bounds. Rendered scene and menu screenshots are reviewed separately using Forward+ and Compatibility on Linux. Those software-rendered previews are visual checks, not Mac performance measurements.
-
-`MAC_README.md` contains player setup and controls. Native settings are saved under Godot's application user-data directory; run progress in this trial resets on leaving/restarting a hunt.
+Balanced rendering retains the existing 1.44M-pixel 3D budget independently of the Retina HUD; High uses 2.304M and Performance .8M. Mac frame rate still needs on-device playtesting. This build is ad-hoc signed, not Apple-notarized. The included Compatibility launcher is available if required. Settings persist; unfinished runs do not persist after leaving the game. See [Mac setup and controls](MAC_README.md).

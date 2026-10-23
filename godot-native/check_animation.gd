@@ -61,6 +61,7 @@ func run() -> void:
 		check(game.cast_dash() and game.player_unit.clip==game.archer.space,id+" defense activates its authored clip")
 		game.update_player(.1)
 		check(game.player_unit.clip==game.archer.space and game.invulnerable>0,id+" defense animates and protects")
+		game.update_player(.35)
 		check(game.cast_salvo() and game.player_unit.clip==game.archer.attack,id+" offense activates its authored clip")
 		var before_shots: int=game.shots
 		var release: float=float(game.archer.offense.cycle)*1.82/3.2 if float(game.archer.offense.cycle)>0 else .35

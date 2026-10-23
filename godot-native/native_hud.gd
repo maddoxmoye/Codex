@@ -267,7 +267,7 @@ func refresh() -> void:
 	objective_text.text="Wander, turn the camera and take in the light." if tour else "Read the warnings. Keep moving." if bool(s.practice) else "Defeat the guardian to earn a Mythic chest." if int(s.wave)%5==0 else "Survive until the camp opens."
 	boss_box.visible=not tour and str(s.stage)=="boss" and float(s.bossHp)>0
 	(boss_box.get_child(0) as Label).text=str(s.bossName).to_upper()
-	boss_bar.max_value=maxf(1,float(s.bossMax));boss_bar.value=float(s.bossHp);boss_text.text="%d / %d   ·   %s"%[ceili(float(s.bossHp)),int(s.bossMax),"THRONEBREAKER" if s.bossAction=="Melee" else "BRIAR DECREE" if s.bossAction=="Ranged" else "THE KING ADVANCES"]
+	boss_bar.max_value=maxf(1,float(s.bossMax));boss_bar.value=float(s.bossHp);boss_text.text="%d / %d   ·   %s"%[ceili(float(s.bossHp)),int(s.bossMax),str(s.bossMove).to_upper()]
 	dash_button.text="SPACE  "+s.archer.spaceName if float(s.dash)<=0 else s.archer.spaceName+" · %.1fs"%float(s.dash);dash_button.disabled=float(s.dash)>0
 	salvo_button.text="E  "+s.archer.attackName if float(s.salvo)<=0 else s.archer.attackName+" · %.1fs"%float(s.salvo);salvo_button.disabled=float(s.salvo)>0
 	for key in element_buttons:
@@ -275,7 +275,7 @@ func refresh() -> void:
 		b.add_theme_stylebox_override("normal",box_style(Color("2b3b2e") if key==s.element else Color("101b18e0"),ELEMENTS[key] if key==s.element else LINE,10,5))
 	fps_text.text="%d FPS  ·  %s"%[int(s.fps),current_preset.capitalize()]
 	tour_buttons.visible=tour
-	controls_text.text="WASD Move    Space Windskip    E Salvo    %s    Scroll Zoom    Esc Pause"%["Mouse Orbit · Free camera" if bool(game.get("free_camera")) else "Right-drag Orbit"]
+	controls_text.text="WASD Move    Space Defense    E Special    %s    Scroll Zoom    Esc Pause"%["Mouse Orbit · Free camera" if bool(game.get("free_camera")) else "Right-drag Orbit"]
 	if not bool(s.auto):controls_text.text+="    Click Fire"
 	var mode := "settings" if settings_open else "chest" if str(s.stage)=="chest" else "training" if str(s.stage)=="training" and not bool(s.ended) else "shop" if str(s.stage)=="shop" and not bool(s.ended) else "pause" if (bool(s.paused) or bool(s.ended)) and not title else ""
 	if title and not settings_open:mode=""
@@ -619,16 +619,19 @@ func add_inventory(parent: VBoxContainer, s: Dictionary, height:=140) -> void:
 		if value.state=="discarded":item_row.modulate=Color(1,1,1,.5)
 
 func build_pause(s: Dictionary) -> void:
-	var ended: bool=bool(s.ended);var heading: String="The crown falls." if ended and bool(s.victory) else "The forest won." if ended else "Take a breath."
-	modal_content.add_child(label("THE EMBERWOOD / "+("VICTORY" if bool(s.victory) else "DEFEATED") if ended else "THE EMBERWOOD / PAUSED",11,GOLD));modal_content.add_child(label(heading,40,IVORY,true))
+	var ended: bool=bool(s.ended);var survived_final: bool=ended and int(s.wave)==20 and float(s.hp)>0 and not bool(s.victory)
+	var heading: String="The crown falls." if ended and bool(s.victory) else "The crown endures." if survived_final else "The forest won." if ended else "Take a breath."
+	modal_content.add_child(label("THE EMBERWOOD / "+("VICTORY" if bool(s.victory) else "SURVIVED / GUARDIAN UNDEFEATED" if survived_final else "DEFEATED") if ended else "THE EMBERWOOD / PAUSED",11,GOLD));modal_content.add_child(label(heading,40,IVORY,true))
 	modal_content.add_child(paragraph("%d enemies defeated · %d damage dealt · %d damage taken · %.0f seconds"%[int(s.kills),int(s.dealt),int(s.taken),float(s.time)] if ended else "Wave %d · Level %d · The forest can wait."%[int(s.wave),int(s.level)],14,MUTED));modal_content.add_child(divider())
 	var body := row(36);modal_content.add_child(body);var stats_column := column(12);stats_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(stats_column);stats_column.add_child(label("CURRENT BUILD",11,GOLD));add_stats(stats_column,s)
 	var pack := column(12);pack.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(pack);pack.add_child(label("PACKED & EQUIPPED",11,GOLD));add_inventory(pack,s,240)
 	var actions := row();modal_content.add_child(actions)
-	if not ended:actions.add_child(button("Resume   →",func():_send("pause"),true))
+	if not ended:
+		actions.add_child(button("Resume   →",func():_send("pause"),true))
+		actions.add_child(button("Restart run",_begin.bind("start")))
 	else:actions.add_child(button("Try again   →",_begin.bind("boss" if bool(s.practice) else "start"),true))
 	actions.add_child(button("Settings",open_settings));actions.add_child(button("Return to title",_return_title));actions.add_child(button("Quit",func():get_tree().quit()))
-	modal_content.add_child(paragraph("WASD move · Space dash · E salvo · F toggles auto-aim · Right-drag orbit · Scroll zoom · 0–3 elements",11,MUTED))
+	modal_content.add_child(paragraph("WASD move · Space defense · E special · F toggles auto-aim · Right-drag orbit · Scroll zoom",11,MUTED))
 
 func build_settings() -> void:
 	modal_content.add_child(label("THE EMBERWOOD / SETTINGS",11,GOLD));modal_content.add_child(label("Make yourself at home.",36,IVORY,true));modal_content.add_child(divider())

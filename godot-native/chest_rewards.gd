@@ -33,6 +33,7 @@ func draw(mythic: bool) -> Dictionary:
 	var pool: Array=[]
 	var weights: Dictionary=MYTHIC_WEIGHTS if mythic else NORMAL_WEIGHTS
 	for item in game.build.catalog:
+		if item.has("arrow_type") or item.effects.has("fox") or item.effects.has("wolf") or item.effects.has("beetle"):continue
 		if game.build.eligible(item,game.equipped) and weights.has(item.rarity):pool.append(item)
 	# A completed Mythic collection falls back to premium rare gear, never a duplicate.
 	if pool.is_empty() and mythic:

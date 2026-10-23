@@ -194,7 +194,7 @@ func _ready() -> void:
 		set_master_volume(float(settings.get_value("audio","volume",.7)))
 		set_graphics_preset(str(settings.get_value("graphics","quality","balanced")))
 		return_to_title()
-	print("FIRST_HUNT_READY: playable Rowan, independent fox, three enemy types, Briar King and elemental arrows")
+	print("EMBERWOOD_READY: five unlocked archers, twenty waves, purchased companions/quivers and queued chest rewards")
 
 func build_world() -> void:
 	woodland=load("res://woodland.gd").new()
@@ -287,10 +287,10 @@ func make_unit(id: String, at: Vector3) -> HuntUnit:
 	add_child(unit)
 	unit.configure(id)
 	unit.position = at
-	if id not in ["fox"]:
+	if id not in ["fox","wolf","beetle"]:
 		unit.hp_bar = Node3D.new();unit.add_child(unit.hp_bar);unit.hp_bar.position.y=unit.height+.15
 		mesh_part(box(Vector3(.80,.09,.025)),material("152a28"),unit.hp_bar,Vector3.ZERO)
-		unit.hp_fill = mesh_part(box(Vector3(.70,.045,.030)),material("dfae78" if id!="rowan" else "a7d7a1"),unit.hp_bar,Vector3(0,0,.02))
+		unit.hp_fill = mesh_part(box(Vector3(.70,.045,.030)),material("a7d7a1" if id in Archers.IDS else "dfae78"),unit.hp_bar,Vector3(0,0,.02))
 	return unit
 
 func select_archer(id: String) -> bool:
@@ -343,6 +343,7 @@ func spawn_enemy(id: String, point: Vector3) -> HuntUnit:
 		if Campaign.is_boss(id):enemy.maximum=650*Campaign.health_scale(wave)*(1+.2*(wave/5));enemy.hp=enemy.maximum
 		enemy.speed*=1+minf(.45,.025*(wave-1))
 		enemy.damage_scale=Campaign.damage_scale(wave)
+		if Campaign.is_boss(id):enemy.damage_scale*=1.0-.1*(wave/5-1)
 	enemy.cooldown=.5+rng.randf()*.8
 	enemies.append(enemy)
 	if not Campaign.is_boss(id):spawned+=1
@@ -613,7 +614,7 @@ func finish_wave() -> void:
 	pickups.clear()
 	gain_xp(recovered_xp)
 	earn_gold(ground_gold*float(run_stats.salvage))
-	var bounty := 20+(wave-1)*8
+	var bounty := 12+(wave-1)*2
 	earn_gold(bounty)
 	var heal := minf(25,player_unit.maximum-player_unit.hp)
 	player_unit.hp+=heal
@@ -760,26 +761,7 @@ func update_enemy(enemy: HuntUnit, dt: float) -> void:
 	if enemy.state=="Attack":
 		enemy.action_time+=dt*rate
 		var t := enemy.action_time
-		if enemy.kind=="briar-king":
-			if enemy.clip=="Melee":
-				if t>=1.55 and not enemy.fired:
-					enemy.fired=true
-					pulse(enemy.attack_center,2.3,"e6be77",.6)
-					if native_fx:native_fx.burst(enemy.attack_center+Vector3.UP*.1,Color("d9ac69"),35,.12,5);native_fx.play_sound("slam",3);camera_kick=.09
-				if t>=1.55 and t<=2.15 and not enemy.wave_hit:
-					if player_unit.position.distance_to(enemy.attack_center)<2.3*clampf((t-1.55)/.6,0,1)+.35:
-						enemy.wave_hit=true;hurt_player(36*enemy.damage_scale,"Thronebreaker")
-				if t>=3.4:finish_attack(enemy,1.0)
-			else:
-				while enemy.release_index<3 and t>=[1.2,1.55,1.9][enemy.release_index]:
-					var angle: float = -.08 if enemy.release_index==1 else .08 if enemy.release_index==2 else 0
-					var offset := Vector3(.0000001,.71,0)
-					var start := enemy.socket("cannon",offset)
-					var direction := (enemy.attack_center+Vector3.UP*.95-start).normalized()
-					for side in [-1,0,1]:spawn_bolt(start,direction.rotated(Vector3.UP,side*.22+angle),"enemy",16*enemy.damage_scale,"thorn")
-					enemy.release_index+=1
-				if t>=3.8:finish_attack(enemy,.8)
-		elif enemy.kind=="sporecaller":
+		if enemy.kind=="sporecaller":
 			if t>=.72 and not enemy.fired:
 				enemy.fired=true
 				spawn_lob(enemy.socket("head",Vector3(0,.31,.3)),enemy.attack_center,enemy.damage_scale)
@@ -826,27 +808,16 @@ func begin_attack(enemy: HuntUnit) -> void:
 	enemy.rotation.y=atan2(enemy.aim.x,enemy.aim.z)
 	enemy.attack_center=player_unit.position
 	if is_instance_valid(enemy.warning):enemy.warning.queue_free()
-	if enemy.kind=="briar-king":
-		if enemy.position.distance_to(player_unit.position)<3.6:
-			enemy.play("Melee",true)
-			enemy.attack_center=enemy.position+Vector3(-.65,0,.94).rotated(Vector3.UP,enemy.rotation.y)
-			enemy.warning=warning_ring(2.3,"e7bd75",.8)
-			enemy.warning.position=enemy.attack_center+Vector3.UP*.04
-		else:
-			enemy.play("Ranged",true)
-			enemy.warning=warning_ring(.8,"f1b37c",.7)
-			enemy.warning.position=enemy.attack_center+Vector3.UP*.04
+	enemy.play("Attack",true)
+	if enemy.kind=="sporecaller":
+		enemy.warning=warning_ring(1.3,"d6ab79",.7)
+		enemy.warning.position=enemy.attack_center+Vector3.UP*.04
+	elif enemy.kind=="thornback":
+		enemy.warning=mesh_part(box(Vector3(1.1,.012,3.6)),material("e1ad75",0,.25),self,enemy.position+enemy.aim*1.8+Vector3.UP*.04)
+		enemy.warning.rotation.y=enemy.rotation.y
 	else:
-		enemy.play("Attack",true)
-		if enemy.kind=="sporecaller":
-			enemy.warning=warning_ring(1.3,"d6ab79",.7)
-			enemy.warning.position=enemy.attack_center+Vector3.UP*.04
-		elif enemy.kind=="thornback":
-			enemy.warning=mesh_part(box(Vector3(1.1,.012,3.6)),material("e1ad75",0,.25),self,enemy.position+enemy.aim*1.8+Vector3.UP*.04)
-			enemy.warning.rotation.y=enemy.rotation.y
-		else:
-			enemy.warning=warning_ring(.8,"e3b58b",.6)
-			enemy.warning.position=enemy.position+enemy.aim*.65+Vector3.UP*.04
+		enemy.warning=warning_ring(.8,"e3b58b",.6)
+		enemy.warning.position=enemy.position+enemy.aim*.65+Vector3.UP*.04
 
 func finish_attack(enemy: HuntUnit, rest: float) -> void:
 	enemy.state="Chase";enemy.cooldown=rest;enemy.play("Idle")
@@ -1058,7 +1029,7 @@ func spawn_pickup(point: Vector3, boss := false) -> void:
 	var coin := CylinderMesh.new();coin.top_radius=.12;coin.bottom_radius=.12;coin.height=.055;coin.radial_segments=10
 	mesh_part(coin,material("e8bc5c",.25),node,Vector3.ZERO).rotation.x=PI/2
 	mesh_part(sphere(.08),material("8bd4bb",.35),node,Vector3(.23,0,0))
-	pickups.append({"node":node,"gold":25 if boss else 6,"xp":50 if boss else 12})
+	pickups.append({"node":node,"gold":20 if boss else 2,"xp":50 if boss else 12})
 
 func collect_pickup(index: int) -> void:
 	if index<0 or index>=pickups.size():return
@@ -1105,4 +1076,4 @@ func snapshot() -> Dictionary:
 		if enemy.ice_time>0:statuses.ice+=1
 		if enemy.poison_time>0:statuses.poison+=1
 		enemy_states.append({"kind":enemy.kind,"hp":snappedf(enemy.hp,.1),"state":enemy.state,"clip":enemy.clip,"time":snappedf(enemy.action_time,.01),"x":snappedf(enemy.position.x,.01),"z":snappedf(enemy.position.z,.01),"poison":enemy.poison_stacks})
-	return {"chests":rewards.view(),"bossName":bosses.definitions[boss.kind].name if is_instance_valid(boss) else "Guardian","bossKills":boss_kills,"campaignWaves":Campaign.WAVES,"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":2.6*(1-float(run_stats.haste)),"salvoMax":11*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}
+	return {"chests":rewards.view(),"bossName":bosses.definitions[boss.kind].name if is_instance_valid(boss) else "Guardian","bossMove":bosses.definitions[boss.kind].get(boss.clip.to_lower(),{}).get("name","Advancing") if is_instance_valid(boss) else "","bossKills":boss_kills,"campaignWaves":Campaign.WAVES,"archer":archer,"selectedArcher":selected_archer,"isTitle":is_title,"tour":tour_mode,"graphicsPreset":graphics_preset,"renderer":RenderingServer.get_current_rendering_method(),"wave":wave,"waveLeft":snappedf(wave_left,.1),"waveKills":wave_kills,"practice":practice,"pendingLevels":pending_levels,"settlement":settlement,"build":build.view(gold,equipped),"criticalHits":critical_hits,"dashMax":float(archer.spaceCooldown)*(1-float(run_stats.haste)),"salvoMax":float(archer.attackCooldown)*(1-float(run_stats.haste)),"running":running,"paused":paused,"ended":ended,"victory":victory,"stage":stage,"time":snappedf(clock,.1),"hp":snappedf(player_unit.hp,.1),"maxHp":player_unit.maximum,"element":equipped,"elementPower":elemental_power,"auto":auto_fire,"dash":snappedf(dash_cooldown,.1),"salvo":snappedf(salvo_cooldown,.1),"invulnerable":invulnerable>0,"gold":gold,"xp":experience,"level":level,"xpNeeded":level*60,"kills":killed,"spawned":spawned,"alive":living_count(),"bossHp":boss.hp if is_instance_valid(boss) else 0,"bossMax":boss.maximum if is_instance_valid(boss) else 1200,"bossAction":boss.clip if is_instance_valid(boss) else "","shots":shots,"hits":hits,"petHits":pet_hits,"dotTicks":dot_ticks,"dealt":snappedf(dealt,.1),"taken":taken,"projectiles":projectiles.size(),"effects":effects.size(),"statuses":statuses,"enemies":enemy_states,"x":snappedf(player_unit.position.x,.01),"z":snappedf(player_unit.position.z,.01),"petDistance":snappedf(fox.position.distance_to(player_unit.position),.1),"fps":Engine.get_frames_per_second()}

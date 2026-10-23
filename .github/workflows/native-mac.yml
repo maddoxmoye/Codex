@@ -1,4 +1,4 @@
-name: Publish Emberwood Mac trial
+name: Publish Emberwood Mac campaign
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       source_ref:
         description: Verified source commit to export
         required: true
-        default: 117c21d6f42d8a6d65408828b152bfa9dbc7d0ba
+        default: main
         type: string
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(gh release view emberwood-mac-v0.1.0 --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true || {
+          test "$(gh release view emberwood-mac-v0.2.0 --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true || {
             echo 'This version is already published. Create a new version instead of replacing verified downloads.'
             exit 1
           }
@@ -54,11 +54,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload emberwood-mac-v0.1.0 \
+          gh release upload emberwood-mac-v0.2.0 \
             dist/native-demo/Wildfall-Emberwood-macOS.zip \
             dist/native-demo/Wildfall-Emberwood-source.zip \
             dist/native-demo/SHA256SUMS.txt \
             dist/native-demo/build-info.json \
             dist/native-demo/MAC_README.md \
             --repo "$GITHUB_REPOSITORY" --clobber
-          gh release edit emberwood-mac-v0.1.0 --repo "$GITHUB_REPOSITORY" --draft=false
+          gh release edit emberwood-mac-v0.2.0 --repo "$GITHUB_REPOSITORY" --draft=false
