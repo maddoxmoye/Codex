@@ -28,8 +28,10 @@ After trying the twenty-wave campaign, note the graphics preset and whether move
 
 Godot is free software under the MIT license. Engine and third-party notices are included in the **Licenses** folder. This game does not require an account, microphone or camera access.
 
-## Campaign build 0.2.0
+## Campaign build 0.2.1
 
 All five archers are unlocked. Select one and choose **Start Run**. Everyone starts with basic arrows and no companion. Buy elemental quivers, pets and their upgrades at the trader. Each wave lasts 45 seconds; guardian waves 5, 10, 15 and 20 last 75 seconds. Killing a guardian earns a Mythic chest; surviving its timer does not. The Colossus must die for campaign victory.
 
 Earned chests automatically collect at wave end and open before level rewards and the trader. Take the item, pay for a chest-specific reroll, or sell it. Defensive investment becomes essential in later waves. Pause to inspect your build or restart. Returning to the title discards the current run; this version does not save unfinished runs. Graphics/audio settings are saved.
+
+Character selection now uses illustrated crests, and reward cards hop out of chests before landing beside them.

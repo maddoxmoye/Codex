@@ -2,13 +2,14 @@ extends SubViewportContainer
 ## Native staged reveal. Its clock belongs to the reward UI, never to combat.
 signal completed
 signal reward_visible
+signal card_flight(progress: float, mouth: Vector2)
 const TIMING := {"normal":{"land":.35,"shake":.8,"open":1.2,"reward":1.45,"done":2.0},"mythic":{"land":.5,"shake":1.25,"open":1.85,"reward":2.15,"done":2.9}}
 var elapsed := 0.0
 var finished := false
 var reward_shown := false
 var chest: Node3D
 var lid: Node3D
-var treasure: MeshInstance3D
+var camera: Camera3D
 var rays: Node3D
 var sparks: Array[MeshInstance3D]=[]
 var timing: Dictionary
@@ -20,14 +21,14 @@ func part(parent: Node3D, size: Vector3, color: Color, point: Vector3, emission 
 	if emission>0:material.emission_enabled=true;material.emission=color;material.emission_energy_multiplier=emission
 	mesh.material_override=material;parent.add_child(mesh);mesh.position=point
 	return mesh
-func setup(mythic: bool, rarity: Color, texture: Texture2D) -> void:
+func setup(mythic: bool, rarity: Color, _texture: Texture2D) -> void:
 	stretch=true;custom_minimum_size=Vector2(360,320);size_flags_horizontal=Control.SIZE_EXPAND_FILL;mouse_filter=Control.MOUSE_FILTER_IGNORE
 	timing=TIMING.mythic if mythic else TIMING.normal
 	view=SubViewport.new();view.size=Vector2i(640,420);view.own_world_3d=true;view.transparent_bg=true;add_child(view)
 	var scene := Node3D.new();view.add_child(scene)
 	var environment := WorldEnvironment.new();environment.environment=Environment.new();environment.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;environment.environment.ambient_light_color=Color("fff2df");environment.environment.ambient_light_energy=.7;scene.add_child(environment)
 	var light := DirectionalLight3D.new();light.rotation_degrees=Vector3(-40,-25,0);light.light_energy=1.5;scene.add_child(light)
-	var camera := Camera3D.new();scene.add_child(camera);camera.position=Vector3(2.6,2.4,4.7);camera.look_at(Vector3(0,1.0,0));camera.fov=39
+	camera=Camera3D.new();scene.add_child(camera);camera.position=Vector3(2.6,2.4,4.7);camera.look_at(Vector3(0,1.0,0));camera.fov=39
 	chest=Node3D.new();scene.add_child(chest)
 	var wood := Color("9c382f") if mythic else Color("47735a")
 	var brass := Color("efbd65") if mythic else Color("b8a279")
@@ -47,9 +48,6 @@ func setup(mythic: bool, rarity: Color, texture: Texture2D) -> void:
 		ray.rotation.z=TAU*i/(16 if mythic else 10);ray.position=Vector3(sin(ray.rotation.z),cos(ray.rotation.z),0)*.8
 	for i in (32 if mythic else 16):
 		var spark := part(scene,Vector3.ONE*.035,brass,Vector3.ZERO,1.0);sparks.append(spark)
-	treasure=MeshInstance3D.new();var quad := QuadMesh.new();quad.size=Vector2.ONE*.8;treasure.mesh=quad
-	var mat := StandardMaterial3D.new();mat.albedo_texture=texture;mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;mat.billboard_mode=BaseMaterial3D.BILLBOARD_ENABLED;mat.no_depth_test=true
-	treasure.material_override=mat;scene.add_child(treasure)
 	advance(0)
 func _process(dt: float) -> void:advance(minf(dt,.1))
 func advance(dt: float) -> void:
@@ -63,8 +61,10 @@ func advance(dt: float) -> void:
 	lid.rotation.x=-1.95*opening
 	glow.light_energy=opening*2
 	rays.visible=opening>.05;rays.scale=Vector3.ONE*maxf(.001,opening);rays.rotation.z=elapsed*.18
-	treasure.visible=elapsed>float(timing.open)
-	treasure.position=Vector3(0,lerpf(.8,2.0,smoothstep(float(timing.open),float(timing.reward),elapsed)),.1)
+	# The real reward Control follows this clock, from the projected chest mouth to its dock.
+	var flight := clampf((elapsed-float(timing.open))/(float(timing.done)-.15-float(timing.open)),0,1)
+	var mouth := camera.unproject_position(chest.position+Vector3(0,.94,.1))/Vector2(view.size)*size
+	card_flight.emit(flight,mouth)
 	for i in sparks.size():
 		var spark := sparks[i];spark.visible=opening>.1
 		var phase := fposmod(elapsed-float(timing.shake)+float(i)*.061,1.8)/1.8

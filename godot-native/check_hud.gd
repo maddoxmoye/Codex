@@ -46,10 +46,13 @@ func run() -> void:
 	check(hud.captures_movement_input() and hud.captures_gameplay_input(),"Title blocks combat input")
 	check(game.selected_archer=="rowan","Rowan is selected by default")
 	check(hud.selection_buttons.size()==5,"All five character cards exist")
+	check(hud.title_layer.find_children("*","SubViewport",true,false).is_empty(),"Selection uses illustrated crests without model viewports")
+	check(hud.selection_crests.size()==5,"Each archer has an individual illustrated crest")
 	for id in game.Archers.IDS:
 		check(game.Archers.unlocked(id),id+" is immediately unlocked")
 		hud.selection_buttons[id].pressed.emit()
 		check(game.selected_archer==id,"Selection updates "+id)
+		check(hud.selection_crests[id].selected,"Selected crest follows "+id)
 		hud._begin("start")
 		check(game.player_unit.kind==id,"Start Run loads "+id)
 		hud._return_title()

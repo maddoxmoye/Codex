@@ -1,4 +1,4 @@
-# Wildfall — The Emberwood · native campaign 0.2.0
+# Wildfall — The Emberwood · native campaign 0.2.1
 
 The existing production Godot 4.6.3 game, expanded in place from main `a277452`. Native Forward+ / Metal on Mac, fullscreen by default, with the original Emberwood environment and approved trader preserved.
 
@@ -14,6 +14,8 @@ All five archers are unlocked for testing. Choose an archer and **Start Run**. E
 
 The approved GLB clips animate each action. Shared grounded locomotion continues underneath bow animations, and projectile events use the authored release markers. Defensive gestures take priority when abilities overlap; missed offensive releases do not burst out during an unrelated pose. Ash and Nyx's offensive cadence respects purchased attack-speed bonuses; Pip retains the defined 0.6-second gear fan.
 
+The selection screen uses five illustrated, animated crests instead of model previews. Each whole card selects its archer; role, kit and cooldown information remain visible below.
+
 ![All five archers](preview/characters.png)
 
 ## Campaign and rewards
@@ -24,7 +26,7 @@ The wave timer determines completion. Killing a boss early does not skip the rem
 
 Normal chests drop from non-brood monsters with 3.5% probability. All earned chests can be collected manually, and all remaining earned chests automatically collect at the boundary. Normal chests open first, followed by earned Mythic chests, then each queued level reward, then the trader. Final-wave rewards resolve before the outcome screen.
 
-Chests use a native 3D bounce/shake/lid/rays/sparks/reward-rise sequence. Green woodland chests and red/gold Mythic chests sit in the trader's warm neutral visual language; reward cards use its exact rarity colors. Take the item, pay for a separate escalating chest reroll, or sell it. Mythic chests come **only from boss deaths**; their premium table guarantees an eligible Mythic while one remains, then falls back to eligible rare gear. Mythics cannot be acquired twice, including through different reward sources. Recruitment and arrow-type items remain trader acquisitions.
+Chests use a native 3D bounce/shake/lid/rays/sparks sequence. The actual item card hops from the projected chest mouth, growing and tilting along an arc before settling upright at full size. Claim buttons unlock after the landing; normal and Mythic reveals share one animation clock. Green woodland chests and red/gold Mythic chests sit in the trader's warm neutral visual language; reward cards use its exact rarity colors. Take the item, pay for a separate escalating chest reroll, or sell it. Mythic chests come **only from boss deaths**; their premium table guarantees an eligible Mythic while one remains, then falls back to eligible rare gear. Mythics cannot be acquired twice, including through different reward sources. Recruitment and arrow-type items remain trader acquisitions.
 
 ![Mythic reward](preview/mythic-chest.png)
 
@@ -75,3 +77,7 @@ Seven headless suites cover combat, all archer clips/release markers, run/econom
 `build-native-demo.mjs` exports a universal `.app` and checks both arm64 and x86_64 Mach-O slices, ad-hoc signature page hashes, the game pack, archive integrity and executable permissions. Release assets are published under a new immutable version, not over the old trial.
 
 Balanced rendering retains the existing 1.44M-pixel 3D budget independently of the Retina HUD; High uses 2.304M and Performance .8M. Mac frame rate still needs on-device playtesting. This build is ad-hoc signed, not Apple-notarized. The included Compatibility launcher is available if required. Settings persist; unfinished runs do not persist after leaving the game. See [Mac setup and controls](MAC_README.md).
+
+## Desktop platforms
+
+The published 0.2.1 app is universal macOS (Apple Silicon and Intel). Godot supports native Windows and Linux exports from this same project, but Windows/Linux release binaries are not packaged or tested yet. The Mac ZIP does not run on those systems.

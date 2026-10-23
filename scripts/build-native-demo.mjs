@@ -12,7 +12,7 @@ const app = path.join(exportsDir, 'Wildfall Emberwood.app');
 const skipChecks = process.argv.includes('--skip-checks');
 const landingOnly = process.argv.includes('--landing-only');
 const releaseLinks = landingOnly || process.argv.includes('--release-links');
-const releaseTag = 'emberwood-mac-v0.2.0';
+const releaseTag = 'emberwood-mac-v0.2.1';
 const exists = async p => access(p).then(() => true, () => false);
 const env = {
   ...process.env,

@@ -159,36 +159,36 @@ var selection_detail: VBoxContainer
 var selection_buttons := {}
 var player_name: Label
 
-func archer_portrait(id: String, parent: Control) -> SubViewportContainer:
-	var holder := SubViewportContainer.new();holder.custom_minimum_size=Vector2(120,240);holder.stretch=true
-	holder.mouse_filter=Control.MOUSE_FILTER_IGNORE;holder.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	parent.add_child(holder)
-	var viewport := SubViewport.new();viewport.size=Vector2i(220,220);viewport.transparent_bg=true
-	viewport.own_world_3d=true;viewport.render_target_update_mode=SubViewport.UPDATE_ONCE;holder.add_child(viewport)
-	var actor := HuntUnit.new();viewport.add_child(actor);actor.configure(id);actor.pose(.4);actor.rotation.y=-.25
-	var light := DirectionalLight3D.new();light.rotation_degrees=Vector3(-35,-25,0);light.light_energy=1.4;viewport.add_child(light)
-	var fill := WorldEnvironment.new();fill.environment=Environment.new();fill.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;fill.environment.ambient_light_color=Color("fff1d6");fill.environment.ambient_light_energy=.7;viewport.add_child(fill)
-	var camera := Camera3D.new();viewport.add_child(camera);camera.position=Vector3(0,1.35,3.8);camera.look_at(Vector3(0,1.05,0));camera.fov=34
-	return holder
+var selection_crests := {}
+var selection_cards := {}
 
 func build_title() -> void:
 	title_layer=Control.new();ui.add_child(title_layer);title_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var shade := ColorRect.new();shade.color=SHOP_PANEL;title_layer.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var scroll := ScrollContainer.new();title_layer.add_child(scroll);scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);scroll.offset_left=40;scroll.offset_right=-40;scroll.offset_top=24;scroll.offset_bottom=-24;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	title_box=column(14);title_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(title_box)
-	var heading := row();title_box.add_child(heading);heading.add_child(label("Wildfall",40,SHOP_INK,true));heading.add_child(flex());heading.add_child(label("THE EMBERWOOD   /   CHOOSE YOUR ARCHER",12,SHOP_MUTED))
+	var heading := row();title_box.add_child(heading);heading.add_child(label("Wildfall",44,SHOP_INK,true));heading.add_child(flex());heading.add_child(label("THE EMBERWOOD   /   SURVIVAL",12,SHOP_MUTED))
 	title_box.add_child(divider(SHOP_LINE))
+	var intro := row();title_box.add_child(intro);intro.add_child(label("Who’s heading into the woods?",27,SHOP_INK,true));intro.add_child(flex());intro.add_child(label("5 ARCHERS  ·  20 WAVES  ·  ONE WILD RUN",11,SHOP_MUTED))
 	var cards := row(14);title_box.add_child(cards)
+	var identities := {"rowan":"DASH & VOLLEY","ash":"SPEED & FLURRIES","briar":"BRACE & BLAST","nyx":"WARD & EMPOWER","pip":"SLOW & OUTSMART"}
 	for id in game.Archers.IDS:
 		var info: Dictionary=game.Archers.get_archer(id)
-		var card := PanelContainer.new();card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.size_flags_stretch_ratio=1;cards.add_child(card)
-		card.add_theme_stylebox_override("panel",box_style(Color("e7e2d8"),Color(info.color),12,9))
-		var stack := column(5);card.add_child(stack);archer_portrait(id,stack)
-		var select := button(info.name,select_character.bind(id),false,true);select.name="Select_"+id;select.add_theme_font_size_override("font_size",21);stack.add_child(select);selection_buttons[id]=select
+		var select := button("",select_character.bind(id),false,true);select.name="Select_"+id;select.custom_minimum_size=Vector2(0,248);select.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		select.tooltip_text=info.name+" — "+info.role;cards.add_child(select);selection_buttons[id]=select
+		var stack := column(4);select.add_child(stack);stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);stack.offset_left=12;stack.offset_right=-12;stack.offset_top=8;stack.offset_bottom=-12
+		var crest=load("res://archer_crest.gd").new();crest.setup(id,Color(info.color));stack.add_child(crest);selection_crests[id]=crest
+		var name_label := label(info.name,26,SHOP_INK,true);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;stack.add_child(name_label)
 		var role := label(info.role,12,SHOP_MUTED);role.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;stack.add_child(role)
+		var identity := label(identities[id],10,SHOP_INK);identity.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;stack.add_child(identity)
+		var status := label("",10,SHOP_MUTED);status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;stack.add_child(status);selection_cards[id]=status
+		select.mouse_entered.connect(func():crest.hovered=true)
+		select.mouse_exited.connect(func():crest.hovered=false)
+		select.focus_entered.connect(func():crest.hovered=true)
+		select.focus_exited.connect(func():crest.hovered=false)
 	selection_detail=column(12);title_box.add_child(selection_detail);update_character_detail()
 	var controls := row();title_box.add_child(controls)
-	var start := button("Start Run",_begin.bind("start"),true,true);start.custom_minimum_size=Vector2(250,52);start.add_theme_stylebox_override("normal",box_style(SHOP_INK,SHOP_GOLD,14,6));start.add_theme_color_override("font_color",IVORY);controls.add_child(start);controls.add_child(flex())
+	var start := button("Start Run",_begin.bind("start"),true,true);start.custom_minimum_size=Vector2(250,52);start.add_theme_stylebox_override("normal",box_style(SHOP_INK,SHOP_GOLD,14,6));start.add_theme_color_override("font_color",IVORY);start.add_theme_stylebox_override("hover",box_style(Color("40453c"),SHOP_GOLD,14,6));start.add_theme_color_override("font_hover_color",IVORY);controls.add_child(start);controls.add_child(flex())
 	for pair in [["Explore the ruins","tour"],["Visit the trader","camp"],["Face the Briar King","boss"]]:controls.add_child(button(pair[0],_begin.bind(pair[1]),false,true))
 	controls.add_child(button("Settings",open_settings,false,true));controls.add_child(button("Quit",func():get_tree().quit(),false,true))
 	title_footer=label("WASD move   ·   Space defense   ·   E special   ·   Right-drag orbit   ·   F11 fullscreen",12,SHOP_MUTED);title_box.add_child(title_footer)
@@ -200,8 +200,13 @@ func update_character_detail() -> void:
 	for child in selection_detail.get_children():selection_detail.remove_child(child);child.queue_free()
 	var info: Dictionary=game.archer
 	for id in selection_buttons:
-		selection_buttons[id].text=("✓  " if id==game.selected_archer else "")+game.Archers.get_archer(id).name
-		selection_buttons[id].add_theme_stylebox_override("normal",box_style(Color(info.color) if id==game.selected_archer else Color("e2ded3"),Color("55554d"),12,6))
+		var chosen: bool=id==game.selected_archer
+		var accent := Color(game.Archers.get_archer(id).color)
+		selection_buttons[id].add_theme_stylebox_override("normal",box_style(accent.lightened(.64) if chosen else Color("e7e2d8"),accent.darkened(.35) if chosen else SHOP_LINE,12,9))
+		selection_buttons[id].add_theme_stylebox_override("hover",box_style(accent.lightened(.72),accent.darkened(.2),12,9))
+		selection_buttons[id].add_theme_stylebox_override("pressed",box_style(accent.lightened(.48),accent.darkened(.35),12,9))
+		selection_crests[id].selected=chosen;selection_crests[id].queue_redraw()
+		selection_cards[id].text="READY FOR THE WILD" if chosen else "CHOOSE ARCHER"
 	var detail := row(24);selection_detail.add_child(detail)
 	var identity := column(5);identity.size_flags_horizontal=Control.SIZE_EXPAND_FILL;detail.add_child(identity)
 	identity.add_child(label(info.name+"  /  "+info.role,24,SHOP_INK,true));identity.add_child(paragraph(info.description,14,SHOP_MUTED))
@@ -702,15 +707,30 @@ func build_chest(s: Dictionary) -> void:
 	var accent: Color=SHOP_RARITY_BORDERS[item.rarity]
 	var eyebrow := label("GUARDIAN SPOILS / MYTHIC CHEST" if reward.mythic else "SPOILS OF THE EMBERWOOD",12,SHOP_GOLD);eyebrow.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(eyebrow)
 	var heading := label("A crown's ransom." if reward.mythic else "Something worth keeping.",36,SHOP_INK,true);heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(heading)
-	var body := row(24);modal_content.add_child(body)
+	var body := Control.new();body.name="ChestStage";body.custom_minimum_size=Vector2(0,340);modal_content.add_child(body)
 	var reveal=load("res://chest_reveal.gd").new();reveal.name="ChestReveal";body.add_child(reveal)
 	var image := icon(str(item.icon),accent,88)
 	reveal.setup(bool(reward.mythic),accent,image.texture)
-	var card := PanelContainer.new();card.name="ChestRewardCard";card.custom_minimum_size.x=350;card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(card);card.add_theme_stylebox_override("panel",shop_card_style(item.rarity,false))
+	reveal.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE);reveal.anchor_right=.48;reveal.custom_minimum_size=Vector2.ZERO
+	var card := PanelContainer.new();card.name="ChestRewardCard";card.custom_minimum_size=Vector2(350,320);body.add_child(card);card.add_theme_stylebox_override("panel",shop_card_style(item.rarity,false))
 	var content := column(14);card.add_child(content);content.add_child(label(str(item.rarity).to_upper()+" / FOUND ITEM",12,accent));content.add_child(image);content.add_child(label(item.name,26,SHOP_CARD_TEXT,true));content.add_child(paragraph(item.description,15,SHOP_CARD_MUTED))
 	for line in shop_effect_lines(item):content.add_child(paragraph(line.text,15,SHOP_GAIN if line.positive else SHOP_LOSS))
 	card.modulate.a=0
-	reveal.reward_visible.connect(func():card.modulate.a=1.0)
+	# Animate the entire readable item card, rather than a duplicate item icon.
+	reveal.card_flight.connect(func(progress: float, mouth: Vector2):
+		card.size=Vector2(maxf(350,body.size.x*.49),maxf(320,card.get_combined_minimum_size().y))
+		var dock := Vector2(body.size.x-card.size.x,(body.size.y-card.size.y)*.5)
+		var start: Vector2=reveal.position+mouth
+		var eased := 1.0-pow(1.0-progress,3)
+		var center: Vector2=start.lerp(dock+card.size*.5,eased)
+		center.y-=sin(progress*PI)*(100 if bool(reward.mythic) else 75)
+		card.pivot_offset=card.size*.5
+		card.position=center-card.size*.5
+		var grow := lerpf(.08,1.0,eased)+sin(progress*PI)*.10
+		card.scale=Vector2.ONE*grow
+		card.rotation=sin(progress*PI)*-.14
+		card.modulate.a=clampf(progress*8,0,1)
+	)
 	var caption := label("%d chest%s remaining · Level rewards and trader follow"%[int(s.chests.queued),"" if int(s.chests.queued)==1 else "s"],12,SHOP_MUTED);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;modal_content.add_child(caption)
 	var choices := row();choices.alignment=BoxContainer.ALIGNMENT_CENTER;modal_content.add_child(choices)
 	var take := button("Take item",_send.bind("chest:take:"+str(reward.token)),true,true);choices.add_child(take)

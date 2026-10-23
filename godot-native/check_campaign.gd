@@ -31,8 +31,16 @@ func run() -> void:
 	var reveal=game.native_hud.modal_panel.find_child("ChestReveal",true,false)
 	check(reveal!=null and not reveal.finished,"Dedicated native reveal starts before claim buttons")
 	if reveal:
-		reveal.set_process(false);reveal.advance(2.1)
-		check(reveal.finished and reveal.lid.rotation.x< -1.8 and reveal.treasure.visible,"Native chest opens and reward rises before completion")
+		reveal.set_process(false)
+		var card: Control=game.native_hud.modal_panel.find_child("ChestRewardCard",true,false)
+		reveal.advance(1.2)
+		check(card.modulate.a==0,"Whole reward card stays hidden until lid opens")
+		reveal.advance(.15)
+		check(card.modulate.a>0 and card.scale.x<1 and absf(card.rotation)>.01,"Actual reward card scales and tilts out of chest mid-flight")
+		var flight_position := card.position
+		reveal.advance(.75)
+		check(card.scale.is_equal_approx(Vector2.ONE) and is_zero_approx(card.rotation) and card.position!=flight_position,"Reward card settles upright at readable full size")
+		check(reveal.finished and reveal.lid.rotation.x< -1.8 and game.native_hud.modal_panel.find_child("ChestRewardCard",true,false).modulate.a==1.0,"Native chest opens and reward rises before completion")
 	for i in 3:
 		var token: int=game.rewards.current.token
 		check(game.rewards.resolve("take",token),"Sequential chest can be claimed")

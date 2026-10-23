@@ -27,3 +27,12 @@ Successful release workflow: https://github.com/maddoxmoye/Codex/actions/runs/39
 The public Mac ZIP was downloaded again and verified against the release SHA-256 and ZIP CRCs. `godot-native/release-info.json` records the published CI artifact, whose packed archive differs slightly from the separately verified local export. The editable source ZIP hashes match.
 
 Mac runtime/FPS remain unmeasured; the Linux software-rendered reveal is visual evidence only. Forward+ software-render captures report shutdown texture/ObjectDB warnings; headless gameplay validation and exported bundle checks pass. No macOS notarization or unfinished-run persistence is included in this playtest build.
+
+
+## Presentation update 0.2.1
+
+Replaced five title-screen model SubViewports with native 2D archer crests: bow, flame, shield, crescent and clockwork. Whole-card buttons preserve keyboard focus, hover/selection feedback, role and ability information. Gameplay character assets and the trader are unchanged.
+
+The chest reveal now drives a projected mouth position and normalized flight progress from its existing timeline. The real reward PanelContainer scales, rotates and follows an arc to its readable dock. No duplicate floating icon or separate animation timer is used. Claim buttons remain disabled until landing. Tests cover pre-release concealment, intermediate card motion, final upright size and unchanged sequential rewards.
+
+All seven suites passed during the universal Mac export; the campaign suite now has 1,705 assertions. Screenshots and native frame-captured reveal video were reviewed. Windows/Linux are supported export targets but remain unshipped and untested as standalone release builds.
