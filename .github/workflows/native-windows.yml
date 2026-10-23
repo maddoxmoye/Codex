@@ -1,0 +1,91 @@
+name: Publish Emberwood Windows playtest
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Verified source commit to export
+        required: true
+        default: main
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: emberwood-windows-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/cache@v5
+        with:
+          path: |
+            .godot-tools
+            godot-demo/.templates
+            godot-native/.templates
+          key: godot-4.6.3-emberwood-windows-v1
+          restore-keys: godot-4.6.3-emberwood-mac-v1
+      - name: Install official Godot tools
+        run: |
+          bash scripts/install-godot-web.sh
+          bash scripts/install-godot-windows.sh
+      - name: Validate and export Windows x64
+        run: python3 scripts/build-native-windows.py
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.godot-tools/godot
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wildfall-Windows-verified
+          path: dist/native-windows/*
+          compression-level: 0
+          if-no-files-found: error
+  windows-smoke:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Wildfall-Windows-verified
+          path: package
+      - name: Start exported game on Windows
+        shell: pwsh
+        run: |
+          Expand-Archive package/Wildfall-Emberwood-Windows-x64.zip -DestinationPath playtest
+          $exe = Join-Path $PWD 'playtest/Wildfall-Emberwood/Wildfall-Emberwood.exe'
+          $stdout = Join-Path $PWD 'windows-stdout.log'
+          $stderr = Join-Path $PWD 'windows-stderr.log'
+          $process = Start-Process -FilePath $exe -ArgumentList '--headless','--quit-after','90' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'Windows game startup timed out' }
+          $process.WaitForExit()
+          $log = (Get-Content $stdout -Raw) + (Get-Content $stderr -Raw)
+          Write-Output $log
+          if ($process.ExitCode -ne 0 -or $log -match 'SCRIPT ERROR:|Parse Error:|ERROR:') { throw 'Windows startup failed' }
+          if ($log -notmatch 'EMBERWOOD_READY:') { throw 'Windows game did not initialize' }
+          Write-Output 'WINDOWS_RUNTIME_OK: exported x64 executable initialized production arena and exited cleanly'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Windows-startup-logs
+          path: windows-*.log
+  publish:
+    needs: [build, windows-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Wildfall-Windows-verified
+          path: package
+      - name: Publish verified Windows release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh release view emberwood-windows-v0.2.1 --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true
+          gh release upload emberwood-windows-v0.2.1 package/* --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit emberwood-windows-v0.2.1 --repo "$GITHUB_REPOSITORY" --draft=false

@@ -80,4 +80,8 @@ Balanced rendering retains the existing 1.44M-pixel 3D budget independently of t
 
 ## Desktop platforms
 
-The published 0.2.1 app is universal macOS (Apple Silicon and Intel). Godot supports native Windows and Linux exports from this same project, but Windows/Linux release binaries are not packaged or tested yet. The Mac ZIP does not run on those systems.
+Version 0.2.1 has separate [Mac](https://github.com/maddoxmoye/Codex/releases/tag/emberwood-mac-v0.2.1) and [Windows x64](https://github.com/maddoxmoye/Codex/releases/tag/emberwood-windows-v0.2.1) packages. The Windows ZIP is portable: extract all files and run `Wildfall-Emberwood.exe` beside its `.pck`. See [Windows instructions](WINDOWS_README.md). Linux remains a supported Godot export target but has no packaged release yet.
+
+Windows builds run all seven validation suites, verify the exported AMD64 executable/resource pack/ZIP, then start the actual exported game headlessly on a Windows runner before publication. This verifies startup, not real GPU performance. For a slower laptop, select Settings → Performance.
+
+Rebuild Windows with `bash scripts/install-godot-windows.sh` followed by `python3 scripts/build-native-windows.py` (Godot 4.6.3 and Node required). `native-windows.yml` handles export, Windows startup validation and publication.
